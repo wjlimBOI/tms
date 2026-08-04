@@ -1,0 +1,186 @@
+// app/api/bq/export/route.ts
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { query } from "@/lib/db";
+import * as XLSX from "xlsx";
+
+const UNIT_MAP: Record<string, string> = {
+  NOS: "Nos",
+  SET: "Set",
+  M: "m",
+  M2: "m²",
+  M3: "m³",
+  MM: "mm",
+  MM2: "mm²",
+  CM2: "cm²",
+  KG: "kg",
+  LOT: "Lot",
+  LS: "L.S.",
+};
+
+function getUnitDisplay(code: string): string {
+  return UNIT_MAP[code] || code;
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "SGD",
+    minimumFractionDigits: 2,
+  }).format(value);
+}
+
+export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const url = new URL(req.url);
+  const submissionId = url.searchParams.get("submissionId");
+  if (!submissionId) {
+    return NextResponse.json({ error: "Missing submissionId" }, { status: 400 });
+  }
+
+  const userRoleId = (session.user as any)?.role_id;
+  const userId = session.user.id;
+
+  // Access control
+  let hasAccess = false;
+  if (userRoleId === 1) {
+    hasAccess = true;
+  } else {
+    const check = await query(
+      `SELECT 1 FROM tender_submission WHERE submission_id = $1 AND contractor_id = $2`,
+      [submissionId, userId]
+    );
+    hasAccess = check.rows.length > 0;
+  }
+  if (!hasAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Fetch categories that are enabled for this submission
+  const categoriesRes = await query(
+    `SELECT c.category_id, c.category_name, c.sort_order
+     FROM submission_category sc
+     JOIN work_category c ON sc.category_id = c.category_id
+     WHERE sc.submission_id = $1
+     ORDER BY sc.sort_order`,
+    [submissionId]
+  );
+  const categories = categoriesRes.rows;
+
+  if (categories.length === 0) {
+    const wsData = [["No categories found for this submission"]];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "BQ_Submission");
+    const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+    return new NextResponse(buffer, {
+      status: 200,
+      headers: {
+        "Content-Disposition": `attachment; filename="bq_submission_${submissionId}.xlsx"`,
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    });
+  }
+
+  // Prepare worksheet data
+  const wsData: any[][] = [];
+
+  // Global header (similar to viewing page)
+  wsData.push(["BILL OF QUANTITIES"]);
+  wsData.push([]);
+
+  let grandTotal = 0;
+
+  for (let catIdx = 0; catIdx < categories.length; catIdx++) {
+    const category = categories[catIdx];
+    const categoryId = category.category_id;
+    const categoryName = category.category_name;
+
+    // Fetch items for this category, ordered by sort_order
+    const itemsRes = await query(
+      `SELECT 
+         line_item_id,
+         description,
+         quantity,
+         unit,
+         unit_price,
+         discount,
+         amount
+       FROM bq_line_item
+       WHERE submission_id = $1 AND category_id = $2
+       ORDER BY sort_order`,
+      [submissionId, categoryId]
+    );
+    const items = itemsRes.rows;
+
+    if (items.length === 0) continue;
+
+    // Category header
+    wsData.push([`${catIdx + 1}. ${categoryName}`]);
+    wsData.push([]);
+
+    // Table header
+    wsData.push([
+      "Item No.",
+      "Description",
+      "Quantity",
+      "Unit",
+      "Unit Rate (SGD)",
+      "Discount (SGD)",
+      "Amount (SGD)",
+    ]);
+
+    // Items with item numbers
+    let categoryTotal = 0;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const itemNo = `${catIdx + 1}.${(i + 1).toString().padStart(2, "0")}`;
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      const discount = Number(item.discount) || 0;
+      const amount = Number(item.amount) || 0;
+
+      wsData.push([
+        itemNo,
+        item.description,
+        quantity,
+        getUnitDisplay(item.unit),
+        unitPrice,
+        discount,
+        amount,
+      ]);
+      categoryTotal += amount;
+    }
+
+    // Category subtotal
+    wsData.push([]);
+    wsData.push(["", "", "", "", "", "Category Subtotal:", formatCurrency(categoryTotal)]);
+    wsData.push([]);
+
+    grandTotal += categoryTotal;
+  }
+
+  // Grand total
+  wsData.push(["", "", "", "", "", "GRAND TOTAL:", formatCurrency(grandTotal)]);
+
+  // Auto-size columns
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{wch:12}, {wch:50}, {wch:12}, {wch:12}, {wch:15}, {wch:15}, {wch:18}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "BQ_Submission");
+  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+  return new NextResponse(buffer, {
+    status: 200,
+    headers: {
+      "Content-Disposition": `attachment; filename="bq_submission_${submissionId}.xlsx"`,
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    },
+  });
+}

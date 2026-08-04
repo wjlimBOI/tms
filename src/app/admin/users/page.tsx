@@ -1,0 +1,963 @@
+"use client";
+
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { format } from "date-fns";
+import { sortRoles, type Role } from "@/lib/roleSort";
+
+// Extend User interface
+interface User {
+  user_id: number;
+  username: string;
+  email: string;
+  display_name?: string;
+  role_id: number;
+  role_name?: string;
+  is_active: boolean;
+  is_approved: boolean;
+  access_start_date: string | null;
+  access_end_date: string | null;
+  last_login: string | null;
+  created_at: string;
+  company_name?: string;
+}
+
+// Role colour map (by role_id)
+const roleColorMap: Record<number, string> = {
+  1: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/50 dark:text-purple-200 dark:border-purple-500",
+  2: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-500",
+  3: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-500",
+  4: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-200 dark:border-indigo-500",
+  5: "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/50 dark:text-teal-200 dark:border-teal-500",
+  6: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-200 dark:border-emerald-500",
+  8: "bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-900/50 dark:text-sky-200 dark:border-sky-500",
+  9: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-200 dark:border-orange-500",
+  10: "bg-lime-100 text-lime-800 border-lime-200 dark:bg-lime-900/50 dark:text-lime-200 dark:border-lime-500",
+  11: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/50 dark:text-rose-200 dark:border-rose-500",
+  12: "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/50 dark:text-fuchsia-200 dark:border-fuchsia-500",
+  13: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/50 dark:text-cyan-200 dark:border-cyan-500",
+  14: "bg-slate-200 text-slate-800 border-slate-300 dark:bg-slate-600/50 dark:text-slate-200 dark:border-slate-400",
+  22: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-200 dark:border-green-500",
+};
+
+// StyledModal component (unchanged)
+interface StyledModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  note?: string;
+  type: "confirm" | "success" | "error";
+  onConfirm?: () => void;
+  confirmText?: string;
+  cancelText?: string;
+}
+
+const StyledModal: React.FC<StyledModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  message,
+  note,
+  type,
+  onConfirm,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+}) => {
+  if (!isOpen) return null;
+
+  const getIconColors = () => {
+    switch (type) {
+      case "success":
+        return {
+          bg: "bg-emerald-100 dark:bg-emerald-500/20",
+          icon: "text-emerald-600 dark:text-emerald-400",
+          button: "from-emerald-600 to-teal-600",
+        };
+      case "error":
+        return {
+          bg: "bg-rose-100 dark:bg-rose-500/20",
+          icon: "text-rose-600 dark:text-rose-400",
+          button: "from-rose-600 to-pink-600",
+        };
+      default:
+        return {
+          bg: "bg-blue-100 dark:bg-blue-500/20",
+          icon: "text-blue-600 dark:text-blue-400",
+          button: "from-blue-600 to-indigo-600",
+        };
+    }
+  };
+
+  const colors = getIconColors();
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center`}>
+              {type === "success" ? (
+                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : type === "error" ? (
+                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              )}
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            {message}
+            {note && <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">{note}</span>}
+          </p>
+          <div className="flex gap-3 justify-end">
+            {type === "confirm" && (
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-medium text-sm"
+              >
+                {cancelText}
+              </button>
+            )}
+            <button
+              onClick={type === "confirm" ? onConfirm : onClose}
+              className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}
+            >
+              {type === "confirm" ? confirmText : "OK"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main component
+export default function AdminUsersPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Server-driven state
+  const [users, setUsers] = useState<User[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [rolesError, setRolesError] = useState<string | null>(null);
+
+  // Modal and form state
+  const [showModal, setShowModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    display_name: "",
+    password: "",
+    role_id: 4,
+    is_active: true,
+    access_start_date: "",
+    access_end_date: "",
+    company_name: "",
+  });
+  const [sending, setSending] = useState<number | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; userId: number | null; email: string }>({
+    open: false,
+    userId: null,
+    email: "",
+  });
+  const [successModal, setSuccessModal] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: "",
+  });
+  const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: "",
+  });
+
+  // Filters and pagination
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
+  const [roleFilter, setRoleFilter] = useState(() => searchParams.get("role_id") || "");
+  const [excludeRoleFilter, setExcludeRoleFilter] = useState<string>("");
+  const [activeFilter, setActiveFilter] = useState(() => searchParams.get("is_active") || "");
+  const [approvedFilter, setApprovedFilter] = useState(() => searchParams.get("is_approved") || "");
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<"internal" | "external">("internal");
+
+  // Counts for tabs
+  const [internalCount, setInternalCount] = useState(0);
+  const [externalCount, setExternalCount] = useState(0);
+  const [contractorRoleId, setContractorRoleId] = useState<number | null>(null);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, roleFilter, excludeRoleFilter, activeFilter, approvedFilter, activeTab]);
+
+  // Fetch roles
+  useEffect(() => {
+    setRolesLoading(true);
+    setRolesError(null);
+    fetch("/api/admin/roles")
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        const sorted = sortRoles(data);
+        setRoles(sorted);
+        const contractor = sorted.find(r => r.role_name === "Contractor");
+        setContractorRoleId(contractor?.role_id || null);
+      })
+      .catch((err) => {
+        console.error("Error fetching roles:", err);
+        setRolesError("Could not load roles. Please refresh.");
+        setRoles([]);
+      })
+      .finally(() => setRolesLoading(false));
+  }, []);
+
+  // Fetch users with server-side pagination and filters
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', currentPage.toString());
+      params.set('limit', pageSize.toString());
+      if (search) params.set('search', search);
+      if (roleFilter) params.set('role_id', roleFilter);
+      if (excludeRoleFilter) params.set('exclude_role_id', excludeRoleFilter);
+      if (activeFilter !== '') params.set('is_active', activeFilter);
+      if (approvedFilter !== '') params.set('is_approved', approvedFilter);
+
+      const res = await fetch(`/api/admin/users?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const data = await res.json();
+      setUsers(data.users);
+      setTotalUsers(data.total);
+      setTotalPages(data.totalPages);
+      setError(null);
+    } catch (err) {
+      setError('Could not load users. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, pageSize, search, roleFilter, excludeRoleFilter, activeFilter, approvedFilter]);
+
+  // Fetch counts for both tabs
+  const fetchCounts = useCallback(async () => {
+    if (!contractorRoleId) return;
+
+    // Internal: exclude contractor
+    const internalRes = await fetch(`/api/admin/users?limit=1&page=1&exclude_role_id=${contractorRoleId}`);
+    const internalData = await internalRes.json();
+    setInternalCount(internalData.total || 0);
+
+    // External: only contractor
+    const externalRes = await fetch(`/api/admin/users?limit=1&page=1&role_id=${contractorRoleId}`);
+    const externalData = await externalRes.json();
+    setExternalCount(externalData.total || 0);
+  }, [contractorRoleId]);
+
+  // Trigger fetches when dependencies change
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session || (session.user as any).role_id !== 1) {
+      router.push("/");
+      return;
+    }
+    fetchUsers();
+    if (contractorRoleId) fetchCounts();
+  }, [session, status, router, fetchUsers, fetchCounts, contractorRoleId]);
+
+  // Update URL with filters
+  const updateUrl = useCallback(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (roleFilter) params.set("role_id", roleFilter);
+    if (excludeRoleFilter) params.set("exclude_role_id", excludeRoleFilter);
+    if (activeFilter) params.set("is_active", activeFilter);
+    if (approvedFilter) params.set("is_approved", approvedFilter);
+    router.replace(`/admin/users?${params.toString()}`, { scroll: false });
+  }, [search, roleFilter, excludeRoleFilter, activeFilter, approvedFilter, router]);
+
+  useEffect(() => {
+    updateUrl();
+  }, [updateUrl]);
+
+  // Tab switching
+  const switchTab = (tab: "internal" | "external") => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    if (tab === "internal") {
+      setRoleFilter("");
+      setExcludeRoleFilter(contractorRoleId ? String(contractorRoleId) : "");
+    } else {
+      setExcludeRoleFilter("");
+      setRoleFilter(contractorRoleId ? String(contractorRoleId) : "");
+    }
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setSearch("");
+    setRoleFilter("");
+    setExcludeRoleFilter("");
+    setActiveFilter("");
+    setApprovedFilter("");
+    setCurrentPage(1);
+  };
+
+  // Handle delete
+  const handleDelete = async (userId: number) => {
+    if (!confirm("Delete this user permanently? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Deletion failed");
+      fetchUsers();
+    } catch (err) {
+      setErrorModal({ open: true, message: "Error deleting user" });
+    }
+  };
+
+  // Email blur (auto-fill username)
+  const handleEmailBlur = () => {
+    if (!editingUser && formData.email && !formData.username) {
+      const usernameFromEmail = formData.email.split("@")[0];
+      setFormData((prev) => ({ ...prev, username: usernameFromEmail }));
+    }
+  };
+
+  // Open create modal
+  const openCreateModal = () => {
+    setEditingUser(null);
+    setFormData({
+      username: "",
+      email: "",
+      display_name: "",
+      password: "",
+      role_id: roles.length ? roles[0].role_id : 4,
+      is_active: true,
+      access_start_date: "",
+      access_end_date: "",
+      company_name: "",
+    });
+    setShowModal(true);
+  };
+
+  // Open edit modal
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      username: user.username,
+      email: user.email,
+      display_name: user.display_name || "",
+      password: "",
+      role_id: user.role_id,
+      is_active: user.is_active,
+      access_start_date: user.access_start_date?.split("T")[0] || "",
+      access_end_date: user.access_end_date?.split("T")[0] || "",
+      company_name: user.company_name || "",
+    });
+    setShowModal(true);
+  };
+
+  // Submit create/edit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let url = "/api/admin/users";
+      let method = "POST";
+      const payload: any = {
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        display_name: formData.display_name.trim() || null,
+        role_id: formData.role_id,
+        is_active: formData.is_active,
+        is_approved: true,
+        access_start_date: formData.access_start_date || null,
+        access_end_date: formData.access_end_date || null,
+        company_name: formData.company_name.trim(),
+      };
+      if (formData.password) payload.password = formData.password;
+      if (editingUser) {
+        url = `/api/admin/users/${editingUser.user_id}`;
+        method = "PUT";
+      }
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Operation failed");
+      }
+      setShowModal(false);
+      fetchUsers();
+    } catch (err: any) {
+      setErrorModal({ open: true, message: err.message });
+    }
+  };
+
+  // Request send email
+  const requestSendEmail = (userId: number, email: string) => {
+    setConfirmModal({ open: true, userId, email });
+  };
+
+  const confirmSendEmail = async () => {
+    const { userId, email } = confirmModal;
+    if (!userId) return;
+    setSending(userId);
+    setConfirmModal({ open: false, userId: null, email: "" });
+    try {
+      const res = await fetch("/api/admin/users/resend-welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      if (!res.ok) throw new Error("Failed to send email");
+      setSuccessModal({ open: true, message: `Welcome email has been sent to ${email}.` });
+    } catch (err) {
+      setErrorModal({ open: true, message: "Could not send email. Please try again." });
+    } finally {
+      setSending(null);
+    }
+  };
+
+  // Helper functions
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "—";
+    return format(new Date(dateStr), "dd/MM/yyyy HH:mm");
+  };
+
+  const getRoleName = (roleId: number) => {
+    const role = roles.find((r) => r.role_id === roleId);
+    return role ? (role.display_name || role.role_name) : `Role ${roleId}`;
+  };
+
+  const getRoleColor = (roleId: number) => {
+    return roleColorMap[roleId] || "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-600";
+  };
+
+  const handleSearchChange = (value: string) => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => setSearch(value), 400);
+  };
+
+  // Loading / error states
+  if (status === "loading" || (loading && users.length === 0)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-cyan-300/70">Loading users…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && users.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-[#0a1228]">
+        <div className="bg-red-100 dark:bg-red-500/20 border border-red-300 dark:border-red-500/50 rounded-2xl p-8 text-center max-w-md">
+          <p className="text-red-700 dark:text-red-200">{error}</p>
+          <button onClick={() => fetchUsers()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen relative overflow-hidden bg-gray-50 dark:bg-[#0a1228]">
+      {/* Animated blur circles */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
+
+      <div className="relative z-10 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">User Administration</h1>
+              <p className="text-gray-500 dark:text-cyan-300/70 text-sm mt-1">Manage system users, roles, and organisations</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => fetchUsers()}
+                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm dark:shadow-lg text-gray-700 dark:text-white bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-all duration-200"
+                title="Refresh users"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+              <button
+                onClick={openCreateModal}
+                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm dark:shadow-lg text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 dark:from-cyan-500 dark:to-blue-600 dark:hover:from-cyan-600 dark:hover:to-blue-700 transition-all duration-200 hover:-translate-y-0.5"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                New User
+              </button>
+            </div>
+          </div>
+
+          {/* Filter card */}
+          <div className="bg-white dark:bg-[#0a1228]/90 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-cyan-500/30 p-5 mb-6 shadow-sm dark:shadow-none">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider mb-1">Search</label>
+                <input
+                  type="text"
+                  placeholder="Username or email..."
+                  defaultValue={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:focus:ring-cyan-400 focus:border-transparent px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider mb-1">Role</label>
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:focus:ring-cyan-400 px-3 py-2 text-sm"
+                >
+                  <option value="">All Roles</option>
+                  {roles.map((role) => (
+                    <option key={role.role_id} value={role.role_id}>
+                      {role.display_name || role.role_name}
+                    </option>
+                  ))}
+                </select>
+                {rolesError && <p className="text-xs text-red-500 mt-1">{rolesError}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider mb-1">Status</label>
+                <select
+                  value={activeFilter}
+                  onChange={(e) => setActiveFilter(e.target.value)}
+                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:focus:ring-cyan-400 px-3 py-2 text-sm"
+                >
+                  <option value="">All</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider mb-1">Approval</label>
+                <select
+                  value={approvedFilter}
+                  onChange={(e) => setApprovedFilter(e.target.value)}
+                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:focus:ring-cyan-400 px-3 py-2 text-sm"
+                >
+                  <option value="">All</option>
+                  <option value="true">Approved</option>
+                  <option value="false">Pending</option>
+                </select>
+              </div>
+              <div>
+                <button
+                  onClick={clearFilters}
+                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-cyan-600 dark:border-cyan-500/50 rounded-lg text-sm font-medium text-cyan-700 dark:text-cyan-300 bg-transparent hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="border-b border-gray-200 dark:border-white/10 mb-6">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => switchTab("internal")}
+                className={`py-2 px-1 border-b-2 text-sm font-medium transition-colors ${
+                  activeTab === "internal"
+                    ? "border-cyan-600 text-cyan-700 dark:border-cyan-400 dark:text-cyan-300"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300"
+                }`}
+              >
+                Internal Organisation ({internalCount})
+              </button>
+              <button
+                onClick={() => switchTab("external")}
+                className={`py-2 px-1 border-b-2 text-sm font-medium transition-colors ${
+                  activeTab === "external"
+                    ? "border-cyan-600 text-cyan-700 dark:border-cyan-400 dark:text-cyan-300"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300"
+                }`}
+              >
+                External (Contractors) ({externalCount})
+              </button>
+            </nav>
+          </div>
+
+          {/* Users table */}
+          <div className="bg-white dark:bg-[#0a1228]/90 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-cyan-500/30 overflow-hidden shadow-sm dark:shadow-none">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-white/10">
+                <thead className="bg-gray-50 dark:bg-white/5">
+                  <tr>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Display Name</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Username</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Organisation</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Approved</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Last Login</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Created</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-white/10">
+                  {users.length > 0 ? (
+                    users.map((user) => (
+                      <tr key={user.user_id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white/70 text-center">{user.user_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white text-left">
+                          {user.display_name || user.username}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white/50 text-left">{user.username}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-white/70 text-left">{user.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-white/70 text-left">{user.company_name || "—"}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-left">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleColor(user.role_id)}`}>
+                            {getRoleName(user.role_id)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-left">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                            user.is_active
+                              ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-200 dark:border-emerald-500"
+                              : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-200 dark:border-red-500"
+                          }`}>
+                            {user.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-left">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-200 dark:border-emerald-500">
+                            Approved
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white/60 text-center">{formatDate(user.last_login)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white/60 text-center">{formatDate(user.created_at)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => requestSendEmail(user.user_id, user.email)}
+                              disabled={sending === user.user_id}
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/50 hover:bg-amber-200 dark:hover:bg-amber-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {sending === user.user_id ? "Sending…" : "Send Email"}
+                            </button>
+                            <button onClick={() => openEditModal(user)} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/50 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-all">Edit</button>
+                            <button onClick={() => handleDelete(user.user_id)} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-800 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/50 hover:bg-red-200 dark:hover:bg-red-500/30 transition-all">Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={11} className="px-6 py-12 text-center text-gray-500 dark:text-white/50">
+                        No users found in this category.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalUsers > 0 && (
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-white/60">
+                  <span>Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-md px-2 py-1 text-sm"
+                  >
+                    {[10, 20, 30, 50].map((size) => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                  <span className="ml-4">
+                    {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-sm border border-gray-300 dark:border-white/20 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-white/10 transition"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-3 py-1.5 text-sm text-gray-700 dark:text-white">Page {currentPage} of {totalPages}</span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-sm border border-gray-300 dark:border-white/20 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-white/10 transition"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all border border-slate-200 dark:border-slate-700"
+            style={{ scrollbarWidth: "thin" }}
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 tracking-tight">
+                    {editingUser ? "Edit User" : "Create New User"}
+                  </h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    {editingUser
+                      ? "Modify user details and permissions"
+                      : "Add a new user to the system and send welcome credentials"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 18" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Email address <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onBlur={handleEmailBlur}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                    placeholder="user@company.com"
+                  />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Will be used for login and notifications</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Username <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                    placeholder="jdoe"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.display_name}
+                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  placeholder="John Doe"
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Friendly name shown in the interface (falls back to username if empty)
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Organisation / Company
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.company_name}
+                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                    placeholder="Acme Corp"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Role <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={formData.role_id}
+                    onChange={(e) => setFormData({ ...formData, role_id: parseInt(e.target.value) })}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  >
+                    {rolesLoading ? (
+                      <option value="">Loading roles...</option>
+                    ) : rolesError ? (
+                      <option value="">Error loading roles</option>
+                    ) : roles.length === 0 ? (
+                      <option value="">No roles available</option>
+                    ) : (
+                      roles.map((role) => (
+                        <option key={role.role_id} value={role.role_id}>
+                          {role.display_name || role.role_name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  {rolesError && <p className="text-xs text-rose-500 mt-1">{rolesError}</p>}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {editingUser ? "New Password (leave blank to keep current)" : "Password *"}
+                </label>
+                <input
+                  type="password"
+                  required={!editingUser}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  placeholder={editingUser ? "••••••••" : "Enter a strong password"}
+                />
+                {!editingUser && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    A temporary password will be generated if left empty – the user will be forced to change it on first login.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    className="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-slate-300 rounded"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Active</span>
+                </label>
+                <span className="text-xs text-slate-400 dark:text-slate-500">
+                  Inactive users cannot log in
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Access Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.access_start_date}
+                    onChange={(e) => setFormData({ ...formData, access_start_date: e.target.value })}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Access End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.access_end_date}
+                    onChange={(e) => setFormData({ ...formData, access_end_date: e.target.value })}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  />
+                </div>
+              </div>
+
+              <div className="sticky bottom-0 bg-white dark:bg-slate-900 pt-4 pb-0 -mx-6 px-6 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 dark:from-cyan-500 dark:to-blue-600 rounded-lg text-sm font-medium text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+                >
+                  {editingUser ? "Update User" : "Create User"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation modals */}
+      <StyledModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, userId: null, email: "" })}
+        title="Confirm Send Email"
+        message="Are you sure you want to send a welcome email to:"
+        note={confirmModal.email}
+        type="confirm"
+        onConfirm={confirmSendEmail}
+        confirmText="Confirm & Send"
+        cancelText="Cancel"
+      />
+
+      <StyledModal
+        isOpen={successModal.open}
+        onClose={() => setSuccessModal({ open: false, message: "" })}
+        title="Email Sent"
+        message={successModal.message}
+        type="success"
+      />
+
+      <StyledModal
+        isOpen={errorModal.open}
+        onClose={() => setErrorModal({ open: false, message: "" })}
+        title="Error"
+        message={errorModal.message}
+        type="error"
+      />
+    </div>
+  );
+}

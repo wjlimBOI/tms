@@ -1,0 +1,299 @@
+// app/api/tenders/[id]/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { query } from "@/lib/db";
+import { tenderUpdateSchema, validateBody, tenderIdParamSchema } from "@/lib/validation";
+import { canViewTenderWithParticipation, canViewDraftTender } from "@/lib/permissions";
+import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
+import { syncTenderToCalendar } from "@/lib/syncTenderToCalendar";
+import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
+import { z } from "zod";
+
+// ---------- OPTIONS (CORS preflight) ----------
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  const corsResponse = handleCorsOptions(origin);
+  if (corsResponse) return corsResponse;
+  return new NextResponse(null, { status: 204 });
+}
+
+// ---------- GET – fetch a single tender with visibility rules ----------
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const origin = request.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
+
+  // Validate and parse tender ID
+  const { id } = await params;
+  const idResult = tenderIdParamSchema.safeParse({ id });
+  if (!idResult.success) {
+    return NextResponse.json(
+      { error: "Invalid tender ID", details: idResult.error.issues },
+      { status: 400, headers: corsHeaders }
+    );
+  }
+  const tenderId = idResult.data.id;
+
+  // Check existence and status
+  const basicResult = await query(
+    `SELECT t.*, ts.status_code
+     FROM tender t
+     JOIN tender_status ts ON t.status_id = ts.status_id
+     WHERE t.tender_id = $1 AND t.is_deleted = false`,
+    [tenderId]
+  );
+  if (basicResult.rows.length === 0) {
+    return NextResponse.json({ error: "Tender not found" }, { status: 404, headers: corsHeaders });
+  }
+  const tender = basicResult.rows[0];
+  const userRole = (session.user as any).role_id;
+  const userId = (session.user as any).id;
+
+  // Draft visibility
+  const canViewDraft = await canViewDraftTender(userRole);
+  if (tender.status_code === 'Draft' && !canViewDraft) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
+  }
+
+  // Participation check
+  const allowed = await canViewTenderWithParticipation(tenderId, userId, userRole);
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
+  }
+
+  // Full data – including tender's own project manager fields
+  // Removed b.address and replaced with address fields from branch_address
+  // Fixed pm table reference to project_managers
+  const fullResult = await query(
+    `SELECT t.*,
+            b.branch_name,
+            b.brand_id,
+            br.brand_name,
+            rt.type_name AS renovation_type,
+            ts.status_code,
+            ts.label AS status_label,
+            -- Address fields from branch_address
+            ba.address_id,
+            ba.full_address AS branch_full_address,
+            ba.building_name AS branch_building_name,
+            ba.postal_code AS branch_postal_code,
+            ba.city AS branch_city,
+            ba.country AS branch_country,
+            ba.is_primary AS branch_address_is_primary,
+            pm.id AS project_manager_id,
+            pm.name AS project_manager_name_joined,
+            pm.email AS project_manager_email_joined,
+            pm.phone AS project_manager_phone_joined,
+            t.project_manager_name,
+            t.project_manager_email,
+            t.project_manager_phone
+     FROM tender t
+     JOIN branch b ON t.branch_id = b.branch_id
+     LEFT JOIN branch_address ba ON b.branch_id = ba.branch_id AND ba.is_primary = true
+     JOIN brand br ON b.brand_id = br.brand_id
+     JOIN renovation_type rt ON t.renovation_type_id = rt.type_id
+     JOIN tender_status ts ON t.status_id = ts.status_id
+     LEFT JOIN project_managers pm ON t.project_manager_id = pm.id
+     WHERE t.tender_id = $1 AND t.is_deleted = false`,
+    [tenderId]
+  );
+
+  return NextResponse.json(fullResult.rows[0], { headers: corsHeaders });
+}
+
+// ---------- PUT – update a tender (admin or content editor) ----------
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const origin = request.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
+
+  const userRole = (session.user as any).role_id;
+  if (userRole !== 1 && userRole !== 3) {
+    await logAuthEvent("PERMISSION_DENIED", session.user.id, request, "Non-authorized user attempted to update tender");
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
+  }
+
+  // Validate and parse tender ID
+  const { id } = await params;
+  const idResult = tenderIdParamSchema.safeParse({ id });
+  if (!idResult.success) {
+    return NextResponse.json(
+      { error: "Invalid tender ID", details: idResult.error.issues },
+      { status: 400, headers: corsHeaders }
+    );
+  }
+  const tenderId = idResult.data.id;
+
+  // Validate request body (this includes sanitisation)
+  const validation = await validateBody(request, tenderUpdateSchema);
+  if (!validation.success) {
+    // Attach CORS headers to the validation error response
+    const response = validation.response;
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
+  }
+  const updates = validation.data;
+
+  // Helper to convert strings to ISO datetime or null
+  const toIsoOrNull = (value: unknown): string | null => {
+    if (!value) return null;
+    if (typeof value !== 'string') return null;
+    try {
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return null;
+      return d.toISOString();
+    } catch {
+      return null;
+    }
+  };
+
+  // Prepare a clean update object with converted date fields
+  const updateData: Record<string, any> = {};
+  const datetimeFields = [
+    'tender_date', 'closing_date', 'renovation_start_date', 'renovation_end_date',
+    'download_start', 'download_end', 'briefing_date',
+    'submission_start', 'submission_end',
+    'technical_opening_time', 'commercial_opening_time'
+  ];
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === undefined) continue;
+    if (datetimeFields.includes(key)) {
+      updateData[key] = toIsoOrNull(value);
+    } else {
+      updateData[key] = value;
+    }
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400, headers: corsHeaders });
+  }
+
+  // Fetch old data for audit
+  const oldDataRes = await query(`SELECT * FROM tender WHERE tender_id = $1`, [tenderId]);
+  if (oldDataRes.rows.length === 0) {
+    return NextResponse.json({ error: "Tender not found" }, { status: 404, headers: corsHeaders });
+  }
+  const oldData = oldDataRes.rows[0];
+
+  // Build dynamic UPDATE query
+  const setClauses: string[] = [];
+  const values: any[] = [];
+  let idx = 1;
+  for (const [key, value] of Object.entries(updateData)) {
+    setClauses.push(`${key} = $${idx++}`);
+    values.push(value);
+  }
+  setClauses.push(`updated_at = NOW()`);
+  values.push(tenderId);
+
+  await query(`UPDATE tender SET ${setClauses.join(", ")} WHERE tender_id = $${idx}`, values);
+
+  const newDataRes = await query(`SELECT * FROM tender WHERE tender_id = $1`, [tenderId]);
+  const newData = newDataRes.rows[0];
+
+  // Sync calendar (if any relevant date fields changed)
+  try {
+    const branchRes = await query(`SELECT brand_id FROM branch WHERE branch_id = $1`, [newData.branch_id]);
+    const brand_id = branchRes.rows.length > 0 ? branchRes.rows[0].brand_id : null;
+    await syncTenderToCalendar({
+      tender_id: tenderId,
+      tender_name: newData.tender_name,
+      brand_id: brand_id,
+      branch_id: newData.branch_id,
+      created_by: newData.created_by,
+      tender_date: newData.tender_date,
+      closing_date: newData.closing_date,
+      renovation_start_date: newData.renovation_start_date,
+      renovation_end_date: newData.renovation_end_date,
+      download_start: newData.download_start,
+      download_end: newData.download_end,
+      briefing_date: newData.briefing_date,
+      submission_start: newData.submission_start,
+      submission_end: newData.submission_end,
+    });
+  } catch (syncError) {
+    console.error("Failed to sync tender to calendar after update:", syncError);
+  }
+
+  // ✅ Enhanced audit log with extraDetails
+  await logUpdate(
+    "tender",
+    tenderId,
+    oldData,
+    newData,
+    session.user.id,
+    request,
+    { action: "update_tender", changed_fields: Object.keys(updateData), source: "api" }
+  );
+
+  return NextResponse.json({ success: true, data: newData }, { headers: corsHeaders });
+}
+
+// ---------- DELETE – soft delete a tender (admin only) ----------
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const origin = request.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
+
+  const userRole = (session.user as any).role_id;
+  if (userRole !== 1) {
+    await logAuthEvent("PERMISSION_DENIED", session.user.id, request, "Non-admin attempted to delete tender");
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
+  }
+
+  // Validate and parse tender ID
+  const { id } = await params;
+  const idResult = tenderIdParamSchema.safeParse({ id });
+  if (!idResult.success) {
+    return NextResponse.json(
+      { error: "Invalid tender ID", details: idResult.error.issues },
+      { status: 400, headers: corsHeaders }
+    );
+  }
+  const tenderId = idResult.data.id;
+
+  const oldDataRes = await query(`SELECT * FROM tender WHERE tender_id = $1`, [tenderId]);
+  if (oldDataRes.rows.length === 0) {
+    return NextResponse.json({ error: "Tender not found" }, { status: 404, headers: corsHeaders });
+  }
+  const oldData = oldDataRes.rows[0];
+
+  await query(`UPDATE tender SET is_deleted = true, deleted_at = NOW() WHERE tender_id = $1`, [tenderId]);
+
+  // ✅ Enhanced audit log with extraDetails
+  await logDelete(
+    "tender",
+    tenderId,
+    oldData,
+    session.user.id,
+    request,
+    { action: "delete_tender", tender_name: oldData.tender_name, source: "api" }
+  );
+
+  return NextResponse.json({ success: true }, { headers: corsHeaders });
+}

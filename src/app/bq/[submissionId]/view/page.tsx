@@ -1,0 +1,511 @@
+"use client";
+
+import React from "react";
+import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getBrandColor } from "@/lib/brandColors";
+import { getBQStatusBadgeStyle, getBQStatusLabel } from "@/lib/statusColors";
+
+// ---------- Modal Component (kept for potential future use) ----------
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  note?: string;
+  type: 'confirm' | 'success' | 'error';
+  onConfirm?: () => void;
+  confirmText?: string;
+  cancelText?: string;
+}
+
+const CustomModal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  message,
+  note,
+  type,
+  onConfirm,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+}) => {
+  if (!isOpen) return null;
+
+  const getIconColors = () => {
+    switch (type) {
+      case 'success':
+        return { bg: 'bg-emerald-100 dark:bg-emerald-500/20', icon: 'text-emerald-600 dark:text-emerald-400', button: 'from-emerald-600 to-teal-600' };
+      case 'error':
+        return { bg: 'bg-rose-100 dark:bg-rose-500/20', icon: 'text-rose-600 dark:text-rose-400', button: 'from-rose-600 to-pink-600' };
+      default:
+        return { bg: 'bg-blue-100 dark:bg-blue-500/20', icon: 'text-blue-600 dark:text-blue-400', button: 'from-blue-600 to-indigo-600' };
+    }
+  };
+
+  const colors = getIconColors();
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center`}>
+              {type === 'success' ? (
+                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : type === 'error' ? (
+                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              )}
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            {message}
+            {note && (
+              <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
+                {note}
+              </span>
+            )}
+          </p>
+          <div className="flex gap-3 justify-end">
+            {type === 'confirm' && (
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-medium text-sm"
+              >
+                {cancelText}
+              </button>
+            )}
+            <button
+              onClick={type === 'confirm' ? onConfirm : onClose}
+              className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}
+            >
+              {type === 'confirm' ? confirmText : 'OK'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface LineItem {
+  line_item_id: number;
+  item_no: string;
+  location: string;
+  description: string;
+  specifications: string;
+  brand: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  discount: number;
+  amount: number;
+  category_id: number;
+  category_name: string;
+}
+
+interface Submission {
+  round_no: number;
+  version_name?: string;
+  status: string;
+  updated_at: string;
+  created_at?: string;
+  client_name_override?: string;
+  brand_name?: string;
+  branch_name_override?: string;
+  original_branch_name?: string;
+  renovation_type_name?: string;
+  area_size?: string;
+  bq_date?: string;
+  logo_url?: string;
+  can_edit?: boolean;
+  role_id?: number;
+  contractor_id?: number;          // added
+  contractor_username?: string;    // added
+}
+
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(value).replace("$", "$ ");
+};
+
+const getDefaultLogoName = (brandName?: string): string => {
+  if (!brandName) return "placeholder.png";
+  const lower = brandName.toLowerCase();
+  if (lower.includes("yun nam")) return "yun_nam.png";
+  if (lower.includes("london")) return "london.png";
+  if (lower.includes("new york")) return "new_york.png";
+  if (lower.includes("dorra")) return "dorra.png";
+  if (lower.includes("shakura")) return "shakura.png";
+  if (lower.includes("jonsson")) return "jonsson.png";
+  if (lower.includes("victoria")) return "victoria.png";
+  if (lower.includes("beauty one international")) return "boi.png";
+  if (lower.includes("ames")) return "ames.png";
+  return "placeholder.png";
+};
+
+export default function ViewBQPage() {
+  const { submissionId } = useParams() as { submissionId: string };
+  const { data: session } = useSession();
+  const [items, setItems] = useState<LineItem[]>([]);
+  const [categories, setCategories] = useState<{ category_id: number; category_name: string }[]>([]);
+  const [submission, setSubmission] = useState<Submission | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isPrintMode, setIsPrintMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("print") === "1") {
+        setIsPrintMode(true);
+      }
+    }
+  }, []);
+
+  const fetchBQ = async () => {
+    if (!submissionId) return;
+    try {
+      const res = await fetch(`/api/bq/${submissionId}`);
+      if (!res.ok) throw new Error("Failed to fetch BQ");
+      const data = await res.json();
+      setSubmission(data.submission);
+      const fetchedItems = (data.items || []).map((item: any) => ({
+        ...item,
+        amount: typeof item.amount === "number" ? item.amount : Number(item.amount) || 0,
+      }));
+      setItems(fetchedItems);
+      setCategories(data.categories);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Could not load Bill of Quantities.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBQ();
+  }, [submissionId]);
+
+  useEffect(() => {
+    if (isPrintMode && !loading && !error) {
+      setTimeout(() => window.print(), 500);
+    }
+  }, [isPrintMode, loading, error]);
+
+  const formatDate = (dateStr?: string | null): string => {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0a1228]">
+        <div className="text-xl text-gray-600 dark:text-cyan-300/70">Loading Bill of Quantities...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0a1228]">
+        <div className="text-red-600 dark:text-red-400 text-center">{error}</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0a1228]">
+        <div className="text-center text-gray-700 dark:text-gray-300">
+          Please log in to view this Bill of Quantities.
+        </div>
+      </div>
+    );
+  }
+
+  const currentClientName = submission?.client_name_override || submission?.brand_name || "—";
+  const currentJobSite = submission?.branch_name_override || submission?.original_branch_name || "—";
+  const clientColor = getBrandColor(currentClientName);
+  let logoUrl = submission?.logo_url;
+  if (!logoUrl) {
+    const logoFile = getDefaultLogoName(currentClientName);
+    logoUrl = `/logos/${logoFile}`;
+  }
+
+  // Mask contractor name
+  const contractorId = submission?.contractor_id;
+  const maskedContractor = contractorId
+    ? `Contractor ${String.fromCharCode(65 + (contractorId % 26))}`
+    : "—";
+
+  const groupedItems = categories.map((cat) => ({
+    ...cat,
+    items: items.filter((i) => i.category_id === cat.category_id),
+  }));
+  const grandTotal = items.reduce((sum, i) => sum + i.amount, 0);
+  const documentDate = submission?.created_at || submission?.bq_date || null;
+
+  const statusBadgeClass = getBQStatusBadgeStyle(submission?.status || '');
+  const statusLabel = getBQStatusLabel(submission?.status || '');
+
+  return (
+    <div className="p-4 max-w-[95%] mx-auto print:p-0 print:max-w-none bg-gray-50 dark:bg-[#0a1228] min-h-screen">
+      <style jsx global>{`
+        @media print {
+          nav, .navbar, .sticky, .no-print, button, a:not([href^="/bq/"]) {
+            display: none !important;
+          }
+          body {
+            background: white;
+            margin: 0.5in !important;
+            padding: 0 !important;
+          }
+          .border-l-orange-500,
+          .border-l-red-500,
+          .border-l-blue-500,
+          .border-l-purple-500,
+          .border-l-pink-500,
+          .border-l-yellow-500,
+          .border-l-teal-500,
+          .border-l-gray-500 {
+            border-left-color: #ccc !important;
+          }
+          .bq-container {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .header-card {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          table {
+            width: 100% !important;
+            font-size: 9pt !important;
+            page-break-before: avoid !important;
+            page-break-inside: auto;
+            border-collapse: collapse !important;
+          }
+          tr {
+            page-break-inside: avoid;
+            page-break-after: avoid;
+          }
+          th, td {
+            border: 1px solid #000 !important;
+            padding: 4px 6px !important;
+          }
+          .bg-gray-800 {
+            background-color: #2c3e50 !important;
+            color: white !important;
+            print-color-adjust: exact;
+          }
+          .bg-gray-50 {
+            background-color: #f8f9fa !important;
+            print-color-adjust: exact;
+          }
+          .description-cell {
+            white-space: normal !important;
+            word-wrap: break-word;
+          }
+          .currency-cell {
+            white-space: nowrap !important;
+            text-align: right !important;
+          }
+          .logo-print {
+            height: 3rem !important;
+            width: auto !important;
+          }
+          .header-card {
+            margin-bottom: 0.5rem !important;
+          }
+          .table-container {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+        }
+      `}</style>
+
+      <div className="bq-container">
+        {/* Header Card with Status Badge */}
+        <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-lg shadow-sm p-4 mb-6 print:shadow-none print:border header-card">
+          <div className="flex flex-wrap justify-between items-start gap-4">
+            <div
+              style={{ borderLeftColor: clientColor.borderColor }}
+              className="flex-1 border-l-4 pl-3"
+            >
+              <div className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide">Client</div>
+              <div className="font-bold text-lg text-gray-800 dark:text-white">{currentClientName}</div>
+
+              <div className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-3">Job Site</div>
+              <div className="font-medium text-gray-700 dark:text-gray-200">{currentJobSite}</div>
+
+              <div className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-3">Submitted By</div>
+              <div className="font-medium text-gray-700 dark:text-gray-200">{maskedContractor}</div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Document Date</div>
+                  <div className="font-medium text-gray-700 dark:text-gray-200">{formatDate(documentDate)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Area</div>
+                  <div className="font-medium text-gray-700 dark:text-gray-200">{submission?.area_size || "—"}</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <img
+                src={logoUrl}
+                alt="Company Logo"
+                className="h-12 sm:h-14 md:h-16 w-auto object-contain print:logo-print"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/logos/placeholder.png";
+                }}
+              />
+              <div className="text-right text-sm text-gray-600 dark:text-gray-400 no-print">
+                <div>
+                  Version {submission?.round_no}
+                  {submission?.version_name ? ` – ${submission.version_name}` : ""}
+                </div>
+                <div className="mt-1">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass}`}>
+                    {statusLabel}
+                  </span>
+                </div>
+                <div>Last updated: {formatDate(submission?.updated_at)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg print:border print:overflow-visible table-container">
+          <table className="min-w-full border-collapse text-sm print:w-full">
+            <thead className="bg-gray-100 dark:bg-gray-800/50">
+              <tr>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Item No.</th>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Location</th>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Description</th>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Specifications</th>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Brand</th>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-200">Qty</th>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Unit</th>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-200">Unit Rate ($)</th>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-200">Discount ($)</th>
+                <th className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-200">Amount ($)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupedItems.map((cat) => (
+                <React.Fragment key={`cat-${cat.category_id}`}>
+                  <tr className="bg-gray-200 dark:bg-gray-800">
+                    <td colSpan={10} className="border border-gray-200 dark:border-gray-700 p-2 font-semibold text-base text-gray-900 dark:text-white">
+                      {cat.category_name}
+                    </td>
+                  </tr>
+                  {cat.items.map((item) => (
+                    <tr key={item.line_item_id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 print:break-inside-avoid">
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-center font-mono text-gray-700 dark:text-gray-300">{item.item_no}</td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">{item.location || "—"}</td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 min-w-[300px] whitespace-pre-wrap description-cell text-gray-800 dark:text-gray-200">
+                        {item.description}
+                      </td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">{item.specifications || "—"}</td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">{item.brand || "—"}</td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-300">{item.quantity}</td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">{item.unit}</td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono whitespace-nowrap currency-cell text-gray-700 dark:text-gray-300">
+                        {formatCurrency(item.unit_price)}
+                      </td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono whitespace-nowrap currency-cell text-gray-700 dark:text-gray-300">
+                        {formatCurrency(item.discount)}
+                      </td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono whitespace-nowrap currency-cell text-gray-700 dark:text-gray-300">
+                        {formatCurrency(item.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-gray-50 dark:bg-gray-800/30">
+                    <td colSpan={9} className="border border-gray-200 dark:border-gray-700 p-2 text-right font-bold text-gray-800 dark:text-gray-200">
+                      Category Subtotal:
+                    </td>
+                    <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono font-bold whitespace-nowrap currency-cell text-gray-800 dark:text-gray-200">
+                      {formatCurrency(cat.items.reduce((sum, i) => sum + i.amount, 0))}
+                    </td>
+                  </tr>
+                </React.Fragment>
+              ))}
+              <tr className="bg-gray-100 dark:bg-gray-800/50 font-bold">
+                <td colSpan={9} className="border border-gray-200 dark:border-gray-700 p-2 text-right text-base text-gray-900 dark:text-white">
+                  GRAND TOTAL:
+                </td>
+                <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono text-base whitespace-nowrap currency-cell text-gray-900 dark:text-white">
+                  {formatCurrency(grandTotal)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-6 no-print">
+          <div className="w-full md:w-auto flex justify-center md:justify-start">
+            <Link
+              href="/bq/my"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-medium text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Bills
+            </Link>
+          </div>
+
+          <div className="w-full md:w-auto flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => window.print()}
+              className="bg-gray-600 hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm"
+            >
+              🖨️ Print / PDF
+            </button>
+            {submission?.can_edit && (
+              <Link
+                href={`/bq/${submissionId}/edit`}
+                className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm"
+              >
+                Edit BQ
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Informational message for non‑Draft/Submitted */}
+        {submission?.status !== 'Draft' && submission?.status !== 'Submitted' && (
+          <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400 no-print">
+            ℹ️ This BQ is {submission?.status}. Only Draft and Submitted BQs are active.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

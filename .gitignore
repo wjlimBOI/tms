@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -39,3 +43,179 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ===== ADDED SECTIONS =====
+
+# Generated Prisma files - IGNORE ALL GENERATED FILES
+/src/lib/generated/
+/prisma/generated/
+/lib/generated/
+!src/lib/generated/.gitkeep
+!/prisma/generated/.gitkeep
+
+# Test files
+test-*.js
+test-*.ts
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+__tests__/
+/test-results/
+/playwright-report/
+/cypress/
+
+# Project tree files
+project_tree.txt
+tree.tx
+tree.txt
+*.tree.txt
+project-structure.txt
+folder-structure.txt
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux files
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+.stylelintcache
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+.env.local
+.env.*.local
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# Gatsby files
+.cache/
+public/
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+*.tmp
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Upload directories (if you have file uploads)
+/uploads/
+/public/uploads/
+/private/uploads/
+/tender-documents/
+/bq-templates/
+
+# Prisma
+/prisma/*.db
+/prisma/*.sqlite
+/prisma/*.sqlite3
+/prisma/migrations/*.sqlite
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Testing artifacts
+test-results/
+playwright-report/
+cypress/videos/
+cypress/screenshots/
+
+# Application specific
+/temp-uploads/
+/sessions/
+/cache/
+
+# Performance test artifacts
+.artillery/
+load-test-results/
+
+# Architecture decision records
+docs/adr/*.html
+
+# Cloud credentials
+.aws/
+.azure/
+*.json
+!firebase.json
+!firestore.indexes.json
+!firestore.rules
+!storage.rules
+
+# Sensitive data
+*.key
+*.pem
+*.crt
+*.csr
+*.cer
+*.p12
+*.pfx
+
+# Generated types
+/types/generated/
+/src/types/generated/
+
+# ===== IF USING SRC DIRECTORY =====
+# If you're using src/ directory, you might want to ignore duplicate root files
+# Uncomment if you've migrated everything to src/
+# /app/
+# /pages/
+# /styles/
+
+# ===== OPTIONAL: KEEP DIRECTORY STRUCTURE =====
+# If you want to keep empty directories in git
+# !.gitkeeptest-output.css
+*.css

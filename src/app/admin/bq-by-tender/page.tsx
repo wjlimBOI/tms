@@ -1,0 +1,537 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { getBQStatusStyles, getBQStatusLabel } from "@/lib/statusColors";
+
+interface Tender {
+  tender_id: number;
+  tender_name: string;
+  tender_description: string;
+  branch_name: string;
+  brand_name: string;
+  renovation_type: string;
+  status_label: string;
+}
+
+interface BQ {
+  submission_id: number;
+  round_no: number;
+  version_name?: string;
+  status: string;
+  updated_at: string;
+  created_at: string;
+  bq_date?: string;
+  area_size?: string;
+  client_name: string;
+  job_site: string;
+  work_type: string;
+  line_item_count: number;
+  contractor_id: number;
+  contractor_username: string;
+  bq_name?: string;
+  total_amount?: number;
+}
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  type: 'success' | 'error' | 'confirm';
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
+const CustomModal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  message,
+  type,
+  onConfirm,
+  onCancel,
+}) => {
+  if (!isOpen) return null;
+
+  const getIconColors = () => {
+    switch (type) {
+      case 'success':
+        return { bg: 'bg-emerald-100 dark:bg-emerald-500/20', icon: 'text-emerald-600 dark:text-emerald-400', button: 'from-emerald-600 to-teal-600' };
+      case 'error':
+        return { bg: 'bg-rose-100 dark:bg-rose-500/20', icon: 'text-rose-600 dark:text-rose-400', button: 'from-rose-600 to-pink-600' };
+      default:
+        return { bg: 'bg-amber-100 dark:bg-amber-500/20', icon: 'text-amber-600 dark:text-amber-400', button: 'from-amber-600 to-orange-600' };
+    }
+  };
+
+  const colors = getIconColors();
+
+  const renderIcon = () => {
+    if (type === 'success') {
+      return (
+        <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+        </svg>
+      );
+    } else if (type === 'error') {
+      return (
+        <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      );
+    } else {
+      return (
+        <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      );
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center`}>
+              {renderIcon()}
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
+          <div className="flex gap-3 justify-end">
+            {type === 'confirm' ? (
+              <>
+                <button
+                  onClick={onCancel || onClose}
+                  className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium text-sm transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={onConfirm || onClose}
+                  className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}
+                >
+                  Confirm
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={onConfirm || onClose}
+                className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}
+              >
+                OK
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function AdminBQByTenderPage() {
+  const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter();
+  const [tenders, setTenders] = useState<Tender[]>([]);
+  const [bqsMap, setBqsMap] = useState<Record<number, BQ[]>>({});
+  const [expandedTender, setExpandedTender] = useState<number | null>(null);
+  const [loadingTenders, setLoadingTenders] = useState(true);
+  const [loadingBQs, setLoadingBQs] = useState<Record<number, boolean>>({});
+  const [deletingBqId, setDeletingBqId] = useState<number | null>(null);
+  
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    type: "success" | "error" | "confirm";
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  }>({
+    isOpen: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
+
+  const isDeletingRef = useRef(false);
+
+  // ✅ FIXED: fetch with pagination params + credentials
+  useEffect(() => {
+    if (sessionStatus === "loading") return;
+    if (!session || (session.user as any)?.role_id !== 1) {
+      router.push("/");
+      return;
+    }
+
+    fetch("/api/admin/tenders?page=1&limit=100", {
+      credentials: "include",
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        // The API returns { data: [...], total, page, limit }
+        setTenders(data.data || []);
+        setLoadingTenders(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load tenders:", err);
+        setTenders([]);
+        setLoadingTenders(false);
+      });
+  }, [session, sessionStatus, router]);
+
+  const fetchBQsForTender = async (tenderId: number, force = false) => {
+    if (!force && bqsMap[tenderId]) return;
+    setLoadingBQs(prev => ({ ...prev, [tenderId]: true }));
+    try {
+      const res = await fetch(`/api/admin/tenders/${tenderId}/bqs`);
+      if (!res.ok) throw new Error(`Failed to load BQs (HTTP ${res.status})`);
+      const data = await res.json();
+      const bqArray = Array.isArray(data) ? data : [];
+      const filteredBqs = bqArray.filter((bq: BQ) => 
+        bq.status === 'Draft' || bq.status === 'Submitted'
+      );
+      setBqsMap(prev => ({ ...prev, [tenderId]: filteredBqs }));
+    } catch (err) {
+      console.error(`Error loading BQs for tender ${tenderId}:`, err);
+      setBqsMap(prev => ({ ...prev, [tenderId]: [] }));
+    } finally {
+      setLoadingBQs(prev => ({ ...prev, [tenderId]: false }));
+    }
+  };
+
+  const toggleTender = (tenderId: number) => {
+    if (expandedTender === tenderId) {
+      setExpandedTender(null);
+    } else {
+      setExpandedTender(tenderId);
+      fetchBQsForTender(tenderId);
+    }
+  };
+
+  const getBQDisplayName = (bq: BQ): string => {
+    if (bq.bq_name) return bq.bq_name;
+    if (bq.version_name) return bq.version_name;
+    return `BQ #${bq.submission_id}`;
+  };
+
+  const performDelete = async (bq: BQ, tenderId: number) => {
+    if (isDeletingRef.current) return;
+    isDeletingRef.current = true;
+    setDeletingBqId(bq.submission_id);
+
+    try {
+      const res = await fetch(`/api/admin/bqs/${bq.submission_id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        let errorMessage = `HTTP ${res.status}`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // keep errorMessage
+        }
+        throw new Error(errorMessage);
+      }
+
+      await fetchBQsForTender(tenderId, true);
+
+      setModal({
+        isOpen: true,
+        type: "success",
+        title: "Deleted Successfully",
+        message: `BQ "${getBQDisplayName(bq)}" has been deleted.`,
+        onConfirm: () => setModal(prev => ({ ...prev, isOpen: false })),
+      });
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      setModal({
+        isOpen: true,
+        type: "error",
+        title: "Deletion Failed",
+        message: err.message || "Something went wrong while deleting the BQ.",
+        onConfirm: () => setModal(prev => ({ ...prev, isOpen: false })),
+      });
+    } finally {
+      isDeletingRef.current = false;
+      setDeletingBqId(null);
+    }
+  };
+
+  const confirmDelete = (bq: BQ, tenderId: number) => {
+    if (isDeletingRef.current) return;
+    setModal({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirm Delete",
+      message: `Are you sure you want to delete "${getBQDisplayName(bq)}"? This action cannot be undone.`,
+      onConfirm: () => {
+        setModal(prev => ({ ...prev, isOpen: false }));
+        performDelete(bq, tenderId);
+      },
+      onCancel: () => setModal(prev => ({ ...prev, isOpen: false })),
+    });
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleString();
+  };
+
+  const formatShortDate = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleDateString();
+  };
+
+  const formatCurrency = (amount?: number) => {
+    if (amount === undefined || amount === null) return "—";
+    const abs = Math.abs(amount);
+    const formatted = abs.toFixed(2);
+    if (amount < 0) {
+      return `($ ${formatted})`;
+    }
+    return `$ ${formatted}`;
+  };
+
+  const getContractorLetterMap = (bqs: BQ[]): Map<number, string> => {
+    const uniqueContractors = bqs
+      .filter((bq, index, self) => self.findIndex(b => b.contractor_id === bq.contractor_id) === index);
+    
+    const map = new Map<number, string>();
+    uniqueContractors.forEach((bq) => {
+      const id = bq.contractor_id;
+      const letter = String.fromCharCode(65 + (id % 26));
+      map.set(id, `Contractor ${letter}`);
+    });
+    return map;
+  };
+
+  if (sessionStatus === "loading" || loadingTenders) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-cyan-300/70">Loading tenders…</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a1228]">
+      {/* Header */}
+      <div className="bg-white dark:bg-[#0f1630] border-b border-gray-200 dark:border-white/10 py-6 px-4 sm:px-6 lg:px-8 shadow-sm">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+              BQs by Tender
+            </h1>
+          </div>
+          <div className="text-sm text-gray-500 dark:text-cyan-300/70">
+            {tenders.length} {tenders.length === 1 ? 'tender' : 'tenders'} found
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {tenders.length === 0 ? (
+          <div className="bg-white dark:bg-[#0f1630] rounded-xl border border-gray-200 dark:border-white/10 p-12 text-center shadow-sm">
+            <div className="text-gray-500 dark:text-cyan-300/70 text-lg font-medium">No tenders available</div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {tenders.map((tender) => {
+              const filteredBqs = bqsMap[tender.tender_id] || [];
+              const contractorLetterMap = getContractorLetterMap(filteredBqs);
+              const isExpanded = expandedTender === tender.tender_id;
+
+              return (
+                <div
+                  key={tender.tender_id}
+                  className="bg-white dark:bg-[#0f1630] rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden transition-all duration-200"
+                >
+                  {/* Header row */}
+                  <div
+                    className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
+                    onClick={() => toggleTender(tender.tender_id)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
+                          {tender.tender_name}
+                        </h2>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                          {tender.status_label}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-cyan-300/70">
+                        <span>{tender.brand_name}</span>
+                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-cyan-300/40" />
+                        <span>{tender.branch_name}</span>
+                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-cyan-300/40" />
+                        <span>{tender.renovation_type}</span>
+                        {filteredBqs.length > 0 && (
+                          <>
+                            <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-cyan-300/40" />
+                            <span className="font-medium text-cyan-600 dark:text-cyan-400">
+                              {filteredBqs.length} BQ{filteredBqs.length !== 1 ? 's' : ''}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 ml-4">
+                      <svg
+                        className={`w-5 h-5 text-gray-400 dark:text-gray-500 transform transition-transform duration-200 ${
+                          isExpanded ? 'rotate-180' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Expanded content */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-200 dark:border-white/10 px-5 py-4">
+                      {/* Action bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-cyan-300/60">
+                          <span className="font-medium">Masked contractors:</span>
+                          <span className="flex flex-wrap gap-1">
+                            {Array.from(contractorLetterMap.values()).map((label, idx) => (
+                              <span key={idx} className="inline-flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 dark:bg-cyan-500" />
+                                {label}
+                              </span>
+                            ))}
+                          </span>
+                        </div>
+                        <Link
+                          href={`/admin/bqs?tender_id=${tender.tender_id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white transition shadow-sm"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          <span>View all BQs</span>
+                        </Link>
+                      </div>
+
+                      {loadingBQs[tender.tender_id] ? (
+                        <div className="flex justify-center py-10">
+                          <div className="w-8 h-8 border-4 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      ) : filteredBqs.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500 dark:text-cyan-300/70 text-sm">
+                          No Draft or Submitted BQs for this tender.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto -mx-5 sm:mx-0">
+                          <table className="min-w-[1000px] sm:min-w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">ID</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">BQ Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Job Site</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Contractor</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Version</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Total</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Area</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Work Type</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Last Updated</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                              {filteredBqs.map((bq) => {
+                                const statusStyles = getBQStatusStyles(bq.status);
+                                const statusLabel = getBQStatusLabel(bq.status);
+                                const bqDisplayName = getBQDisplayName(bq);
+                                const isDeletingThisBq = deletingBqId === bq.submission_id;
+                                const maskedContractor = contractorLetterMap.get(bq.contractor_id) || `Contractor ?`;
+                                return (
+                                  <tr key={bq.submission_id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 font-mono text-xs whitespace-nowrap">{bq.submission_id}</td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 max-w-[180px] truncate" title={bqDisplayName}>
+                                      {bqDisplayName}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 max-w-[150px] truncate" title={bq.job_site}>
+                                      {bq.job_site}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 whitespace-nowrap">
+                                      <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-cyan-400 dark:bg-cyan-500" />
+                                        {maskedContractor}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 whitespace-nowrap text-xs">{bq.version_name || `Round ${bq.round_no}`}</td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 whitespace-nowrap font-medium">
+                                      {formatCurrency(bq.total_amount)}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${statusStyles.bg} ${statusStyles.text} ${statusStyles.border}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${statusStyles.dot}`} />
+                                        {statusLabel}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap text-xs">{formatShortDate(bq.bq_date)}</td>
+                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap text-xs">{bq.area_size || "—"}</td>
+                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap text-xs">{bq.work_type}</td>
+                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap text-xs">{formatDate(bq.updated_at)}</td>
+                                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                                      <Link href={`/bq/${bq.submission_id}/view`} className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 mr-3 transition text-xs font-medium">
+                                        View
+                                      </Link>
+                                      <button
+                                        type="button"
+                                        onClick={() => confirmDelete(bq, tender.tender_id)}
+                                        disabled={isDeletingThisBq}
+                                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {isDeletingThisBq ? "Deleting..." : "Delete"}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <CustomModal
+        isOpen={modal.isOpen}
+        onClose={() => setModal(prev => ({ ...prev, isOpen: false }))}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        onConfirm={modal.onConfirm}
+        onCancel={modal.onCancel}
+      />
+    </div>
+  );
+}

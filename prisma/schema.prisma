@@ -1,0 +1,1001 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model tender {
+  tender_id                 Int                         @id @default(autoincrement())
+  branch_id                 Int
+  renovation_type_id        Int
+  status_id                 Int
+  created_by                Int
+  tender_name               String                      @db.VarChar(150)
+  tender_description        String?
+  tender_date               DateTime?                   @db.Date
+  closing_date              DateTime?                   @db.Date
+  renovation_start_date     DateTime?                   @db.Date
+  renovation_end_date       DateTime?                   @db.Date
+  download_start            DateTime?                   @db.Timestamp(6)
+  download_end              DateTime?                   @db.Timestamp(6)
+  briefing_date             DateTime?                   @db.Timestamp(6)
+  submission_start          DateTime?                   @db.Timestamp(6)
+  submission_end            DateTime?                   @db.Timestamp(6)
+  estimated_budget          Decimal?                    @db.Decimal(15, 2)
+  is_deleted                Boolean                     @default(false)
+  deleted_at                DateTime?                   @db.Timestamp(6)
+  created_at                DateTime                    @default(now()) @db.Timestamp(6)
+  updated_at                DateTime                    @default(now()) @updatedAt @db.Timestamp(6)
+  project_manager_id        Int?
+  handover_date             DateTime?                   @map("handover_date") @db.Date
+  liquidated_damages_rate   Int?                        @default(5000)
+  defect_liability_months   Int?                        @default(12)
+  contract_sum              Decimal?                    @default(0) @db.Decimal
+  clauses                   Json?                       @default("{\"scope\": [{\"title\": \"1) SCOPE OF WORKS\", \"description\": \"Supply all materials, labour, plant, equipment and perform all operations necessary to complete the proposed specifications. Prepare shop drawings, samples and mock‑ups when required.\"}, {\"title\": \"2) DISCREPANCIES\", \"description\": \"Material Schedule Chart and Drawings take precedence over Form of Quotation description.\"}, {\"title\": \"3) ADDITIONS AND DELETIONS\", \"description\": \"Extra work approved in writing by Company undertaken based on Contractor's quoted rates as agreed.\"}], \"terms\": [{\"text\": \"The pricing of the Tender including all rates therein, shall be in Singapore Dollars.\", \"header\": \"1) General\"}, {\"text\": \"\", \"header\": \"2) TERMINOLOGIES\"}, {\"text\": \"Company does not bind itself to accept the lowest, the whole or any tender nor is obligated to give reasons for rejection. Company reserves right to accept any tender in part or in whole.\", \"header\": \"3) ACCEPTANCE OF TENDER\"}, {\"text\": \"Contractor shall carry out works to reasonable satisfaction of Company. All Electrical and Plumbing Works adhere to local statutory codes.\", \"header\": \"4) CONTRACTOR'S OBLIGATIONS\"}, {\"text\": \"Contractor takes full responsibility for Company's equipment/properties; any damage made good at Contractor's expense.\", \"header\": \"5) CARE OF COMPANY'S EQUIPMENT / PROPERTIES\"}, {\"text\": \"Contractor indemnifies Company against personal injury, death, property damage arising from works.\", \"header\": \"6) INJURY TO PERSONS AND DAMAGE TO PROPERTY\"}, {\"text\": \"Contractor shall maintain Workmen's Compensation insurance covering all employees.\", \"header\": \"7) WORKER'S COMPENSATION\"}, {\"text\": \"Contractor maintains Public Liability Insurance of at least S$3,000,000 per accident, in joint names of Company, Mall Management and Contractor.\", \"header\": \"8) INSURANCE AGAINST INJURY TO PERSONS AND PROPERTY\"}, {\"text\": \"Company may determine contract if Contractor suspends works, fails to carry out works to satisfaction, persistently neglects to improve after notice, or breaches insurance/indemnity clauses. Bankruptcy or winding‑up automatically terminates contract. Offering gift/inducement to Company officer entitles termination and recovery of losses.\", \"header\": \"9) DETERMINATION OF CONTRACT\"}, {\"text\": \"Contractor provides experienced supervisor present on site during all renovation works.\", \"header\": \"10) CONTRACTOR'S SUPERVISOR\"}, {\"text\": \"Company may order variations by addition or omission; priced using quoted unit rates. Contractor keeps Company representative updated.\", \"header\": \"11) VARIATIONS\"}, {\"text\": \"Failure to complete within specified period incurs liquidated damages of S$5,000 per day (including Sundays & Public Holidays). No extension except at Company's discretion. Contractor to take possession and commence work within one week of Letter of Acceptance.\", \"header\": \"12) LIQUIDATED DAMAGES\"}, {\"text\": \"Main contractor co‑ordinates with all Company's contractors and completes renovation by handover date. Cabinet fabrication done off‑site. Urgent rectification within 24 hours, non‑urgent within 72 hours, otherwise Company may engage others at Contractor's cost.\", \"header\": \"13) COMPLETION PERIOD\"}, {\"text\": \"Progress claims accompanied by detailed itemised statement showing value of works done and materials on site.\", \"header\": \"14) PROGRESS PAYMENT\"}, {\"text\": \"Defects Liability Period one year from handover. Rectification within 24 hours of notification; otherwise liquidated damages S$2,500 per 6 hours delay.\", \"header\": \"15) DEFECTS LIABILITY\"}, {\"text\": \"95% paid on satisfactory completion; balance 5% released within three days after Defects Liability Period, provided defects rectified.\", \"header\": \"16) RETENTION SUM\"}, {\"text\": \"Submit samples, shop drawings and prototypes for approval before proceeding. Setting out of partition line requires approval.\", \"header\": \"17) SAMPLES AND SHOP DRAWINGS\"}, {\"text\": \"Contractor co‑ordinates with other contractors at own cost, gives fullest co‑operation.\", \"header\": \"18) CO-ORDINATION WITH OTHER CONTRACTORS\"}, {\"text\": \"Latest edition of Singapore Institute of Architects – Articles and Conditions of Building Contract for Minor Works applies.\", \"header\": \"19) ARTICLES AND CONDITIONS OF BUILD CONTRACTORS FOR MINOR WORKS\"}, {\"text\": \"Contractor carries out site survey and marking before commencement; final measurements after site marking.\", \"header\": \"20) SITE SURVEY / MARKING\"}, {\"text\": \"Contractor applies to SP Services or other suppliers for testing and turn‑on of power supply.\", \"header\": \"21) INSPECTION AND TESTING OF ELECTRICAL WORKS\"}, {\"text\": \"Stainless steel accessories and ironmongeries for wet areas; stainless steel inlay for floor finishing terminations.\", \"header\": \"22) ACCESSORIES / IRONMONGERIES\"}, {\"text\": \"Submit samples and seek approval for all plumbing works from Company's licensed plumber.\", \"header\": \"23) PLUMBING WORKS\"}, {\"text\": \"Contractor liable for costs imposed by building management for temporary supplies; Company not liable.\", \"header\": \"24) WATER & ELECTRICAL TEMPORARY SUPPLY\"}, {\"text\": \"Proper air balancing after completion with PE endorsement.\", \"header\": \"25) AIR CONDITIONING PROVISIONS\"}, {\"text\": \"Off‑site fabrication limited to local factories and suppliers; Company may reject overseas fabrication.\", \"header\": \"26) OFF-SITE FABRICATION WORKS\"}, {\"text\": \"All items and work comply with applicable laws of Singapore.\", \"header\": \"27) COMPLIANCE WITH REGULATIONS\"}, {\"text\": \"Contractor shall not sub‑contract or assign without written consent.\", \"header\": \"28) SUB-CONTRACTING AND ASSIGNING\"}, {\"text\": \"Company may suspend or determine contract without liability for act of God, riot, strike, etc.\", \"header\": \"29) FORCE MAJEURE\"}, {\"text\": \"No oral variation; only written acceptance by both parties.\", \"header\": \"30) VARIATION OF CONTRACT\"}, {\"text\": \"No rights under Contracts (Rights of Third Parties) Act.\", \"header\": \"31) RIGHTS OF THIRD PARTY\"}], \"critical\": [{\"title\": \"1) TENDER DOCUMENTS\", \"description\": \"All drawings and documents enclosed herewith form part of the whole interior design work. Contractors must strictly adhere to all terms, conditions, and guidelines.\"}, {\"title\": \"2) CRITICAL DATES\", \"description\": \"\"}, {\"title\": \"3) SUBMISSION OF TENDER\", \"description\": \"Tenderers bear all expenses incurred. The Tender, together with all drawings, must be completed and uploaded via the Tender Management System by the closing date and time. Late submissions will not be considered.\"}, {\"title\": \"4) TENDER ENQUIRIES\", \"description\": \"\"}, {\"title\": \"5) GOODS AND SERVICES TAX (G.S.T.)\", \"description\": \"G.S.T. shall be excluded in all contract sums quoted by the Tenderers.\"}, {\"title\": \"6) VALIDITY OF TENDERS\", \"description\": \"Tenders shall remain valid for acceptance for ninety (90) days from the closing date. No withdrawal is permitted within that period. If validity lapses, the Tenderer may withdraw within ten (10) days; otherwise validity extends a further ninety (90) days.\"}, {\"title\": \"7) TERMS OF PAYMENT\", \"description\": \"The Company shall pay the Contractor as follows: (a) Contract Award: 10%; (b) Materials delivered to site: 20%; (c) Interim Payment (70% site completion): 30%; (d) 100% Completion: 35%; (e) Retention Sum (12 months): 5%. The Contractor shall issue progress claims with supporting documents. The Company shall pay within thirty (30) days upon verification. Final Payment only after all defects are rectified and all required documentation (LEW, LP, etc.) is submitted.\"}, {\"title\": \"8) ALTERATIONS TO TEXT\", \"description\": \"Tenderers shall not make any alterations to the Tender Documents without the Company's written approval. Any alteration is null and void.\"}, {\"title\": \"9) NON-PRICING OF ITEMS\", \"description\": \"Items with no value shall have dashes in the \\\"Amount\\\" and \\\"Unit Rate\\\" columns. Blank cells will be deemed included in the next priced item.\"}, {\"title\": \"10) SUFFICIENCY OF UNIT RATES\", \"description\": \"Unit rates shall include all labour, materials, plant, waste, carriage, profit, overheads and everything necessary for proper completion. No variation of tendered price will be allowed.\"}, {\"title\": \"11) ARITHMETICAL ERROR\", \"description\": \"Errors in extension or carry‑forward will be rectified and the total adjusted proportionally.\"}, {\"title\": \"12) INSURANCE\", \"description\": \"Public Liability: min S$2,000,000; All Risk: min S$2,000,000; Workmen's Compensation: full statutory cover. Policies in joint names of Company, Mall Management and Contractor.\"}, {\"title\": \"13) INDEMNITY\", \"description\": \"Contractor indemnifies Company against loss, damage, claim or proceeding arising from personal injury, death, property damage, breach of contract, or unsatisfactory workmanship.\"}, {\"title\": \"14) MATERIALS & FINISHES\", \"description\": \"Submit samples for approval. Alternative material requires written approval; any cost saving adjusts Contract Price. All fixtures safe; electrical conduits concealed; stainless steel hardware.\"}, {\"title\": \"15) LIQUIDATED & ASCERTAINED DAMAGES\", \"description\": \"If Contractor fails to complete by Handover Date, liquidated damages of S$5,000 per whole day (including Sundays & Public Holidays) payable until actual completion. Company may terminate and engage another Contractor at defaulting Contractor's cost.\"}, {\"title\": \"16) DEFECTS LIABILITY PERIOD\", \"description\": \"Twelve (12) months from actual handover of completed site.\"}, {\"title\": \"17) APPROVED FOREIGN WORKERS AT SITE\", \"description\": \"All foreign workers must carry valid work permits. Company not responsible for illegal workers; Contractor indemnifies Company against all related losses.\"}, {\"title\": \"18) TENANT'S GUIDE FOR FITTING OUT WORKS\", \"description\": \"Contractor shall strictly adhere to guidelines of Building Management / Company.\"}, {\"title\": \"19) OWNERSHIP OF CONTRACT DOCUMENTS AND DRAWINGS\", \"description\": \"All signed drawings and material samples shall be returned upon request. Tenderer shall not disclose documents without written consent.\"}, {\"title\": \"20) SPECIALITY WARRANTY\", \"description\": \"Additional three (3) years full warranty on all waterproofing works and materials. Defects rectified within seven (7) days of notification.\"}, {\"title\": \"21) NOTIFICATION OF AWARD\", \"description\": \"Notification will not be sent to unsuccessful Tenderers.\"}]}")
+  project_manager_name      String?                     @db.VarChar(150)
+  project_manager_email     String?                     @db.VarChar(150)
+  project_manager_phone     String?                     @db.VarChar(50)
+  bq_template_items         bq_template_items[]
+  calendar_events           calendar_events[]
+  email_notification_log    email_notification_log[]
+  negotiation_log           negotiation_log[]
+  past_project              past_project[]
+  reno_comparison           reno_comparison?
+  resubmission_request      resubmission_request[]
+  branch                    branch                      @relation(fields: [branch_id], references: [branch_id], onDelete: NoAction, onUpdate: NoAction)
+  users                     users                       @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  project_managers          project_managers?           @relation(fields: [project_manager_id], references: [id], onUpdate: NoAction)
+  renovation_type           renovation_type             @relation(fields: [renovation_type_id], references: [type_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_status             tender_status               @relation(fields: [status_id], references: [status_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_acknowledgments    tender_acknowledgment[]
+  tender_award              tender_award?
+  tender_contractor         tender_contractor[]
+  tender_document           tender_document[]
+  tender_extension_requests tender_extension_requests[]
+  tender_interest           tender_interest[]
+  tender_requests           tender_requests[]
+  tender_submission         tender_submission[]
+  tender_work_category      tender_work_category[]
+
+  @@index([is_deleted], map: "idx_tender_is_deleted")
+  @@index([is_deleted, status_id], map: "idx_tender_is_deleted_status")
+  @@index([is_deleted, status_id], map: "idx_tender_status_lookup")
+}
+
+model branch {
+  branch_id        Int       @id @default(autoincrement())
+  brand_id         Int
+  branch_name      String    @db.VarChar(100)
+  is_deleted       Boolean   @default(false)
+  deleted_at       DateTime? @db.Timestamp(6)
+  created_at       DateTime  @default(now()) @db.Timestamp(6)
+  updated_at       DateTime  @default(now()) @db.Timestamp(6)
+  address          String?
+  operation_status String    @default("Open") @db.VarChar(50)
+  brand            brand     @relation(fields: [brand_id], references: [brand_id], onDelete: NoAction, onUpdate: NoAction)
+  tenders          tender[]
+
+  @@index([operation_status], map: "idx_branch_operation_status")
+}
+
+model brand {
+  brand_id        Int               @id @default(autoincrement())
+  brand_name      String            @db.VarChar(200)
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at      DateTime          @default(now()) @db.Timestamp(6)
+  branches        branch[]
+  calendar_events calendar_events[]
+}
+
+model renovation_type {
+  type_id           Int                 @id @default(autoincrement())
+  type_name         String              @db.VarChar(100)
+  description       String?             @db.VarChar(255)
+  tenders           tender[]
+  tender_submission tender_submission[]
+}
+
+model tender_status {
+  status_id   Int      @id @default(autoincrement())
+  status_code String   @unique @db.VarChar(50)
+  label       String   @db.VarChar(100)
+  sort_order  Int      @default(0) @db.SmallInt
+  tenders     tender[]
+}
+
+model bq_line_item {
+  line_item_id       Int               @id @default(autoincrement())
+  submission_id      Int
+  description        String            @db.VarChar(500)
+  unit               String?           @db.VarChar(50)
+  quantity           Decimal           @default(0) @db.Decimal(12, 3)
+  unit_price         Decimal           @default(0) @db.Decimal(15, 2)
+  total_price        Decimal?          @default(0) @db.Decimal(15, 2)
+  sort_order         Int               @default(0) @db.SmallInt
+  created_at         DateTime          @default(now()) @db.Timestamp(6)
+  updated_at         DateTime          @default(now()) @db.Timestamp(6)
+  category_id        Int?              @db.SmallInt
+  location           String?           @db.VarChar(100)
+  brand              String?           @db.VarChar(100)
+  discount           Decimal           @default(0) @db.Decimal(15, 2)
+  specifications     String?
+  amount             Decimal?          @db.Decimal(15, 2)
+  parent_item_id     Int?
+  level              Int               @default(0)
+  work_category      work_category?    @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
+  submission         tender_submission @relation(fields: [submission_id], references: [submission_id], onDelete: NoAction, onUpdate: NoAction)
+  bq_line_item       bq_line_item?     @relation("bq_line_itemTobq_line_item", fields: [parent_item_id], references: [line_item_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_bq_line_item_parent")
+  other_bq_line_item bq_line_item[]    @relation("bq_line_itemTobq_line_item")
+
+  @@index([category_id], map: "idx_bq_line_item_category")
+  @@index([level], map: "idx_bq_line_item_level")
+  @@index([parent_item_id], map: "idx_bq_line_item_parent")
+  @@index([submission_id, category_id], map: "idx_bq_line_item_sub_cat")
+  @@index([submission_id], map: "idx_bq_line_item_submission")
+  @@index([submission_id, category_id], map: "idx_bq_line_item_submission_category")
+}
+
+model tender_acknowledgment {
+  id              Int       @id @default(autoincrement())
+  tender_id       Int
+  contractor_id   Int
+  acknowledged_at DateTime? @default(now()) @db.Timestamp(6)
+  signature       String    @db.VarChar(255)
+  sections        Json?
+  contractor      users     @relation(fields: [contractor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  tender          tender    @relation(fields: [tender_id], references: [tender_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tender_id, contractor_id])
+}
+
+model approval_chains {
+  chain_id         Int       @id @default(autoincrement())
+  resource_type    String    @db.VarChar(50)
+  step_order       Int
+  role_id          Int?
+  can_approve      Boolean?  @default(true)
+  can_reject       Boolean?  @default(true)
+  requires_comment Boolean?  @default(false)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  deadline_hours   Int?
+  roles            roles?    @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model approval_history {
+  history_id        Int                @id @default(autoincrement())
+  request_id        Int?
+  step_order        Int
+  approver_id       Int?
+  decision          String             @db.VarChar(10)
+  comment           String?
+  created_at        DateTime?          @default(now()) @db.Timestamp(6)
+  users             users?             @relation(fields: [approver_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  approval_requests approval_requests? @relation(fields: [request_id], references: [request_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model approval_requests {
+  request_id       Int                @id @default(autoincrement())
+  resource_type    String             @db.VarChar(50)
+  resource_id      Int
+  requester_id     Int?
+  current_step     Int?               @default(1)
+  status           String?            @default("pending") @db.VarChar(20)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  approval_history approval_history[]
+  users            users?             @relation(fields: [requester_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model audit_log {
+  audit_id   Int       @id @default(autoincrement())
+  table_name String    @db.VarChar(100)
+  record_id  Int
+  action     String    @db.VarChar(20)
+  old_data   Json?
+  new_data   Json?
+  changed_by Int?
+  changed_at DateTime? @default(now()) @db.Timestamp(6)
+  ip_address String?   @db.Inet
+  user_agent String?
+  users      users?    @relation(fields: [changed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([changed_at], map: "idx_audit_log_changed_at")
+  @@index([table_name, record_id], map: "idx_audit_log_record")
+}
+
+model auth_refresh_token {
+  token_id                                                                          Int                  @id @default(autoincrement())
+  user_id                                                                           Int
+  refresh_token_hash                                                                String
+  session_id                                                                        String?              @db.VarChar(100)
+  expires_at                                                                        DateTime             @db.Timestamp(6)
+  is_revoked                                                                        Boolean              @default(false)
+  previous_token_id                                                                 Int?
+  next_token_id                                                                     Int?
+  created_at                                                                        DateTime             @default(now()) @db.Timestamp(6)
+  created_by_ip                                                                     String?              @db.Inet
+  created_by_user_agent                                                             String?
+  last_used_at                                                                      DateTime?            @db.Timestamp(6)
+  last_used_ip                                                                      String?              @db.Inet
+  last_used_user_agent                                                              String?
+  token_purpose                                                                     String?              @default("REFRESH") @db.VarChar(20)
+  auth_refresh_token_auth_refresh_token_next_token_idToauth_refresh_token           auth_refresh_token?  @relation("auth_refresh_token_next_token_idToauth_refresh_token", fields: [next_token_id], references: [token_id], onUpdate: NoAction, map: "fk_auth_refresh_token_next")
+  other_auth_refresh_token_auth_refresh_token_next_token_idToauth_refresh_token     auth_refresh_token[] @relation("auth_refresh_token_next_token_idToauth_refresh_token")
+  auth_refresh_token_auth_refresh_token_previous_token_idToauth_refresh_token       auth_refresh_token?  @relation("auth_refresh_token_previous_token_idToauth_refresh_token", fields: [previous_token_id], references: [token_id], onUpdate: NoAction, map: "fk_auth_refresh_token_previous")
+  other_auth_refresh_token_auth_refresh_token_previous_token_idToauth_refresh_token auth_refresh_token[] @relation("auth_refresh_token_previous_token_idToauth_refresh_token")
+  users                                                                             users                @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_auth_refresh_token_user")
+
+  @@index([refresh_token_hash], map: "idx_auth_refresh_token_hash")
+  @@index([session_id], map: "idx_auth_refresh_token_session_id")
+  @@index([user_id], map: "idx_auth_refresh_token_user_id")
+}
+
+model bq_draft_snapshot {
+  snapshot_id       Int               @id @default(autoincrement())
+  submission_id     Int
+  saved_by          Int
+  snapshot_data     Json
+  saved_at          DateTime          @default(now()) @db.Timestamp(6)
+  users             users             @relation(fields: [saved_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_submission tender_submission @relation(fields: [submission_id], references: [submission_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model bq_section {
+  section_id        Int               @id @default(autoincrement())
+  submission_id     Int
+  section_name      String            @db.VarChar(200)
+  sort_order        Int               @default(0) @db.SmallInt
+  created_at        DateTime          @default(now()) @db.Timestamp(6)
+  updated_at        DateTime          @default(now()) @db.Timestamp(6)
+  tender_submission tender_submission @relation(fields: [submission_id], references: [submission_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model bq_submission_categories {
+  id            Int @id @default(autoincrement())
+  submission_id Int
+  category_id   Int
+
+  @@unique([submission_id, category_id])
+}
+
+model bq_submission_items {
+  submission_id     Int
+  template_item_id  Int
+  quantity          Decimal?          @default(0) @db.Decimal(12, 2)
+  rate              Decimal?          @default(0) @db.Decimal(12, 2)
+  amount            Decimal?          @default(0) @db.Decimal(12, 2)
+  updated_at        DateTime?         @default(now()) @db.Timestamp(6)
+  tender_submission tender_submission @relation(fields: [submission_id], references: [submission_id], onDelete: Cascade, onUpdate: NoAction)
+  bq_template_items bq_template_items @relation(fields: [template_item_id], references: [item_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([submission_id, template_item_id])
+}
+
+model bq_template_items {
+  item_id                 Int                   @id @default(autoincrement())
+  tender_id               Int
+  category_id             Int
+  description             String
+  unit                    String                @db.VarChar(50)
+  sort_order              Int?                  @default(0)
+  created_at              DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at              DateTime?             @default(now()) @db.Timestamp(6)
+  parent_item_id          Int?
+  quantity                Decimal?              @db.Decimal(10, 2)
+  rate                    Decimal?              @default(0) @db.Decimal
+  bq_submission_items     bq_submission_items[]
+  bq_template_items       bq_template_items?    @relation("bq_template_itemsTobq_template_items", fields: [parent_item_id], references: [item_id], onDelete: Cascade, onUpdate: NoAction)
+  other_bq_template_items bq_template_items[]   @relation("bq_template_itemsTobq_template_items")
+  tender                  tender                @relation(fields: [tender_id], references: [tender_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model calendar_events {
+  event_id    Int       @id @default(autoincrement())
+  title       String    @db.VarChar(255)
+  description String?
+  start_date  DateTime  @db.Timestamp(6)
+  end_date    DateTime? @db.Timestamp(6)
+  all_day     Boolean?  @default(false)
+  brand_id    Int?
+  tender_id   Int?
+  event_type  String?   @default("milestone") @db.VarChar(50)
+  location    String?   @db.VarChar(255)
+  color       String?   @db.VarChar(7)
+  created_by  Int
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  is_deleted  Boolean?  @default(false)
+  branch_id   Int?
+  brand       brand?    @relation(fields: [brand_id], references: [brand_id], onUpdate: NoAction)
+  users       users     @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender      tender?   @relation(fields: [tender_id], references: [tender_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([brand_id], map: "idx_calendar_events_brand")
+  @@index([tender_id], map: "idx_calendar_events_tender")
+}
+
+model email_notification_log {
+  log_id            Int      @id @default(autoincrement())
+  tender_id         Int?
+  recipient_user_id Int?
+  event_type        String   @db.VarChar(80)
+  recipient_email   String   @db.VarChar(150)
+  is_delivered      Boolean  @default(false)
+  sent_at           DateTime @default(now()) @db.Timestamp(6)
+  users             users?   @relation(fields: [recipient_user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender            tender?  @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model finance_budget_summary {
+  summary_id          Int               @id @default(autoincrement())
+  review_id           Int               @unique
+  submission_id       Int
+  total_submitted     Decimal           @db.Decimal(15, 2)
+  recommended_ceiling Decimal?          @db.Decimal(15, 2)
+  category_breakdown  Json?
+  notes               String?
+  created_at          DateTime          @default(now()) @db.Timestamp(6)
+  updated_at          DateTime          @default(now()) @db.Timestamp(6)
+  submission_review   submission_review @relation(fields: [review_id], references: [review_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_submission   tender_submission @relation(fields: [submission_id], references: [submission_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model interest_document {
+  interest_doc_id Int             @id @default(autoincrement())
+  interest_id     Int
+  doc_type        String          @db.VarChar(50)
+  file_name       String          @db.VarChar(255)
+  file_path       String          @db.VarChar(500)
+  file_type       String          @db.VarChar(50)
+  file_size       BigInt
+  file_hash       String?         @db.Char(64)
+  is_verified     Boolean         @default(false)
+  verified_by     Int?
+  verified_at     DateTime?       @db.Timestamp(6)
+  created_at      DateTime        @default(now()) @db.Timestamp(6)
+  updated_at      DateTime        @default(now()) @db.Timestamp(6)
+  tender_interest tender_interest @relation(fields: [interest_id], references: [interest_id], onDelete: NoAction, onUpdate: NoAction)
+  users           users?          @relation(fields: [verified_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model login_history {
+  login_id           Int       @id @default(autoincrement())
+  user_id            Int?
+  username_attempted String?   @db.VarChar(100)
+  ip_address         String    @db.Inet
+  ip_location        String?   @db.VarChar(255)
+  user_agent         String?
+  device_type        String?   @db.VarChar(50)
+  browser            String?   @db.VarChar(50)
+  operating_system   String?   @db.VarChar(50)
+  login_status       String    @db.VarChar(20)
+  failure_reason     String?   @db.VarChar(255)
+  auth_method        String?   @default("PASSWORD") @db.VarChar(20)
+  session_id         String?   @db.VarChar(100)
+  login_time         DateTime  @default(now()) @db.Timestamp(6)
+  logout_time        DateTime? @db.Timestamp(6)
+  session_duration   Int?
+  mfa_used           Boolean?  @default(false)
+  mfa_status         String?   @db.VarChar(20)
+  application_module String?   @db.VarChar(50)
+  additional_data    Json?
+  created_at         DateTime  @default(now()) @db.Timestamp(6)
+  users              users?    @relation(fields: [user_id], references: [user_id], onUpdate: NoAction, map: "fk_login_history_user")
+
+  @@index([ip_address], map: "idx_login_history_ip_address")
+  @@index([ip_address, login_time(sort: Desc)], map: "idx_login_history_ip_time")
+  @@index([login_time(sort: Desc)], map: "idx_login_history_login_time")
+  @@index([session_id], map: "idx_login_history_session_id")
+  @@index([login_status], map: "idx_login_history_status")
+  @@index([login_status, login_time(sort: Desc)], map: "idx_login_history_status_time")
+  @@index([user_id], map: "idx_login_history_user_id")
+  @@index([user_id, login_time(sort: Desc)], map: "idx_login_history_user_time")
+}
+
+model negotiation_log {
+  log_id                                     Int              @id @default(autoincrement())
+  tender_id                                  Int
+  contractor_id                              Int
+  logged_by                                  Int
+  comparison_id                              Int?
+  call_date                                  DateTime         @db.Date
+  call_notes                                 String?
+  outcome                                    String           @db.VarChar(20)
+  resubmission_requested                     Boolean          @default(false)
+  created_at                                 DateTime         @default(now()) @db.Timestamp(6)
+  updated_at                                 DateTime         @default(now()) @db.Timestamp(6)
+  reno_comparison                            reno_comparison? @relation(fields: [comparison_id], references: [comparison_id], onDelete: NoAction, onUpdate: NoAction)
+  users_negotiation_log_contractor_idTousers users            @relation("negotiation_log_contractor_idTousers", fields: [contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_negotiation_log_logged_byTousers     users            @relation("negotiation_log_logged_byTousers", fields: [logged_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender                                     tender           @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model password_reset_tokens {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token      String    @unique @db.VarChar(255)
+  expires_at DateTime  @db.Timestamp(6)
+  used       Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([token], map: "idx_password_reset_tokens_token")
+  @@index([user_id], map: "idx_password_reset_tokens_user_id")
+}
+
+// ============================================
+// NEW: password history for reuse prevention
+// ============================================
+model password_history {
+  id            Int      @id @default(autoincrement())
+  user_id       Int
+  password_hash String   @db.VarChar(255)
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+
+  user          users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id, created_at], name: "idx_password_history_user_created")
+}
+
+model past_project {
+  project_id           Int       @id @default(autoincrement())
+  source_tender_id     Int?
+  project_name         String    @db.VarChar(200)
+  branch_name          String?   @db.VarChar(100)
+  renovation_type      String?   @db.VarChar(100)
+  final_contract_value Decimal?  @db.Decimal(15, 2)
+  completed_date       DateTime? @db.Date
+  notes                String?
+  created_at           DateTime  @default(now()) @db.Timestamp(6)
+  updated_at           DateTime  @default(now()) @db.Timestamp(6)
+  tender               tender?   @relation(fields: [source_tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model past_project_upload {
+  upload_id       Int             @id @default(autoincrement())
+  comparison_id   Int
+  uploaded_by     Int
+  file_name       String          @db.VarChar(255)
+  file_path       String          @db.VarChar(500)
+  file_type       String          @db.VarChar(50)
+  file_size       BigInt
+  description     String?         @db.VarChar(500)
+  created_at      DateTime        @default(now()) @db.Timestamp(6)
+  updated_at      DateTime        @default(now()) @db.Timestamp(6)
+  reno_comparison reno_comparison @relation(fields: [comparison_id], references: [comparison_id], onDelete: NoAction, onUpdate: NoAction)
+  users           users           @relation(fields: [uploaded_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model permission {
+  permission_id   Int               @id @default(autoincrement())
+  permission_code String            @unique @db.VarChar(100)
+  permission_name String            @db.VarChar(100)
+  module          String?           @db.VarChar(100)
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at      DateTime          @default(now()) @db.Timestamp(6)
+  role_permission role_permission[]
+}
+
+model permissions {
+  permission_id    Int                @id @default(autoincrement())
+  resource         String             @db.VarChar(100)
+  action           String             @db.VarChar(50)
+  description      String?
+  role_permissions role_permissions[]
+
+  @@unique([resource, action])
+}
+
+model project_managers {
+  id         Int       @id @default(autoincrement())
+  name       String    @db.VarChar(255)
+  email      String    @unique @db.VarChar(255)
+  phone      String?   @db.VarChar(50)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  tender     tender[]
+}
+
+model reno_comparison {
+  comparison_id        Int                    @id @default(autoincrement())
+  tender_id            Int                    @unique
+  created_by           Int
+  title                String?                @db.VarChar(200)
+  notes                String?
+  created_at           DateTime               @default(now()) @db.Timestamp(6)
+  updated_at           DateTime               @default(now()) @db.Timestamp(6)
+  negotiation_log      negotiation_log[]
+  past_project_upload  past_project_upload[]
+  users                users                  @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender               tender                 @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+  reno_comparison_item reno_comparison_item[]
+}
+
+model reno_comparison_item {
+  item_id           Int               @id @default(autoincrement())
+  comparison_id     Int
+  contractor_id     Int
+  submission_id     Int
+  compared_total    Decimal?          @db.Decimal(15, 2)
+  rank              Int?              @db.SmallInt
+  reno_notes        String?
+  created_at        DateTime          @default(now()) @db.Timestamp(6)
+  updated_at        DateTime          @default(now()) @db.Timestamp(6)
+  reno_comparison   reno_comparison   @relation(fields: [comparison_id], references: [comparison_id], onDelete: NoAction, onUpdate: NoAction)
+  users             users             @relation(fields: [contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_submission tender_submission @relation(fields: [submission_id], references: [submission_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model resubmission_request {
+  request_id                                      Int               @id @default(autoincrement())
+  tender_id                                       Int
+  contractor_id                                   Int
+  requested_by                                    Int
+  requested_from_review_id                        Int
+  next_round_no                                   Int               @db.SmallInt
+  instructions                                    String?
+  contractor_notified                             Boolean           @default(false)
+  notified_at                                     DateTime?         @db.Timestamp(6)
+  due_by                                          DateTime?         @db.Timestamp(6)
+  created_at                                      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at                                      DateTime          @default(now()) @db.Timestamp(6)
+  users_resubmission_request_contractor_idTousers users             @relation("resubmission_request_contractor_idTousers", fields: [contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_resubmission_request_requested_byTousers  users             @relation("resubmission_request_requested_byTousers", fields: [requested_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  submission_review                               submission_review @relation(fields: [requested_from_review_id], references: [review_id], onDelete: NoAction, onUpdate: NoAction)
+  tender                                          tender            @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model review_comment {
+  comment_id            Int               @id @default(autoincrement())
+  review_id             Int
+  author_id             Int
+  comment_body          String
+  visible_to_contractor Boolean           @default(false)
+  contractor_notified   Boolean           @default(false)
+  requires_action       Boolean           @default(false)
+  created_at            DateTime          @default(now()) @db.Timestamp(6)
+  updated_at            DateTime          @default(now()) @db.Timestamp(6)
+  users                 users             @relation(fields: [author_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  submission_review     submission_review @relation(fields: [review_id], references: [review_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model role {
+  role_id                   Int                         @id @default(autoincrement())
+  role_name                 String                      @unique @db.VarChar(100)
+  role_description          String?
+  created_at                DateTime                    @default(now()) @db.Timestamp(6)
+  updated_at                DateTime                    @default(now()) @db.Timestamp(6)
+  role_permission           role_permission[]
+  tender_extension_settings tender_extension_settings[]
+  users                     users[]
+}
+
+model role_permission {
+  role_permission_id Int        @id @default(autoincrement())
+  role_id            Int
+  permission_id      Int
+  created_at         DateTime   @default(now()) @db.Timestamp(6)
+  permission         permission @relation(fields: [permission_id], references: [permission_id], onDelete: NoAction, onUpdate: NoAction)
+  role               role       @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([role_id, permission_id])
+}
+
+model role_permissions {
+  role_id       Int
+  permission_id Int
+  created_at    DateTime?   @default(now()) @db.Timestamp(6)
+  permissions   permissions @relation(fields: [permission_id], references: [permission_id], onDelete: Cascade, onUpdate: NoAction)
+  roles         roles       @relation(fields: [role_id], references: [role_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([role_id, permission_id])
+}
+
+model roles {
+  role_id          Int                @id @default(autoincrement())
+  role_name        String             @unique @db.VarChar(100)
+  description      String?
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  display_name     String?            @db.VarChar(100)
+  sort_order       Int?               @default(999)
+  approval_chains  approval_chains[]
+  role_permissions role_permissions[]
+  user_roles       user_roles[]
+}
+
+model roles_backup {
+  role_id     Int?
+  role_name   String?   @db.VarChar(100)
+  description String?
+  created_at  DateTime? @db.Timestamp(6)
+  updated_at  DateTime? @db.Timestamp(6)
+
+  @@ignore
+}
+
+model spending_facts {
+  fact_id            BigInt    @id @default(autoincrement())
+  tender_id          Int
+  submission_id      Int
+  line_item_id       Int?
+  category_id        Int?      @db.SmallInt
+  amount             Decimal   @db.Decimal(15, 2)
+  awarded_date       DateTime  @db.Date
+  year               Int?      @db.SmallInt
+  month              Int?      @db.SmallInt
+  quarter            Int?      @db.SmallInt
+  branch_id          Int?
+  renovation_type_id Int?
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([category_id], map: "idx_spending_facts_category")
+  @@index([awarded_date], map: "idx_spending_facts_date")
+  @@index([submission_id], map: "idx_spending_facts_submission")
+  @@index([tender_id], map: "idx_spending_facts_tender")
+}
+
+model submission_category {
+  submission_id     Int
+  category_id       Int               @db.SmallInt
+  sort_order        Int               @default(0) @db.SmallInt
+  work_category     work_category     @relation(fields: [category_id], references: [category_id], onUpdate: NoAction)
+  tender_submission tender_submission @relation(fields: [submission_id], references: [submission_id], onDelete: Cascade)
+
+  @@id([submission_id, category_id])
+  @@index([submission_id], map: "idx_submission_category_sub")
+}
+
+model submission_review {
+  review_id                                        Int                     @id @default(autoincrement())
+  submission_id                                    Int
+  reviewed_by                                      Int
+  review_role                                      String                  @db.VarChar(20)
+  review_status                                    String                  @default("Pending") @db.VarChar(20)
+  email_notified                                   Boolean                 @default(false)
+  granted_access_to                                Int?
+  access_granted_at                                DateTime?               @db.Timestamp(6)
+  review_order                                     Int                     @default(1) @db.SmallInt
+  created_at                                       DateTime                @default(now()) @db.Timestamp(6)
+  updated_at                                       DateTime                @default(now()) @db.Timestamp(6)
+  finance_budget_summary                           finance_budget_summary?
+  resubmission_request                             resubmission_request[]
+  review_comment                                   review_comment[]
+  users_submission_review_granted_access_toTousers users?                  @relation("submission_review_granted_access_toTousers", fields: [granted_access_to], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_submission_review_reviewed_byTousers       users                   @relation("submission_review_reviewed_byTousers", fields: [reviewed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_submission                                tender_submission       @relation(fields: [submission_id], references: [submission_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model tender_award {
+  award_id                                        Int               @id @default(autoincrement())
+  tender_id                                       Int               @unique
+  winning_contractor_id                           Int
+  awarded_by                                      Int
+  final_submission_id                             Int
+  awarded_date                                    DateTime          @db.Date
+  contract_value                                  Decimal           @db.Decimal(15, 2)
+  remark                                          String?           @db.VarChar(500)
+  created_at                                      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at                                      DateTime          @default(now()) @db.Timestamp(6)
+  users_tender_award_awarded_byTousers            users             @relation("tender_award_awarded_byTousers", fields: [awarded_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_submission                               tender_submission @relation(fields: [final_submission_id], references: [submission_id], onDelete: NoAction, onUpdate: NoAction)
+  tender                                          tender            @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+  users_tender_award_winning_contractor_idTousers users             @relation("tender_award_winning_contractor_idTousers", fields: [winning_contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model tender_contractor {
+  tender_contractor_id                         Int       @id @default(autoincrement())
+  tender_id                                    Int
+  contractor_id                                Int
+  can_download                                 Boolean   @default(false)
+  download_window_opens_at                     DateTime? @db.Timestamp(6)
+  download_window_closes_at                    DateTime? @db.Timestamp(6)
+  briefing_attended                            Boolean   @default(false)
+  prerequisite_met                             Boolean   @default(false)
+  can_submit                                   Boolean   @default(false)
+  submission_window_opens_at                   DateTime? @db.Timestamp(6)
+  submission_window_closes_at                  DateTime? @db.Timestamp(6)
+  is_approved                                  Boolean   @default(false)
+  approved_by                                  Int?
+  approved_at                                  DateTime? @db.Timestamp(6)
+  has_downloaded                               Boolean   @default(false)
+  first_downloaded_at                          DateTime? @db.Timestamp(6)
+  created_at                                   DateTime  @default(now()) @db.Timestamp(6)
+  updated_at                                   DateTime  @default(now()) @db.Timestamp(6)
+  users_tender_contractor_approved_byTousers   users?    @relation("tender_contractor_approved_byTousers", fields: [approved_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_tender_contractor_contractor_idTousers users     @relation("tender_contractor_contractor_idTousers", fields: [contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender                                       tender    @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([tender_id, contractor_id])
+}
+
+model tender_document {
+  document_id              Int                        @id @default(autoincrement())
+  tender_id                Int
+  uploaded_by              Int
+  file_name                String                     @db.VarChar(255)
+  file_path                String                     @db.VarChar(500)
+  file_type                String                     @db.VarChar(50)
+  file_size                BigInt
+  file_hash                String?                    @db.Char(64)
+  description              String?                    @db.VarChar(500)
+  is_active                Boolean                    @default(true)
+  created_at               DateTime                   @default(now()) @db.Timestamp(6)
+  updated_at               DateTime                   @default(now()) @db.Timestamp(6)
+  tender                   tender                     @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+  users                    users                      @relation(fields: [uploaded_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_document_download tender_document_download[]
+}
+
+model tender_document_download {
+  download_id     Int             @id @default(autoincrement())
+  document_id     Int
+  contractor_id   Int
+  access_granted  Boolean         @default(true)
+  downloaded_at   DateTime        @default(now()) @db.Timestamp(6)
+  users           users           @relation(fields: [contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_document tender_document @relation(fields: [document_id], references: [document_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model tender_interest {
+  interest_id                                Int                 @id @default(autoincrement())
+  tender_id                                  Int
+  contractor_id                              Int
+  interest_note                              String?             @db.VarChar(500)
+  is_approved                                Boolean             @default(false)
+  approved_by                                Int?
+  approved_at                                DateTime?           @db.Timestamp(6)
+  open_notified                              Boolean             @default(false)
+  submitted_at                               DateTime?           @db.Timestamp(6)
+  created_at                                 DateTime            @default(now()) @db.Timestamp(6)
+  updated_at                                 DateTime            @default(now()) @db.Timestamp(6)
+  interest_document                          interest_document[]
+  users_tender_interest_approved_byTousers   users?              @relation("tender_interest_approved_byTousers", fields: [approved_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_tender_interest_contractor_idTousers users               @relation("tender_interest_contractor_idTousers", fields: [contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender                                     tender              @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([tender_id, contractor_id])
+}
+
+model tender_requests {
+  request_id       Int       @id @default(autoincrement())
+  tender_id        Int
+  contractor_id    Int
+  request_type     String    @db.VarChar(20)
+  message          String
+  contractor_name  String?   @db.VarChar(200)
+  contractor_email String?   @db.VarChar(200)
+  status           String?   @default("pending") @db.VarChar(20)
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  resolved_at      DateTime? @db.Timestamptz(6)
+  users            users     @relation(fields: [contractor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  tender           tender    @relation(fields: [tender_id], references: [tender_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([contractor_id], map: "idx_tender_requests_contractor_id")
+  @@index([tender_id], map: "idx_tender_requests_tender_id")
+}
+
+model tender_submission {
+  submission_id            Int                      @id @default(autoincrement())
+  tender_id                Int
+  contractor_id            Int
+  round_no                 Int                      @default(1) @db.SmallInt
+  status                   String                   @default("Draft") @db.VarChar(50)
+  submitted_at             DateTime?                @db.Timestamp(6)
+  last_edit_at             DateTime?                @db.Timestamp(6)
+  created_at               DateTime                 @default(now()) @db.Timestamp(6)
+  updated_at               DateTime                 @default(now()) @db.Timestamp(6)
+  version_name             String?                  @db.VarChar(100)
+  bq_date                  DateTime?                @db.Date
+  area_size                String?                  @db.VarChar(50)
+  logo_url                 String?                  @db.VarChar(255)
+  client_name_override     String?                  @db.VarChar(200)
+  renovation_type_override Int?
+  branch_name_override     String?                  @db.VarChar(200)
+  is_deleted               Boolean?                 @default(false)
+  bq_name                  String                   @db.VarChar(200)
+  bq_draft_snapshot        bq_draft_snapshot[]
+  line_items               bq_line_item[]
+  bq_section               bq_section[]
+  bq_submission_items      bq_submission_items[]
+  finance_budget_summary   finance_budget_summary[]
+  reno_comparison_item     reno_comparison_item[]
+  submission_category      submission_category[]
+  submission_review        submission_review[]
+  tender_award             tender_award[]
+  users                    users                    @relation(fields: [contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  renovation_type          renovation_type?         @relation(fields: [renovation_type_override], references: [type_id], onDelete: NoAction, onUpdate: NoAction)
+  tender                   tender                   @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([contractor_id], map: "idx_submission_contractor_id")
+  @@index([contractor_id], map: "idx_tender_submission_contractor")
+  @@index([tender_id, contractor_id, is_deleted], map: "idx_tender_submission_lookup")
+  @@index([tender_id], map: "idx_tender_submission_tender")
+  @@index([is_deleted], map: "idx_ts_is_deleted")
+}
+
+model tender_work_category {
+  tender_id     Int
+  category_id   Int
+  sort_order    Int?          @default(0)
+  work_category work_category @relation(fields: [category_id], references: [category_id], onDelete: Cascade, onUpdate: NoAction)
+  tender        tender        @relation(fields: [tender_id], references: [tender_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([tender_id, category_id])
+}
+
+model unit_measure {
+  unit_id    Int    @id @default(autoincrement()) @db.SmallInt
+  unit_code  String @unique @db.VarChar(20)
+  unit_name  String @db.VarChar(50)
+  sort_order Int    @default(0) @db.SmallInt
+}
+
+model user_profile {
+  profile_id   Int      @id @default(autoincrement())
+  user_id      Int      @unique
+  full_name    String?  @db.VarChar(200)
+  company_name String?  @db.VarChar(200)
+  department   String?  @db.VarChar(100)
+  job_title    String?  @db.VarChar(100)
+  phone        String?  @db.VarChar(30)
+  created_at   DateTime @default(now()) @db.Timestamp(6)
+  updated_at   DateTime @default(now()) @db.Timestamp(6)
+  users        users    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model user_roles {
+  user_id                             Int
+  role_id                             Int
+  assigned_by                         Int?
+  assigned_at                         DateTime? @default(now()) @db.Timestamp(6)
+  users_user_roles_assigned_byTousers users?    @relation("user_roles_assigned_byTousers", fields: [assigned_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  roles                               roles     @relation(fields: [role_id], references: [role_id], onDelete: Cascade, onUpdate: NoAction)
+  users_user_roles_user_idTousers     users     @relation("user_roles_user_idTousers", fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, role_id])
+}
+
+// ============================================
+// UPDATED USERS MODEL WITH LOCKOUT & HISTORY
+// ============================================
+model users {
+  user_id                                                                 Int                         @id @default(autoincrement())
+  role_id                                                                 Int
+  username                                                                String                      @unique @db.VarChar(100)
+  email                                                                   String                      @unique @db.VarChar(150)
+  password_hash                                                           String                      @db.VarChar(255)
+  is_active                                                               Boolean                     @default(true)
+  is_approved                                                             Boolean                     @default(false)
+  is_deleted                                                              Boolean                     @default(false)
+  last_login                                                              DateTime?                   @db.Timestamp(6)
+  deleted_at                                                              DateTime?                   @db.Timestamp(6)
+  created_at                                                              DateTime                    @default(now()) @db.Timestamp(6)
+  updated_at                                                              DateTime                    @default(now()) @db.Timestamp(6)
+  access_start_date                                                       DateTime?                   @db.Date
+  access_end_date                                                         DateTime?                   @db.Date
+  is_team_member                                                          Boolean?                    @default(false)
+  employee_code                                                           String?                     @db.VarChar(50)
+  job_title                                                               String?                     @db.VarChar(100)
+  must_change_password                                                    Boolean?                    @default(true)
+  dashboard_layout                                                        Json?
+
+  // ===== NEW FIELDS: Account lockout =====
+  failed_login_attempts Int?                                              @default(0)
+  locked_until          DateTime?                                         @db.Timestamp(6)
+  last_failed_attempt   DateTime?                                         @db.Timestamp(6)
+  // ========================================
+
+  // ===== NEW RELATION: password history =====
+  password_history      password_history[]
+
+  // ------------------ Existing relations ------------------
+  approval_history                                                        approval_history[]
+  approval_requests                                                       approval_requests[]
+  audit_log                                                               audit_log[]
+  auth_refresh_token                                                      auth_refresh_token[]
+  bq_draft_snapshot                                                       bq_draft_snapshot[]
+  calendar_events                                                         calendar_events[]
+  email_notification_log                                                  email_notification_log[]
+  interest_document                                                       interest_document[]
+  login_history                                                           login_history[]
+  negotiation_log_negotiation_log_contractor_idTousers                    negotiation_log[]           @relation("negotiation_log_contractor_idTousers")
+  negotiation_log_negotiation_log_logged_byTousers                        negotiation_log[]           @relation("negotiation_log_logged_byTousers")
+  password_reset_tokens                                                   password_reset_tokens[]
+  past_project_upload                                                     past_project_upload[]
+  reno_comparison                                                         reno_comparison[]
+  reno_comparison_item                                                    reno_comparison_item[]
+  resubmission_request_resubmission_request_contractor_idTousers          resubmission_request[]      @relation("resubmission_request_contractor_idTousers")
+  resubmission_request_resubmission_request_requested_byTousers           resubmission_request[]      @relation("resubmission_request_requested_byTousers")
+  review_comment                                                          review_comment[]
+  submission_review_submission_review_granted_access_toTousers            submission_review[]         @relation("submission_review_granted_access_toTousers")
+  submission_review_submission_review_reviewed_byTousers                  submission_review[]         @relation("submission_review_reviewed_byTousers")
+  tender                                                                  tender[]
+  tender_acknowledgments                                                  tender_acknowledgment[]
+  tender_award_tender_award_awarded_byTousers                             tender_award[]              @relation("tender_award_awarded_byTousers")
+  tender_award_tender_award_winning_contractor_idTousers                  tender_award[]              @relation("tender_award_winning_contractor_idTousers")
+  tender_contractor_tender_contractor_approved_byTousers                  tender_contractor[]         @relation("tender_contractor_approved_byTousers")
+  tender_contractor_tender_contractor_contractor_idTousers                tender_contractor[]         @relation("tender_contractor_contractor_idTousers")
+  tender_document                                                         tender_document[]
+  tender_document_download                                                tender_document_download[]
+  tender_extension_requests_tender_extension_requests_approved_byTousers  tender_extension_requests[] @relation("tender_extension_requests_approved_byTousers")
+  tender_extension_requests_tender_extension_requests_requested_byTousers tender_extension_requests[] @relation("tender_extension_requests_requested_byTousers")
+  tender_interest_tender_interest_approved_byTousers                      tender_interest[]           @relation("tender_interest_approved_byTousers")
+  tender_interest_tender_interest_contractor_idTousers                    tender_interest[]           @relation("tender_interest_contractor_idTousers")
+  tender_requests                                                         tender_requests[]
+  tender_submission                                                       tender_submission[]
+  user_profile                                                            user_profile?
+  user_roles_user_roles_assigned_byTousers                                user_roles[]                @relation("user_roles_assigned_byTousers")
+  user_roles_user_roles_user_idTousers                                    user_roles[]                @relation("user_roles_user_idTousers")
+  role                                                                    role                        @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([is_active, is_deleted], map: "idx_users_active")
+}
+
+model users_backup {
+  user_id              Int?
+  role_id              Int?
+  username             String?   @db.VarChar(100)
+  email                String?   @db.VarChar(150)
+  password_hash        String?   @db.VarChar(255)
+  is_active            Boolean?
+  is_approved          Boolean?
+  is_deleted           Boolean?
+  last_login           DateTime? @db.Timestamp(6)
+  deleted_at           DateTime? @db.Timestamp(6)
+  created_at           DateTime? @db.Timestamp(6)
+  updated_at           DateTime? @db.Timestamp(6)
+  access_start_date    DateTime? @db.Date
+  access_end_date      DateTime? @db.Date
+  is_team_member       Boolean?
+  employee_code        String?   @db.VarChar(50)
+  job_title            String?   @db.VarChar(100)
+  must_change_password Boolean?
+
+  @@ignore
+}
+
+model work_category {
+  category_id          Int                    @id @default(autoincrement()) @db.SmallInt
+  category_name        String                 @unique @db.VarChar(120)
+  sort_order           Int                    @default(0) @db.SmallInt
+  is_active            Boolean                @default(true)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  bq_line_item         bq_line_item[]
+  submission_category  submission_category[]
+  tender_work_category tender_work_category[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model tender_extension_requests {
+  id                                                  Int       @id @default(autoincrement())
+  tender_id                                           Int
+  requested_by                                        Int
+  requested_days                                      Int
+  reason                                              String
+  original_closing_date                               DateTime  @db.Timestamp(6)
+  proposed_closing_date                               DateTime  @db.Timestamp(6)
+  status                                              String?   @default("Pending") @db.VarChar(20)
+  approved_by                                         Int?
+  approved_at                                         DateTime? @db.Timestamp(6)
+  created_at                                          DateTime? @default(now()) @db.Timestamp(6)
+  updated_at                                          DateTime? @default(now()) @db.Timestamp(6)
+  users_tender_extension_requests_approved_byTousers  users?    @relation("tender_extension_requests_approved_byTousers", fields: [approved_by], references: [user_id], onUpdate: NoAction)
+  users_tender_extension_requests_requested_byTousers users     @relation("tender_extension_requests_requested_byTousers", fields: [requested_by], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  tender                                              tender    @relation(fields: [tender_id], references: [tender_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status], map: "idx_extension_status")
+  @@index([tender_id], map: "idx_extension_tender_id")
+}
+
+model tender_extension_settings {
+  id          Int       @id @default(autoincrement())
+  role_id     Int
+  is_approver Boolean?  @default(false)
+  is_cc       Boolean?  @default(false)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  role        role      @relation(fields: [role_id], references: [role_id], onDelete: Cascade, onUpdate: NoAction)
+}
