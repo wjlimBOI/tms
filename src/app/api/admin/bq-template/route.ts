@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
         description: true,
         quantity: true,
         unit: true,
+        rate: true,
         sort_order: true,
       },
       orderBy: [

@@ -34,6 +34,7 @@ interface BQTemplateItem {
   description: string;
   quantity: number | null;
   unit: string;
+  rate: number | null;
   sort_order: number;
 }
 
@@ -196,6 +197,19 @@ function SortableItemRow({
             className="w-24 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
             placeholder="Unit"
           />
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={item.rate ?? ""}
+            onChange={(e) => {
+              const val = e.target.value === "" ? null : parseFloat(e.target.value);
+              onUpdate(item.item_id, "rate", val);
+            }}
+            className="w-28 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white text-right focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+            placeholder="Rate"
+            aria-label="Reference rate"
+          />
         </div>
         <div className="flex gap-2 self-end sm:self-center">
           {level === 0 && (
@@ -240,6 +254,7 @@ export default function BQTemplateEditPage() {
     description: string;
     quantity: string;
     unitDisplay: string;
+    rate: string;
   } | null>(null);
   const [saveTimer, setSaveTimer] = useState<NodeJS.Timeout | null>(null);
   const [tenderName, setTenderName] = useState<string>("");
@@ -390,6 +405,7 @@ export default function BQTemplateEditPage() {
       quantity: item.quantity,
       qty: item.quantity,
       unit: item.unit,
+      rate: item.rate,
     };
     try {
       const res = await fetch("/api/admin/bq-template/item", {
@@ -433,6 +449,7 @@ export default function BQTemplateEditPage() {
         description: "",
         quantity: "",
         unitDisplay: "",
+        rate: "",
       });
     }
   };
@@ -446,6 +463,8 @@ export default function BQTemplateEditPage() {
 
     const quantityValue =
       newItemForm.quantity.trim() === "" ? null : parseFloat(newItemForm.quantity);
+    const rateValue =
+      newItemForm.rate.trim() === "" ? null : parseFloat(newItemForm.rate);
     const storedUnitCode = getCodeFromDisplay(newItemForm.unitDisplay);
 
     const siblings = items.filter(
@@ -463,6 +482,7 @@ export default function BQTemplateEditPage() {
       quantity: quantityValue,
       qty: quantityValue,
       unit: storedUnitCode,
+      rate: rateValue,
       sort_order: nextSort,
     };
 
@@ -575,7 +595,7 @@ export default function BQTemplateEditPage() {
           item.description,
           item.quantity ?? "",
           getDisplayFromCode(item.unit),
-          "",
+          item.rate ?? "",
         ]);
 
         const subItems = getChildren(item.item_id, category.category_id);
@@ -586,7 +606,7 @@ export default function BQTemplateEditPage() {
             sub.description,
             sub.quantity ?? "",
             getDisplayFromCode(sub.unit),
-            "",
+            sub.rate ?? "",
           ]);
         });
       });
@@ -847,6 +867,18 @@ export default function BQTemplateEditPage() {
                           }
                           className="w-24 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
                         />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Rate"
+                          aria-label="Reference rate"
+                          value={newItemForm.rate}
+                          onChange={(e) =>
+                            setNewItemForm({ ...newItemForm, rate: e.target.value })
+                          }
+                          className="w-28 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white text-right focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                        />
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -899,6 +931,18 @@ export default function BQTemplateEditPage() {
                           }
                           className="w-24 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
                         />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Rate"
+                          aria-label="Reference rate"
+                          value={newItemForm.rate}
+                          onChange={(e) =>
+                            setNewItemForm({ ...newItemForm, rate: e.target.value })
+                          }
+                          className="w-28 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white text-right focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                        />
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -928,6 +972,7 @@ export default function BQTemplateEditPage() {
                             description: "",
                             quantity: "",
                             unitDisplay: "",
+                            rate: "",
                           })
                         }
                         className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline"

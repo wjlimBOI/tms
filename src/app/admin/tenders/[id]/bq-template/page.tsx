@@ -20,8 +20,14 @@ interface BQTemplateItem {
   description: string;
   quantity: number | null;
   unit: string;
+  rate: number | null;
   sort_order: number;
 }
+
+const formatRate = (rate: number | null): string => {
+  if (rate === null || rate === undefined) return "—";
+  return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(rate);
+};
 
 // Helper: get item number (e.g., "1.01", "1.01.02")
 function getItemNumber(
@@ -126,6 +132,9 @@ function ReadOnlyItemRow({
         </div>
         <div className="w-24 text-center text-sm text-gray-700 dark:text-gray-300">
           {displayUnit}
+        </div>
+        <div className="w-24 text-right text-sm text-gray-700 dark:text-gray-300">
+          {formatRate(item.rate)}
         </div>
       </div>
     </div>
@@ -378,6 +387,7 @@ export default function BQTemplateViewPage() {
                     <div className="flex gap-2 w-full sm:w-auto">
                       <div className="w-24 text-center">Quantity</div>
                       <div className="w-24 text-center">Unit</div>
+                      <div className="w-24 text-right">Rate</div>
                     </div>
                   </div>
                   {rootItems.length === 0 && (
