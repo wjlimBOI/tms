@@ -7,28 +7,15 @@ import { sendStageNotificationEmail } from "@/lib/email";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
-
-// Map current stage -> allowed roles to advance (role_id)
-// Stage 2 (Closed) has no entry: Closed → Awarded is handled exclusively by
-// the award endpoint (src/app/api/tenders/[id]/award/route.ts), not here.
-const allowedAdvanceRoles: Record<number, number[]> = {
-  0: [ROLE_IDS.ADMIN],   // Upcoming → Open
-  1: [ROLE_IDS.ADMIN],   // Open → Closed
-};
-
-// Map stage -> status_code
-// NOTE: tender_status.status_code casing is inconsistent in the live DB
-// ('Upcoming'/'Open' are capitalized, 'closed'/'awarded' are lowercase — see
-// docs/audit-history.md and AGENTS.md's casing-landmine note). Matching the
-// casing the rest of the codebase already reads/writes (award route, dashboard
-// stats) rather than "fixing" it here, since that's a data change out of scope.
-function getStatusCodeForStage(stage: number): string {
-  if (stage === 0) return 'Upcoming';
-  if (stage === 1) return 'Open';
-  if (stage === 2) return 'closed';
-  if (stage === 3) return 'awarded';
-  return 'Open';
-}
+import {
+  getStatusCodeForStage,
+  isFinalStage,
+  isCancelledStage,
+  isInitialStage,
+  hasAdvancePermission,
+  hasRevertPermission,
+  awardBlocksRevert,
+} from "@/lib/tenderStage";
 
 // ---------- OPTIONS (CORS preflight) ----------
 export async function OPTIONS(request: NextRequest) {
@@ -117,14 +104,14 @@ export async function PUT(
       newStage = currentStage;
 
       if (action === 'advance') {
-        if (currentStage >= 3) {
+        if (isFinalStage(currentStage)) {
           await client.query('ROLLBACK');
           return NextResponse.json(
             { error: "Tender is already at the final stage" },
             { status: 400, headers: corsHeaders }
           );
         }
-        if (currentStage === -1) {
+        if (isCancelledStage(currentStage)) {
           await client.query('ROLLBACK');
           return NextResponse.json(
             { error: "Cancelled tenders cannot be advanced" },
@@ -132,8 +119,7 @@ export async function PUT(
           );
         }
 
-        const allowed = allowedAdvanceRoles[currentStage]?.some((r) => userRoleIds.includes(r));
-        if (!allowed) {
+        if (!hasAdvancePermission(currentStage, userRoleIds)) {
           await client.query('ROLLBACK');
           return NextResponse.json(
             { error: "You are not authorized to advance this stage" },
@@ -143,14 +129,14 @@ export async function PUT(
         newStage = currentStage + 1;
       } else {
         // Revert: only admins
-        if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
+        if (!hasRevertPermission(userRoleIds)) {
           await client.query('ROLLBACK');
           return NextResponse.json(
             { error: "Only admins can revert a stage" },
             { status: 403, headers: corsHeaders }
           );
         }
-        if (currentStage <= 0) {
+        if (isInitialStage(currentStage)) {
           await client.query('ROLLBACK');
           return NextResponse.json(
             { error: "Tender is already at the initial stage" },
@@ -160,13 +146,14 @@ export async function PUT(
 
         // F14: refuse to revert out of Awarded(3) while an award record still
         // references this tender — stage and tender_award must not disagree
-        // about whether the tender is awarded.
-        if (currentStage === 3) {
+        // about whether the tender is awarded. Only Awarded can possibly
+        // trigger this, so skip the extra query otherwise.
+        if (isFinalStage(currentStage)) {
           const awardRes = await client.query(
             `SELECT award_id FROM tender_award WHERE tender_id = $1`,
             [tenderId]
           );
-          if (awardRes.rows.length > 0) {
+          if (awardBlocksRevert(currentStage, awardRes.rows.length > 0)) {
             await client.query('ROLLBACK');
             return NextResponse.json(
               { error: "Cannot revert: this tender has an award record. Void the award before reverting its stage." },
