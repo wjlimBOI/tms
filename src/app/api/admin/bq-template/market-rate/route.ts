@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { z } from "zod";
+import { computeStats } from "@/lib/rateStats";
 
 // Helper: check if user is admin (matches the sibling admin/bq-template/*
 // routes' convention of querying user_roles directly, rather than trusting
@@ -20,24 +21,6 @@ const querySchema = z.object({
   description: z.string().trim().min(1).max(500),
   exclude_item_id: z.coerce.number().int().positive().optional(),
 });
-
-export interface RateStats {
-  count: number;
-  avg: number | null;
-  min: number | null;
-  max: number | null;
-}
-
-export function computeStats(values: number[]): RateStats {
-  if (values.length === 0) return { count: 0, avg: null, min: null, max: null };
-  const sum = values.reduce((a, b) => a + b, 0);
-  return {
-    count: values.length,
-    avg: sum / values.length,
-    min: Math.min(...values),
-    max: Math.max(...values),
-  };
-}
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');

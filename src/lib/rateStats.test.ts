@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeStats } from "./route";
+import { computeStats } from "./rateStats";
 
 describe("computeStats", () => {
   it("returns all-null/zero-count stats for an empty list", () => {

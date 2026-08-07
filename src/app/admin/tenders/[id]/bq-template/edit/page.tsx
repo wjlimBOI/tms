@@ -21,7 +21,8 @@ import ExcelJS from "exceljs"; // ✅ replaced xlsx
 import { useNotify } from "@/components/ui/notification-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Badge } from "@/components/ui/Badge";
-import type { RateStats } from "@/app/api/admin/bq-template/market-rate/route";
+import type { RateStats } from "@/lib/rateStats";
+import type { FlaggedItem } from "@/lib/bqRateSummary";
 
 interface WorkCategory {
   category_id: number;
@@ -375,6 +376,20 @@ export default function BQTemplateEditPage() {
   const [addingResultKey, setAddingResultKey] = useState<string | null>(null);
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Whole-BQ auto pricing scan
+  const [rateSummary, setRateSummary] = useState<{
+    status: "idle" | "loading" | "done" | "error";
+    data?: {
+      flaggedHigh: FlaggedItem[];
+      flaggedLow: FlaggedItem[];
+      withinRange: number;
+      noHistory: number;
+      totalPriced: number;
+      summary: string;
+      aiGenerated: boolean;
+    };
+  }>({ status: "idle" });
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
@@ -435,6 +450,18 @@ export default function BQTemplateEditPage() {
     }
   };
 
+  const fetchRateSummary = async () => {
+    setRateSummary({ status: "loading" });
+    try {
+      const res = await fetch(`/api/admin/bq-template/rate-summary?tenderId=${tenderId}`);
+      if (!res.ok) throw new Error("Failed to fetch rate summary");
+      const data = await res.json();
+      setRateSummary({ status: "done", data });
+    } catch {
+      setRateSummary({ status: "error" });
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -471,6 +498,11 @@ export default function BQTemplateEditPage() {
     } finally {
       setLoading(false);
     }
+    // Runs once per page load, independent of the loading spinner above —
+    // it can take longer (an optional Anthropic call) and isn't required to
+    // render the template itself. A manual "Refresh" button re-runs it
+    // after edits, rather than auto-firing on every keystroke/auto-save.
+    fetchRateSummary();
   };
 
   useEffect(() => {
@@ -1001,6 +1033,55 @@ export default function BQTemplateEditPage() {
                 );
               })}
             </div>
+          )}
+        </div>
+
+        {/* Pricing Summary — whole-BQ auto scan */}
+        <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-white flex items-center gap-1.5">
+              📈 Pricing Summary
+            </h2>
+            <button
+              onClick={fetchRateSummary}
+              disabled={rateSummary.status === "loading"}
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+            >
+              {rateSummary.status === "loading" ? "Refreshing…" : "🔄 Refresh"}
+            </button>
+          </div>
+          {rateSummary.status === "loading" && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">Scanning item rates…</p>
+          )}
+          {rateSummary.status === "error" && (
+            <p className="text-xs text-red-600 dark:text-red-400">
+              Couldn't generate a pricing summary.{" "}
+              <button onClick={fetchRateSummary} className="underline hover:no-underline">
+                Retry
+              </button>
+            </p>
+          )}
+          {rateSummary.status === "done" && rateSummary.data && (
+            <>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{rateSummary.data.summary}</p>
+              {rateSummary.data.aiGenerated && (
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">AI-generated summary</p>
+              )}
+              {(rateSummary.data.flaggedHigh.length > 0 || rateSummary.data.flaggedLow.length > 0) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {rateSummary.data.flaggedHigh.map((f) => (
+                    <Badge key={`high-${f.item_id}`} variant="destructive">
+                      {f.description}: +{f.deviationPct.toFixed(0)}%
+                    </Badge>
+                  ))}
+                  {rateSummary.data.flaggedLow.map((f) => (
+                    <Badge key={`low-${f.item_id}`} variant="secondary">
+                      {f.description}: {f.deviationPct.toFixed(0)}%
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 
