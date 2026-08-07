@@ -20,6 +20,8 @@ import { CSS } from "@dnd-kit/utilities";
 import ExcelJS from "exceljs"; // ✅ replaced xlsx
 import { useNotify } from "@/components/ui/notification-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { Badge } from "@/components/ui/Badge";
+import type { RateStats } from "@/app/api/admin/bq-template/market-rate/route";
 
 interface WorkCategory {
   category_id: number;
@@ -148,6 +150,41 @@ function SortableItemRow({
   const indent = level * 24;
   const displayUnit = getDisplayFromCode(item.unit);
 
+  const [marketCheck, setMarketCheck] = useState<{
+    status: "idle" | "loading" | "done" | "error";
+    referenceStats?: RateStats;
+    marketStats?: RateStats;
+  }>({ status: "idle" });
+
+  const checkMarketRate = async () => {
+    if (!item.description.trim()) return;
+    setMarketCheck({ status: "loading" });
+    try {
+      const params = new URLSearchParams({
+        description: item.description.trim(),
+        exclude_item_id: item.item_id.toString(),
+      });
+      const res = await fetch(`/api/admin/bq-template/market-rate?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch market rate");
+      const data = await res.json();
+      setMarketCheck({ status: "done", referenceStats: data.referenceStats, marketStats: data.marketStats });
+    } catch {
+      setMarketCheck({ status: "error" });
+    }
+  };
+
+  // Prefer real contractor-bid data (marketStats) over admin-set reference
+  // rates (referenceStats) when both exist - it's the closer signal to
+  // "what people are actually paying."
+  const comparisonAvg =
+    marketCheck.status === "done"
+      ? (marketCheck.marketStats!.count > 0 ? marketCheck.marketStats!.avg : marketCheck.referenceStats!.avg)
+      : null;
+  const deviationPct =
+    comparisonAvg && comparisonAvg > 0 && item.rate != null
+      ? ((item.rate - comparisonAvg) / comparisonAvg) * 100
+      : null;
+
   return (
     <div ref={setNodeRef} style={style}>
       <div
@@ -210,6 +247,16 @@ function SortableItemRow({
             placeholder="Rate"
             aria-label="Reference rate"
           />
+          <button
+            type="button"
+            onClick={checkMarketRate}
+            disabled={marketCheck.status === "loading" || !item.description.trim()}
+            title="Compare against rates used elsewhere in the app"
+            aria-label="Compare rate against market data"
+            className="px-2.5 py-2 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {marketCheck.status === "loading" ? "…" : "📊"}
+          </button>
         </div>
         <div className="flex gap-2 self-end sm:self-center">
           {level === 0 && (
@@ -228,6 +275,58 @@ function SortableItemRow({
           </button>
         </div>
       </div>
+
+      {marketCheck.status !== "idle" && (
+        <div
+          className="text-xs px-3 py-2 mb-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+          style={{ marginLeft: `${indent}px` }}
+        >
+          {marketCheck.status === "loading" && (
+            <span className="text-gray-500 dark:text-gray-400">Checking market rate…</span>
+          )}
+          {marketCheck.status === "error" && (
+            <span className="text-red-600 dark:text-red-400">
+              Couldn't check market rate.{" "}
+              <button onClick={checkMarketRate} className="underline hover:no-underline">
+                Retry
+              </button>
+            </span>
+          )}
+          {marketCheck.status === "done" && (
+            <div className="flex flex-wrap items-center gap-2">
+              {marketCheck.marketStats!.count === 0 && marketCheck.referenceStats!.count === 0 ? (
+                <span className="text-gray-500 dark:text-gray-400">
+                  No historical data found for this description yet.
+                </span>
+              ) : (
+                <>
+                  {marketCheck.marketStats!.count > 0 && (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      Bid rates from {marketCheck.marketStats!.count} contractor submission
+                      {marketCheck.marketStats!.count === 1 ? "" : "s"}: avg{" "}
+                      <strong>{marketCheck.marketStats!.avg!.toFixed(2)}</strong> (
+                      {marketCheck.marketStats!.min!.toFixed(2)}–{marketCheck.marketStats!.max!.toFixed(2)})
+                    </span>
+                  )}
+                  {marketCheck.referenceStats!.count > 0 && (
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Reference rates on {marketCheck.referenceStats!.count} other template
+                      {marketCheck.referenceStats!.count === 1 ? "" : "s"}: avg{" "}
+                      {marketCheck.referenceStats!.avg!.toFixed(2)}
+                    </span>
+                  )}
+                  {deviationPct !== null && (
+                    <Badge variant={Math.abs(deviationPct) <= 20 ? "secondary" : "destructive"}>
+                      {deviationPct > 0 ? "+" : ""}
+                      {deviationPct.toFixed(0)}% vs. avg
+                    </Badge>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       {children}
     </div>
   );
