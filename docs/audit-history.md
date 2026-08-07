@@ -38,28 +38,37 @@ risk*.
 | F2 | Hardcoded numeric role IDs across the codebase, no permission-table-driven `hasPermission()` | The specific bug this finding flagged — Contractor checked against role_id 13, which is actually "Legal Team" (Contractor is 22) — is fixed across ~25 files, now via the named `ROLE_IDS` constant in `src/lib/roles.ts`, with a regression test (`src/lib/roles.test.ts`) asserting `CONTRACTOR !== LEGAL_TEAM`. Role-ID checks (not full `permissions`/`role_permissions`-table-driven authorization) remain the pattern for most of the app. | Building `hasPermission()` as the *primary* authorization mechanism requires deciding the shape of a full permission matrix — a product decision, not a mechanical refactor. `docs/rbac.md` records this as explicitly open. |
 | F4 | Raw `pg.Pool` connections had SSL disabled outright | `src/lib/db.ts` now enables SSL in production by default with certificate verification (`rejectUnauthorized: true`), with an optional CA bundle via `DB_SSL_CA_PATH` and an explicit, loudly-logged opt-out via `DB_SSL_REJECT_UNAUTHORIZED=false` for ops emergencies. | Prisma-based routes get their SSL behavior from `DATABASE_URL`'s `sslmode` parameter, not from this file — production deployments must confirm that connection string carries proper `sslmode` (e.g. `verify-full`) for full coverage. That's a deployment/ops action, not a code change. |
 | F5 | Dual database access layers (raw `pg.Pool` vs Prisma), with confirmed schema drift on `tender.stage` | The concrete drift is fixed — `stage`/`stage_updated_at` are real Prisma-tracked columns. | The dual-layer architecture itself is unchanged by design; `README.md`'s "Data access" section documents this as an accepted current state ("no firm rule yet for which to use where"), not something this session attempted to unify. |
-| F11 | Zero automated test coverage | No longer true: Vitest is wired up (`npm test`), with 3 test files / 19 tests covering `ROLE_IDS` regression, `canEditSubmission` permission logic, and BQ line-item amount calculations (`src/lib/bqCalculations.ts`, extracted from previously-duplicated inline arithmetic in `src/app/api/bq/items/route.ts`). | Coverage is still narrow relative to the app's full surface. A planned extraction of the tender stage-transition logic into testable pure functions was started and then deliberately reverted mid-session — the current 7-stage internal review workflow may not reflect the real intended business process (see note below), so building test coverage around it now would test the wrong thing. |
+| F11 | Zero automated test coverage | No longer true: Vitest is wired up (`npm test`), with 4 test files / 36 tests covering `ROLE_IDS` regression, `canEditSubmission` permission logic, BQ line-item amount calculations (`src/lib/bqCalculations.ts`), and — now that the stage-model decision below has been made — the tender stage-transition authorization logic (`src/lib/tenderStage.ts`/`tenderStage.test.ts`: who can advance/revert at each stage, that Closed→Awarded is unreachable via the stage endpoint for any role, and the F14 award-guard). | Coverage is still narrow relative to the app's full surface (e.g. `tenderLifecycle.ts`'s date-driven auto-open/close isn't independently unit-tested — it's DB-query-shaped rather than pure, exercised indirectly via the routes that call it). |
 | F13 | Verbose debug logging (5 `console.log` calls) in `canEditSubmission` | Down to 0 — the remaining line was removed in this session. | — (fully resolved as of this pass) |
 
-## Additional gap found during Phase 4.4 (tender creation audit)
+## Resolved since (stage-model decision + auto-open/close)
 
-There is **no auto-open mechanism anywhere in the codebase** — no cron job, scheduler, or `setInterval` of any kind reads a tender's date fields and transitions it from Upcoming to Open. The `tender` table already has `submission_start`/`download_start` columns and an admin "default timings" feature (`src/app/api/admin/tender-timings/route.ts`), but `src/app/tenders/new/page.tsx`'s create form never collects them, and `src/app/api/tenders/route.ts` hardcodes them to `null` at creation. Today, opening a tender is 100% manual via `PUT /api/tenders/[id]/stage`.
+The two items below were open as of 2026-08-07 and have since been resolved
+by an explicit product decision:
 
-This is true **regardless** of which way the stage-workflow-model decision below goes — even keeping the current 6-stage internal process, "team sets a date, it opens automatically" doesn't exist at any layer yet. Deferred alongside the workflow-model decision rather than built blind, since the right shape of the fix (a real background job vs. a lazily-checked-on-request date comparison, and which date field drives it) may depend on that decision.
+- **Stage model**: collapsed from the old 7-stage internal review workflow
+  (Submission → Finance GM Viewing → FM RD Viewing → Cost Comparison → FM RD
+  Final Viewing → Award → Closed) to the real external lifecycle —
+  **Upcoming(0) → Open(1) → Closed(2) → Awarded(3)**, plus Cancelled(-1).
+  Closed → Awarded is exclusively `src/app/api/tenders/[id]/award/route.ts`
+  (Admin-only); the stage endpoint (`src/app/api/tenders/[id]/stage/route.ts`)
+  only ever handles 0→1 and 1→2, also Admin-only.
+- **Auto-open/auto-close**: the "no auto-open mechanism anywhere" gap
+  (previously noted here) is closed for both directions. `tender_date`
+  ("Tender Start", set at creation) now drives Upcoming→Open, and
+  `closing_date` drives Open→Closed, both applied by
+  `src/lib/tenderLifecycle.ts`'s `applyScheduledTenderTransitions()`. This is
+  a lazily-checked-on-request date comparison, not a real background job —
+  no cron/scheduler exists in this app (single instance, no queue), so the
+  check runs at the top of every route that reads or gates on tender
+  open/closed status. EOT (extension of time) approval extends
+  `closing_date` directly, so no separate "extended" branch was needed.
+  Bid submission is still handled entirely outside the app via email per IT
+  policy — this only automates the internal Upcoming/Open/Closed state, not
+  an upload flow.
 
-## Known limitation flagged during this session, not yet a product decision
-
-The tender `stage` workflow coded in `src/app/api/tenders/[id]/stage/route.ts`
-(Submission → Finance GM Viewing → FM RD Viewing → Cost Comparison → FM RD
-Final Viewing → Award → Closed) does not match the externally-facing lifecycle
-described by the team: a tender is **Upcoming** until a scheduled open date,
-automatically becomes **Open** (contractors can express interest beforehand,
-then download documents and submit bids back via email — not an online
-upload, per IT policy against external-party uploads), then **Closed**. The
-existing 6-stage machine may represent a legitimate, separate *internal
-review/approval* process, or it may be scope beyond what's actually needed —
-this needs a product decision before further code (or test coverage) is built
-around it. Not acted on in this pass.
+See `AGENTS.md` §7 for the current, authoritative description of this model
+— treat it as settled, not as a decision still pending a product call.
 
 ## Scope note
 
