@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
+import { canViewTenderWithParticipation } from "@/lib/permissions";
+import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 
 export async function GET(
   req: Request,
@@ -11,22 +13,37 @@ export async function GET(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userRoleIds = (session.user as any).roleIds || [];
+  const userId = (session.user as any).id;
   if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const tenderId = parseInt(id);
   if (isNaN(tenderId)) return NextResponse.json({ error: "Invalid tender ID" }, { status: 400 });
 
+  await applyScheduledTenderTransitions();
+
   // Get tender details
   const tenderInfo = await query(
-    `SELECT t.tender_name, b.brand_name, br.branch_name
+    `SELECT t.tender_name, b.brand_name, br.branch_name, ts.status_code
      FROM tender t
      JOIN branch br ON t.branch_id = br.branch_id
      JOIN brand b ON br.brand_id = b.brand_id
+     JOIN tender_status ts ON t.status_id = ts.status_id
      WHERE t.tender_id = $1 AND t.is_deleted = false`,
     [tenderId]
   );
   if (tenderInfo.rows.length === 0) return NextResponse.json({ error: "Tender not found" }, { status: 404 });
+
+  // The BQ (pricing structure a contractor bids against) must not be visible
+  // before the tender actually opens — Upcoming is announcement-only.
+  if (tenderInfo.rows[0].status_code === 'Upcoming') {
+    return NextResponse.json({ error: "This tender is not open yet" }, { status: 403 });
+  }
+  // Once Closed, only a contractor who actually participated (has a
+  // submission) may still view it — same rule already applied to the tender
+  // detail page (canViewTenderWithParticipation).
+  const allowed = await canViewTenderWithParticipation(tenderId, userId, userRoleIds);
+  if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Get template categories and items. tender_work_category is only
   // populated by the bulk Excel template upload, not by adding items one at
