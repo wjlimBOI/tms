@@ -40,6 +40,15 @@ interface BQTemplateItem {
   sort_order: number;
 }
 
+interface ItemSearchResult {
+  description: string;
+  unit: string;
+  category_id: number;
+  category_name: string;
+  usage_count: number;
+  avg_rate: number | null;
+}
+
 // Helper: get item number (e.g., "1.01", "1.01.02")
 function getItemNumber(
   item: BQTemplateItem,
@@ -359,6 +368,13 @@ export default function BQTemplateEditPage() {
   const [tenderName, setTenderName] = useState<string>("");
   const fetchedRef = useRef(false);
 
+  // Find & reuse an existing item
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ItemSearchResult[]>([]);
+  const [searchStatus, setSearchStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [addingResultKey, setAddingResultKey] = useState<string | null>(null);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
@@ -602,6 +618,76 @@ export default function BQTemplateEditPage() {
     } catch (err) {
       console.error("Network error:", err);
       toast.error("Network error. Please try again.");
+    }
+  };
+
+  const runItemSearch = async (q: string) => {
+    if (q.trim().length < 2) {
+      setSearchResults([]);
+      setSearchStatus("idle");
+      return;
+    }
+    setSearchStatus("loading");
+    try {
+      const res = await fetch(`/api/admin/bq-template/item-search?q=${encodeURIComponent(q.trim())}`);
+      if (!res.ok) throw new Error("Search failed");
+      const data = await res.json();
+      setSearchResults(data.results || []);
+      setSearchStatus("done");
+    } catch {
+      setSearchStatus("error");
+    }
+  };
+
+  const handleSearchQueryChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => runItemSearch(value), 400);
+  };
+
+  const handleAddFromSearch = async (result: ItemSearchResult) => {
+    if (!enabledCategoryIds.includes(result.category_id)) {
+      toast.error(
+        `"${result.category_name}" isn't enabled for this tender yet. Enable it under "Manage Categories" first, then try again.`
+      );
+      return;
+    }
+
+    const key = `${result.description}|${result.category_id}`;
+    setAddingResultKey(key);
+    const siblings = items.filter(
+      (i) => i.category_id === result.category_id && i.parent_item_id === null
+    );
+    const nextSort = siblings.length > 0 ? Math.max(...siblings.map((i) => i.sort_order)) + 1 : 0;
+
+    try {
+      const res = await fetch("/api/admin/bq-template/item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tender_id: parseInt(tenderId as string, 10),
+          category_id: result.category_id,
+          parent_item_id: null,
+          description: result.description,
+          quantity: null,
+          qty: null,
+          unit: result.unit,
+          rate: result.avg_rate,
+          sort_order: nextSort,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(`Added "${result.description}" to ${result.category_name}.`);
+        fetchItems();
+      } else {
+        const errText = await res.text();
+        toast.error("Failed to add item: " + errText);
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setAddingResultKey(null);
     }
   };
 
@@ -851,6 +937,71 @@ export default function BQTemplateEditPage() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Find & Reuse an Existing Item */}
+        <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
+          <label
+            htmlFor="item-search"
+            className="block text-sm font-semibold text-gray-800 dark:text-white mb-1"
+          >
+            🔎 Find &amp; Reuse an Existing Item
+          </label>
+          <p className="text-xs text-gray-500 dark:text-white/50 mb-3">
+            Search items already used on other tenders' BQ templates and add them straight into
+            this one. Matches are ranked by relevance and how often each item has been reused.
+          </p>
+          <input
+            id="item-search"
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearchQueryChange(e.target.value)}
+            placeholder="e.g. ceramic tile flooring"
+            className="w-full border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+          />
+          {searchStatus === "loading" && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Searching…</p>
+          )}
+          {searchStatus === "error" && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+              Couldn't search right now.{" "}
+              <button onClick={() => runItemSearch(searchQuery)} className="underline hover:no-underline">
+                Retry
+              </button>
+            </p>
+          )}
+          {searchStatus === "done" && searchResults.length === 0 && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">No matching items found.</p>
+          )}
+          {searchResults.length > 0 && (
+            <div className="mt-3 space-y-2 max-h-72 overflow-y-auto">
+              {searchResults.map((r) => {
+                const key = `${r.description}|${r.category_id}`;
+                return (
+                  <div
+                    key={key}
+                    className="flex flex-wrap items-center justify-between gap-2 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm text-gray-800 dark:text-white">{r.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {r.category_name} · {getDisplayFromCode(r.unit)} · used on {r.usage_count} tender
+                        {r.usage_count === 1 ? "" : "s"}
+                        {r.avg_rate !== null && <> · avg rate {r.avg_rate.toFixed(2)}</>}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleAddFromSearch(r)}
+                      disabled={addingResultKey === key}
+                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/30 transition-colors disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {addingResultKey === key ? "Adding…" : "+ Add"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <datalist id="unit-datalist">
