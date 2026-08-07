@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
+import type { AwardedTenderItem, DashboardNotification } from "@/types/dashboard";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');
@@ -25,6 +26,20 @@ export async function GET(request: NextRequest) {
   const userRoleIds = (session.user as any).roleIds || [];
   const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
   const userDisplayName = session.user.name || session.user.email || "User";
+
+  // Real per-user unread notification count (same query as /api/notifications,
+  // which backs the Navbar bell badge) — applies to both contractor and
+  // internal-staff branches since both roles receive rows in `notifications`.
+  let unreadNotificationsCount = 0;
+  try {
+    const unreadRes = await query(
+      `SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false`,
+      [userId]
+    );
+    unreadNotificationsCount = parseInt(unreadRes.rows[0].count, 10);
+  } catch (err) {
+    console.error("Failed to fetch unread notifications count:", err);
+  }
 
   // ========== CONTRACTOR: real DB ==========
   if (isContractor) {
@@ -65,6 +80,7 @@ export async function GET(request: NextRequest) {
           userDisplayName,
           mySubmissions: mySubmissions.rows,
           reminders: reminders,
+          unreadNotificationsCount,
         },
         { headers: corsHeaders }
       );
@@ -77,7 +93,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // ========== INTERNAL STAFF: mock data ==========
+  // ========== INTERNAL STAFF: real DB-backed data ==========
   let realActiveTendersCount = 0;
   try {
     const activeTendersQuery = await query(
@@ -94,8 +110,9 @@ export async function GET(request: NextRequest) {
   }
 
   // ========== Awarded tenders – real data (tender_award) ==========
-  let realAwardedTenders: any[] = [];
-  let awarded2026Count = 0;
+  let realAwardedTenders: AwardedTenderItem[] = [];
+  let awardedThisYearCount = 0;
+  const currentYear = new Date().getFullYear();
   try {
     const awardedRes = await query(
       `SELECT ta.tender_id, t.tender_name,
@@ -115,63 +132,66 @@ export async function GET(request: NextRequest) {
       contractor_name: r.contractor_name,
       contract_value: r.contract_value ? parseFloat(r.contract_value) : 0,
       awarded_date: r.awarded_date,
-      document_url: null,
     }));
 
     const countRes = await query(
-      `SELECT COUNT(*) FROM tender_award WHERE EXTRACT(YEAR FROM awarded_date) = 2026`
+      `SELECT COUNT(*) FROM tender_award WHERE EXTRACT(YEAR FROM awarded_date) = $1`,
+      [currentYear]
     );
-    awarded2026Count = parseInt(countRes.rows[0].count);
+    awardedThisYearCount = parseInt(countRes.rows[0].count);
   } catch (err) {
     console.error("Failed to fetch awarded tenders:", err);
   }
 
-  // Notifications mock
-  const mockNotifications = [
-    {
-      id: 1,
-      type: "awarded",
-      message: "Novelty Project Services PL – awarded for YN - JP – Refurbishment",
-      created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      read: true,
-      link: "/admin/tenders/200",
-      tender_name: "YN - JP – Refurbishment",
-      contractor_name: "Novelty Project Services PL",
-      contract_value: 875000,
-    },
-    {
-      id: 2,
-      type: "awarded",
-      message: "TECK GUANG INTERIOR DESIGN PL – awarded for NYSS - JN – Refurbishment",
-      created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-      read: true,
-      link: "/admin/tenders/201",
-      tender_name: "NYSS - JN – Refurbishment",
-      contractor_name: "TECK GUANG INTERIOR DESIGN PL",
-      contract_value: 398131,
-    },
-    {
-      id: 3,
-      type: "awarded",
-      message: "D'CO Solutions – awarded for LWM - LX – Refurbishment",
-      created_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-      read: true,
-      link: "/admin/tenders/202",
-      tender_name: "LWM - LX – Refurbishment",
-      contractor_name: "D'CO Solutions",
-      contract_value: 60000,
-    },
-    {
-      id: 4,
-      type: "submitted",
-      message: "KD2 Interior Pte Ltd submitted a BQ for LWM - NC – Refurbishment + Conversion",
-      created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-      read: true,
-      link: "/admin/bq-by-tender?tender=203",
-      tender_name: "LWM - NC – Refurbishment + Conversion",
-      contractor_name: "KD2 Interior Pte Ltd",
-    },
-  ];
+  // ========== Notifications – real data (tender_award + tender_submission) ==========
+  // Note: these are derived activity items, not rows from the real per-user
+  // `notifications` table, so they have no genuine read/unread state. The
+  // "Unread Notifications" KPI is sourced separately from unreadNotificationsCount.
+  const awardedNotifications: DashboardNotification[] = realAwardedTenders.map((r) => ({
+    id: `awarded-${r.tender_id}`,
+    type: "awarded",
+    message: `${r.contractor_name} – awarded for ${r.tender_name}`,
+    created_at: r.awarded_date,
+    link: `/admin/tenders/${r.tender_id}`,
+    tender_name: r.tender_name,
+    contractor_name: r.contractor_name,
+    contract_value: r.contract_value,
+  }));
+
+  // Bidder identity per tender is Admin-only, matching admin/bqs/page.tsx's
+  // own gate on this same data — any other internal role would otherwise see
+  // who's bidding on live, pre-award tenders via this endpoint.
+  let submittedNotifications: DashboardNotification[] = [];
+  if (userRoleIds.includes(ROLE_IDS.ADMIN)) {
+    try {
+      const submittedRes = await query(
+        `SELECT s.submission_id, s.tender_id, t.tender_name, s.updated_at,
+                COALESCE(up.company_name, u.username) AS contractor_name
+         FROM tender_submission s
+         JOIN tender t ON s.tender_id = t.tender_id
+         JOIN users u ON s.contractor_id = u.user_id
+         LEFT JOIN user_profile up ON up.user_id = u.user_id
+         WHERE s.is_deleted = false
+         ORDER BY s.updated_at DESC
+         LIMIT 15`
+      );
+      submittedNotifications = submittedRes.rows.map((r) => ({
+        id: `submitted-${r.submission_id}`,
+        type: "submitted",
+        message: `${r.contractor_name} submitted a BQ for ${r.tender_name}`,
+        created_at: r.updated_at,
+        link: `/admin/bq-by-tender?tender=${r.tender_id}`,
+        tender_name: r.tender_name,
+        contractor_name: r.contractor_name,
+      }));
+    } catch (err) {
+      console.error("Failed to fetch submission notifications:", err);
+    }
+  }
+
+  const notifications = [...awardedNotifications, ...submittedNotifications]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 15);
 
   // ========== DLP summary – real data (tender.handover_date) ==========
   // Empty until projects have a recorded handover_date — there's no "mark
@@ -207,11 +227,12 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(
     {
       userDisplayName,
-      totalCompletedProjects2026: awarded2026Count,
+      totalCompletedProjectsThisYear: awardedThisYearCount,
       activeTenders: realActiveTendersCount,
       dlpSummary: realDlpSummary,
       awardedTenders: realAwardedTenders,
-      notifications: mockNotifications,
+      notifications,
+      unreadNotificationsCount,
     },
     { headers: corsHeaders }
   );

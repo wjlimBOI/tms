@@ -6,22 +6,27 @@ import { query, getClient } from "@/lib/db";
 import { sendStageNotificationEmail } from "@/lib/email";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
+import { autoCloseExpiredTenders } from "@/lib/tenderLifecycle";
 
 // Map current stage -> allowed roles to advance (role_id)
+// Stage 2 (Closed) has no entry: Closed → Awarded is handled exclusively by
+// the award endpoint (src/app/api/tenders/[id]/award/route.ts), not here.
 const allowedAdvanceRoles: Record<number, number[]> = {
-  0: [ROLE_IDS.ADMIN],                                        // Submission → Finance GM Viewing
-  1: [ROLE_IDS.FINANCE_GENERAL_MANAGER],                       // Finance GM Viewing → FM RD Viewing
-  2: [ROLE_IDS.FM_REGIONAL_DIRECTOR],                          // FM RD Viewing → Cost Comparison
-  3: [ROLE_IDS.ADMIN, ROLE_IDS.FINANCE_GENERAL_MANAGER],       // Cost Comparison → FM RD Final Viewing
-  4: [ROLE_IDS.FM_REGIONAL_DIRECTOR],                          // FM RD Final Viewing → Award
-  5: [ROLE_IDS.ADMIN],                                         // Award → Closed
+  0: [ROLE_IDS.ADMIN],   // Upcoming → Open
+  1: [ROLE_IDS.ADMIN],   // Open → Closed
 };
 
 // Map stage -> status_code
+// NOTE: tender_status.status_code casing is inconsistent in the live DB
+// ('Upcoming'/'Open' are capitalized, 'closed'/'awarded' are lowercase — see
+// docs/audit-history.md and AGENTS.md's casing-landmine note). Matching the
+// casing the rest of the codebase already reads/writes (award route, dashboard
+// stats) rather than "fixing" it here, since that's a data change out of scope.
 function getStatusCodeForStage(stage: number): string {
   if (stage === 0) return 'Upcoming';
-  if (stage >= 1 && stage <= 5) return 'Open';
-  if (stage >= 6) return 'closed';
+  if (stage === 1) return 'Open';
+  if (stage === 2) return 'closed';
+  if (stage === 3) return 'awarded';
   return 'Open';
 }
 
@@ -75,6 +80,12 @@ export async function PUT(
       );
     }
 
+    // Apply any pending closing-date auto-close before reading the current
+    // stage, so a manual advance/revert never races against a stale
+    // pre-expiry snapshot (no cron exists — this app-wide check is the only
+    // place that transition happens; see src/lib/tenderLifecycle.ts).
+    await autoCloseExpiredTenders();
+
     // 3, 5-7. Fetch (with row lock), validate, and update the stage inside a
     // transaction so the award-revert check below can't race a concurrent
     // request (F14: revert must not silently disagree with tender_award).
@@ -106,7 +117,7 @@ export async function PUT(
       newStage = currentStage;
 
       if (action === 'advance') {
-        if (currentStage >= 6) {
+        if (currentStage >= 3) {
           await client.query('ROLLBACK');
           return NextResponse.json(
             { error: "Tender is already at the final stage" },
@@ -147,10 +158,10 @@ export async function PUT(
           );
         }
 
-        // F14: refuse to revert out of Award(5) while an award record still
+        // F14: refuse to revert out of Awarded(3) while an award record still
         // references this tender — stage and tender_award must not disagree
         // about whether the tender is awarded.
-        if (currentStage === 5) {
+        if (currentStage === 3) {
           const awardRes = await client.query(
             `SELECT award_id FROM tender_award WHERE tender_id = $1`,
             [tenderId]
@@ -228,11 +239,12 @@ export async function PUT(
     if (action === 'advance') {
       const nextStage = newStage;
       let notifyRoleIds: number[] = [];
-      if (nextStage === 1) notifyRoleIds = [ROLE_IDS.FINANCE_GENERAL_MANAGER];
-      else if (nextStage === 2) notifyRoleIds = [ROLE_IDS.FM_REGIONAL_DIRECTOR];
-      else if (nextStage === 3) notifyRoleIds = [ROLE_IDS.FINANCE_GENERAL_MANAGER]; // or cost comp role
-      else if (nextStage === 4) notifyRoleIds = [ROLE_IDS.FM_REGIONAL_DIRECTOR];
-      else if (nextStage === 5) notifyRoleIds = [ROLE_IDS.ADMIN];
+      // Only two real transitions remain: Open (1) and Closed (2). Notify the
+      // FM RD and Finance GM stakeholders who still need to know the tender's
+      // submission window opened/closed, even though they no longer gate the
+      // transition itself.
+      if (nextStage === 1) notifyRoleIds = [ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER];
+      else if (nextStage === 2) notifyRoleIds = [ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER];
 
       if (notifyRoleIds.length > 0) {
         const placeholders = notifyRoleIds.map((_, i) => `$${i + 1}`).join(',');

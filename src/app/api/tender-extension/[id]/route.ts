@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { logUpdate } from "@/lib/audit";
 import { sendExtensionDecisionEmail } from "@/lib/email";
+import { ROLE_IDS } from "@/lib/roles";
 
 // GET – fetch a single extension request (unchanged)
 export async function GET(
@@ -17,8 +18,8 @@ export async function GET(
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  const isAdmin = userRoleIds.includes(1);
-  if (!isAdmin) {
+  const isFmRd = userRoleIds.includes(ROLE_IDS.FM_REGIONAL_DIRECTOR);
+  if (!isFmRd) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -60,8 +61,8 @@ export async function PUT(
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  const isAdmin = userRoleIds.includes(1);
-  if (!isAdmin) {
+  const isFmRd = userRoleIds.includes(ROLE_IDS.FM_REGIONAL_DIRECTOR);
+  if (!isFmRd) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

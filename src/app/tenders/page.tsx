@@ -49,40 +49,31 @@ const statusPriority: Record<string, number> = {
   Open: 1,
   Closed: 2,
   Upcoming: 3,
+  Awarded: 4,
 };
 
-const STAGES = [
-  "Submission",
-  "Finance GM Viewing",
-  "FM RD Viewing",
-  "Pending Cost Comparison",
-  "Pending FM RD Final Viewing",
-  "Pending Award of Tender",
-];
+const STAGES = ["Upcoming", "Open", "Closed", "Awarded"];
 
 const getStageFromStatus = (status: string): number => {
   switch (status) {
     case "Upcoming": return 0;
     case "Open": return 1;
-    case "Closed": return 6;
+    case "Closed": return 2;
+    case "Awarded": return 3;
     default: return 0;
   }
 };
 
 const getStagePillStyle = (stage: string): string => {
   switch (stage) {
-    case "Submission":
+    case "Upcoming":
+      return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+    case "Open":
       return "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
-    case "Finance GM Viewing":
-      return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
-    case "FM RD Viewing":
-      return "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300";
-    case "Pending Cost Comparison":
+    case "Closed":
       return "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
-    case "Pending FM RD Final Viewing":
-      return "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300";
-    case "Pending Award of Tender":
-      return "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300";
+    case "Awarded":
+      return "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300";
     default:
       return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
   }
@@ -209,7 +200,7 @@ export default function TendersListPage() {
   const userRole = (session?.user as any)?.role_id;
   const isAdmin = userRole === ROLE_IDS.ADMIN;
   const isContractor = userRole === ROLE_IDS.CONTRACTOR;
-  const canManageStage = [ROLE_IDS.ADMIN, ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER].includes(userRole);
+  const canManageStage = userRole === ROLE_IDS.ADMIN;
 
   // ---------- Data fetching ----------
   const fetchTenders = async () => {
@@ -878,7 +869,7 @@ export default function TendersListPage() {
                                   <button
                                     onClick={async (e) => {
                                       e.stopPropagation();
-                                      if (stageIdx === 5) {
+                                      if (stageIdx === 2) {
                                         setAwardModalTender(item);
                                         return;
                                       }
@@ -899,11 +890,11 @@ export default function TendersListPage() {
                                         toast.error("Could not connect to the server. Try again later.");
                                       }
                                     }}
-                                    disabled={stageIdx >= 6 || item.status_label === "Upcoming"}
+                                    disabled={stageIdx >= 3}
                                     className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                                   >
                                     <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                    {stageIdx === 0 ? "Open Tender" : stageIdx === 5 ? "Award Tender" : "Advance"}
+                                    {stageIdx === 0 ? "Open Tender" : stageIdx === 1 ? "Close Tender" : stageIdx === 2 ? "Award Tender" : "Advance"}
                                   </button>
                                 </>
                               )}

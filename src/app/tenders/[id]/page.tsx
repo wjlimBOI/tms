@@ -102,14 +102,7 @@ interface AlertState {
 
 
 // ========== STAGE HELPERS ==========
-const STAGES = [
-  "Submission",
-  "Finance GM Viewing",
-  "FM RD Viewing",
-  "Pending Cost Comparison",
-  "Pending FM RD Final Viewing",
-  "Pending Award of Tender",
-];
+const STAGES = ["Upcoming", "Open", "Closed", "Awarded"];
 
 const getStageName = (stage: number): string => {
   if (stage < 0 || stage >= STAGES.length) return "Unknown";
@@ -228,7 +221,7 @@ export default function TenderDocumentPage() {
   const userRole = (session?.user as any)?.role_id;
   const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
   const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
-  const canManageStage = [ROLE_IDS.ADMIN, ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER].includes(userRole);
+  const canManageStage = userRole === ROLE_IDS.ADMIN;
   const readOnly = true;
 
   // ---- Alert modal state ----
@@ -883,13 +876,15 @@ export default function TenderDocumentPage() {
                   >
                     {updatingStage ? "..." : "⬅ Revert"}
                   </button>
-                  <button
-                    onClick={() => handleStageAction("advance")}
-                    disabled={updatingStage || (tender.stage ?? 0) >= 6}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    {updatingStage ? "..." : (tender.stage === 0 ? "📢 Open Tender" : "➡ Advance")}
-                  </button>
+                  {(tender.stage ?? 0) < 2 && (
+                    <button
+                      onClick={() => handleStageAction("advance")}
+                      disabled={updatingStage}
+                      className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      {updatingStage ? "..." : (tender.stage === 0 ? "📢 Open Tender" : "🔒 Close Tender")}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -128,6 +128,15 @@ export default function Navbar() {
   const unreadNoti = notiItems.filter((n) => !n.is_read).length;
   const unreadMsg = msgItems.filter((m) => m.unread).length;
 
+  // `/` renders its own complete nav (`.apple-nav` in `src/app/page.tsx`),
+  // fixed at the same position/z-index as this one. Rendering both stacked
+  // duplicate landmarks and left this Navbar's logo/theme-toggle/Login
+  // controls focusable-but-invisible underneath it. This one now defers to
+  // the homepage's own nav entirely rather than fixing the overlap with
+  // z-index tricks — the homepage nav already covers the same needs
+  // (branding + a primary CTA + a Login link).
+  if (isHomepage) return null;
+
   const fetchSearch = useCallback(async (q: string) => {
     if (q.length < 2) { setSearchResults({ tenders: [], bqs: [] }); setIsSearchOpen(false); return; }
     try {

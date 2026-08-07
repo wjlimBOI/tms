@@ -3,6 +3,66 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
+import { autoCloseExpiredTenders } from "@/lib/tenderLifecycle";
+import { z } from "zod";
+
+const mainTendererSchema = z.object({
+  fullName: z.string().max(200).optional().default(""),
+  position: z.string().max(200).optional().default(""),
+  companyName: z.string().max(200).optional().default(""),
+  date: z.string().max(50).optional().default(""),
+  signature: z.string().min(1, "Main tenderer signature is required"),
+  address: z.string().max(500).optional().default(""),
+});
+
+const witnessSchema = z.object({
+  fullName: z.string().max(200).optional().default(""),
+  date: z.string().max(50).optional().default(""),
+  signature: z.string().optional().nullable(),
+  address: z.string().max(500).optional().default(""),
+});
+
+const declarationSchema = z.object({
+  iName: z.string().max(200).optional().default(""),
+  onBehalfOf: z.string().max(200).optional().default(""),
+  name: z.string().max(200).optional().default(""),
+  date: z.string().max(50).optional().default(""),
+  signature: z.string().min(1, "Declaration signature is required"),
+  address: z.string().max(500).optional().default(""),
+});
+
+const projectExperienceRowSchema = z.object({
+  id: z.string(),
+  projectName: z.string().max(300).optional().default(""),
+  value: z.string().max(100).optional().default(""),
+  date: z.string().max(50).optional().default(""),
+  designer: z.string().max(200).optional().default(""),
+});
+
+const currentCommitmentRowSchema = z.object({
+  id: z.string(),
+  projectName: z.string().max(300).optional().default(""),
+  value: z.string().max(100).optional().default(""),
+  percentage: z.string().max(50).optional().default(""),
+  designer: z.string().max(200).optional().default(""),
+});
+
+const submitTenderSchema = z.object({
+  agreedName: z.string().min(1, "Name of Contractor / Tenderer is required").max(200),
+  agreedDate: z.string().min(1, "Date is required").max(50),
+  agreedSignature: z.string().optional().nullable(),
+  agreedStampPreview: z.string().optional().nullable(),
+  stampPreview: z.string().optional().nullable(),
+  lumpSumRaw: z.string().min(1, "Lump sum amount is required"),
+  lumpSumFormatted: z.string().optional().nullable(),
+  amountInWords: z.string().optional().nullable(),
+  mainTenderer: mainTendererSchema,
+  witness: witnessSchema.optional().default({ fullName: "", date: "", signature: null, address: "" }),
+  declaration: declarationSchema,
+  declarationStampPreview: z.string().optional().nullable(),
+  projectExperience: z.array(projectExperienceRowSchema).optional().default([]),
+  currentCommitment: z.array(currentCommitmentRowSchema).optional().default([]),
+});
 
 export async function POST(
   req: NextRequest,
@@ -16,19 +76,37 @@ export async function POST(
 
     const { id } = await params;
     const tenderId = parseInt(id);
+    if (isNaN(tenderId)) {
+      return NextResponse.json({ error: "Invalid tender ID" }, { status: 400 });
+    }
     const contractorId = session.user.id;
 
-    // 1. Verify contractor role
-    const roleCheck = await query(
-      `SELECT role_id FROM users WHERE user_id = $1`,
-      [contractorId]
-    );
-    if (roleCheck.rows.length === 0 || roleCheck.rows[0].role_id !== ROLE_IDS.CONTRACTOR) {
+    // 1. Verify contractor role (read from the session, consistent with
+    // interest/route.ts and tender-requests/route.ts — avoids a redundant
+    // DB round-trip and matches the canonical RBAC read-path).
+    const userRoleIds = session.user.roleIds || [];
+    if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR)) {
       return NextResponse.json({ error: "Only contractors can submit tenders" }, { status: 403 });
     }
 
-    // 2. Get request body
-    const body = await req.json();
+    // 2. Get and validate request body
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const parsed = submitTenderSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      const formattedErrors = parsed.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      }));
+      return NextResponse.json(
+        { error: "Validation failed", details: formattedErrors },
+        { status: 400 }
+      );
+    }
     const {
       agreedName,
       agreedDate,
@@ -44,14 +122,10 @@ export async function POST(
       declarationStampPreview,
       projectExperience,
       currentCommitment,
-    } = body;
-
-    // 3. Validate required fields
-    if (!agreedName || !agreedDate || !lumpSumRaw || !mainTenderer?.signature || !declaration?.signature) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    } = parsed.data;
 
     // 4. Check tender exists and is open
+    await autoCloseExpiredTenders();
     const tenderCheck = await query(
       `SELECT ts.status_code, t.closing_date
        FROM tender t

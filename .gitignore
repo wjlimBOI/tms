@@ -206,6 +206,10 @@ docs/adr/*.html
 /types/generated/
 /src/types/generated/
 
+# Claude Code local tooling/session files - not part of the shipped app
+/.claude/
+master-session-prompt.md
+
 # ===== IF USING SRC DIRECTORY =====
 # If you're using src/ directory, you might want to ignore duplicate root files
 # Uncomment if you've migrated everything to src/

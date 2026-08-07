@@ -40,7 +40,6 @@ export async function canEditSubmission(
     [submissionId]
   );
   if (result.rows.length === 0) {
-    console.log(`[canEditSubmission] No submission found`);
     return false;
   }
   const sub = result.rows[0];

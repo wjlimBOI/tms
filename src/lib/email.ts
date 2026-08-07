@@ -13,6 +13,18 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Helper: escape HTML special characters before interpolating untrusted
+// (user-supplied) text into an email template, to prevent HTML injection /
+// phishing content reaching the recipient's inbox renderer.
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Helper: read logo as base64 data URI (for local development)
 function getLogoDataUri(): string | null {
   try {
@@ -294,15 +306,7 @@ export async function sendExtensionDecisionEmail(data: {
 }
 
 // ==================== STAGE NOTIFICATION EMAIL (ENHANCED) ====================
-const STAGE_NAMES = [
-  'Submission',
-  'Finance GM Viewing',
-  'FM RD Viewing',
-  'Pending Cost Comparison',
-  'Pending FM RD Final Viewing',
-  'Pending Award of Tender',
-  'Closed',
-];
+const STAGE_NAMES = ['Upcoming', 'Open', 'Closed', 'Awarded'];
 
 export async function sendStageNotificationEmail({
   to,
@@ -377,4 +381,61 @@ export async function sendStageNotificationEmail({
     console.error(`Failed to send stage email to ${to}:`, error);
     // Do not throw – we don't want to block the stage update
   }
+}
+
+// ==================== TENDER REQUEST EMAIL (drawings / information) ====================
+export async function sendTenderRequestEmail(data: {
+  tenderId: number;
+  tenderName: string;
+  requestType: "drawings" | "information";
+  contractorName: string;
+  contractorEmail: string;
+  message: string;
+  pmEmail: string;
+  pmName: string;
+}): Promise<void> {
+  const requestTypeLabel = data.requestType === "drawings" ? "Drawings" : "More Information";
+  const subject = `New ${data.requestType === "drawings" ? "Drawings Request" : "Information Request"} for Tender: ${data.tenderName}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>New Tender Request</title>
+      <style>
+        body { font-family: Arial, Helvetica, sans-serif; background-color: #f4f7fc; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 24px 28px; border: 1px solid #e0e7ef; }
+        h2 { color: #1a2c3e; margin-top: 0; }
+        .label { font-weight: 600; color: #334155; }
+        .blockquote { background-color: #f8fafc; padding: 12px 16px; border-left: 4px solid #0d9488; margin: 12px 0; }
+        .footer { margin-top: 24px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2>New Request from Contractor</h2>
+        <p>Dear ${data.pmName},</p>
+        <p><span class="label">Contractor:</span> ${escapeHtml(data.contractorName)} (${escapeHtml(data.contractorEmail)})</p>
+        <p><span class="label">Tender:</span> ${data.tenderName} (ID: ${data.tenderId})</p>
+        <p><span class="label">Request Type:</span> ${requestTypeLabel}</p>
+        <p><span class="label">Message:</span></p>
+        <div class="blockquote">${escapeHtml(data.message).replace(/\n/g, "<br>")}</div>
+        <p>Please respond to the contractor directly.</p>
+        <div class="footer">
+          © ${new Date().getFullYear()} Beauty One International Pte Ltd<br>
+          This is an automated message — please do not reply.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to: data.pmEmail,
+    subject,
+    html,
+  });
 }

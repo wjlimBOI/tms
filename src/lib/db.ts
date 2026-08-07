@@ -1,12 +1,52 @@
 // lib/db.ts
 import { Pool, PoolClient } from 'pg';
+import fs from 'fs';
+
+// Note: this only controls SSL for the raw `pg.Pool` used by `query`/
+// `getClient` below. Prisma-based routes (src/lib/prisma.ts) get their SSL
+// behavior entirely from the `DATABASE_URL` connection string's `sslmode`
+// param, not from this file — so production `DATABASE_URL` must also carry
+// a proper `sslmode` (e.g. `verify-full`) for full coverage.
+function getSslConfig(): false | { rejectUnauthorized: boolean; ca?: string } {
+  if (process.env.NODE_ENV !== 'production') {
+    return false;
+  }
+
+  if (process.env.DB_SSL_REJECT_UNAUTHORIZED === 'false') {
+    console.warn(
+      'WARNING: DB_SSL_REJECT_UNAUTHORIZED=false — Postgres SSL certificate verification is DISABLED. ' +
+        'This should only ever be used temporarily; the connection is vulnerable to MITM attacks.'
+    );
+    return { rejectUnauthorized: false };
+  }
+
+  const caPath = process.env.DB_SSL_CA_PATH;
+  if (caPath) {
+    try {
+      const ca = fs.readFileSync(caPath, 'utf8');
+      return { rejectUnauthorized: true, ca };
+    } catch (err) {
+      // Fail fast at startup rather than silently falling back to an
+      // unverified connection.
+      throw new Error(
+        `DB_SSL_CA_PATH is set to "${caPath}" but the file could not be read: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+    }
+  }
+
+  // Verify against the OS/system trust store — correct default for
+  // managed Postgres providers with publicly-trusted certs.
+  return { rejectUnauthorized: true };
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 20,                       // maximum number of clients in the pool
   idleTimeoutMillis: 30000,      // close idle clients after 30 seconds
   connectionTimeoutMillis: 2000, // return an error after 2 seconds if connection cannot be established
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: getSslConfig(),
 });
 
 // Optional: handle pool errors

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { canEditLineItem } from "@/lib/permissions";
 import { bqLineItemCreateSchema, bqLineItemUpdateSchema } from "@/lib/validation";
+import { calculateLineItemAmount } from "@/lib/bqCalculations";
 
 async function getNextSortOrder(
   submissionId: number,
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
 
   const level = await getLevel(data.parent_item_id || null);
   const sort_order = await getNextSortOrder(data.submission_id, data.category_id, data.parent_item_id || null);
-  const amount = data.quantity * data.unit_price - (data.discount || 0);
+  const amount = calculateLineItemAmount(data.quantity, data.unit_price, data.discount);
 
   // amount is a plain column, not DB-generated - must be written explicitly.
   const result = await query(
@@ -133,7 +134,7 @@ export async function PUT(req: Request) {
     const quantity = "quantity" in updates ? Number(updates.quantity) : Number(current.quantity);
     const unit_price = "unit_price" in updates ? Number(updates.unit_price) : Number(current.unit_price);
     const discount = "discount" in updates ? Number(updates.discount) : Number(current.discount);
-    entries = [...entries, ["amount", quantity * unit_price - discount]];
+    entries = [...entries, ["amount", calculateLineItemAmount(quantity, unit_price, discount)]];
   }
 
   const setClause = entries.map(([key], i) => `${key} = $${i + 2}`).join(", ");

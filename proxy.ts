@@ -26,10 +26,15 @@ export function proxy(request: NextRequest) {
   response.headers.set('x-request-id', requestId);
 
   // --- Security headers (only for page routes, not API or static) ---
+  // /documents/* is the public reference-document folder (PDFs meant to be
+  // viewed inline via <iframe> on the same origin, e.g. the express-interest
+  // page) - it must not get frame-ancestors 'none' / X-Frame-Options: DENY,
+  // or the browser refuses to render them in-page even same-origin.
   const isPageRoute =
     !pathname.startsWith('/api/') &&
     !pathname.startsWith('/_next/') &&
     !pathname.startsWith('/favicon.ico') &&
+    !pathname.startsWith('/documents/') &&
     !pathname.match(/\.(jpg|jpeg|png|gif|ico|svg|webp)$/);
 
   if (isPageRoute) {

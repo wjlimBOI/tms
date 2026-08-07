@@ -5,11 +5,16 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format, formatDistanceToNow, differenceInDays } from "date-fns";
+import { RefreshCw } from "lucide-react";
 import {
   getBQStatusStyles,
   getBQStatusLabel,
 } from "@/lib/statusColors";
 import { ROLE_IDS } from "@/lib/roles";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog";
+import { Button, buttonVariants } from "@/components/ui/Button";
+import type { AwardedTenderItem, DashboardNotification } from "@/types/dashboard";
 
 function normalizeBQStatus(rawStatus: string): "draft" | "submitted" {
   const lower = rawStatus?.toLowerCase() || "";
@@ -19,15 +24,16 @@ function normalizeBQStatus(rawStatus: string): "draft" | "submitted" {
 }
 
 interface DashboardStats {
-  totalCompletedProjects2026?: number;
+  totalCompletedProjectsThisYear?: number;
   activeTenders?: number;
   dlpSummary?: {
     activeCases: number;
     nextDueDate?: string;
     upcomingList?: Array<{ outlet: string; dueDate: string; daysLeft: number }>;
   };
-  awardedTenders?: any[];
-  notifications?: any[];
+  awardedTenders?: AwardedTenderItem[];
+  notifications?: DashboardNotification[];
+  unreadNotificationsCount?: number;
   mySubmissions?: {
     submission_id: number;
     bq_name: string;
@@ -50,14 +56,16 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
+  const [selectedNotification, setSelectedNotification] = useState<DashboardNotification | null>(null);
   const [showDlpModal, setShowDlpModal] = useState(false);
 
   const [tenders, setTenders] = useState<any[]>([]);
   const [tendersLoading, setTendersLoading] = useState(true);
+  const [tendersError, setTendersError] = useState<string | null>(null);
 
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
 
   const userRole = (session?.user as any)?.role_id;
   const isContractor = userRole === ROLE_IDS.CONTRACTOR;
@@ -82,6 +90,8 @@ export default function DashboardPage() {
   }, [session, status, router, isContractor, isAdmin]);
 
   const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/dashboard/stats");
       if (!res.ok) throw new Error("Failed to fetch dashboard data");
@@ -95,13 +105,15 @@ export default function DashboardPage() {
       setStats(data);
     } catch (err) {
       console.error(err);
-      setError("Could not load dashboard data");
+      setError("We couldn't load your dashboard data. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const fetchTenders = async () => {
+    setTendersLoading(true);
+    setTendersError(null);
     try {
       const res = await fetch("/api/tenders?limit=100");
       if (!res.ok) throw new Error("Failed to fetch tenders");
@@ -109,12 +121,15 @@ export default function DashboardPage() {
       setTenders(data.data || []);
     } catch (err) {
       console.error(err);
+      setTendersError("Couldn't load active tenders.");
     } finally {
       setTendersLoading(false);
     }
   };
 
   const fetchCalendarEvents = async () => {
+    setEventsLoading(true);
+    setEventsError(null);
     try {
       const now = new Date();
       const start = format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd");
@@ -130,6 +145,7 @@ export default function DashboardPage() {
       setUpcomingEvents(upcoming);
     } catch (err) {
       console.error("Error fetching calendar events:", err);
+      setEventsError("Couldn't load upcoming events.");
     } finally {
       setEventsLoading(false);
     }
@@ -162,10 +178,10 @@ export default function DashboardPage() {
     : [];
 
   const metrics = {
-    totalCompleted: stats?.totalCompletedProjects2026 ?? 0,
+    totalCompleted: stats?.totalCompletedProjectsThisYear ?? 0,
     activeTendersCount: stats?.activeTenders ?? 0,
     dlpActive: stats?.dlpSummary?.activeCases ?? 0,
-    pendingNotifications: stats?.notifications?.filter((n: any) => !n.read).length ?? 0,
+    pendingNotifications: stats?.unreadNotificationsCount ?? 0,
   };
 
   if (status === "loading" || loading) {
@@ -182,7 +198,13 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="text-rose-600 dark:text-rose-400 text-center">{error}</div>
+        <div className="text-center max-w-sm px-4">
+          <p className="text-rose-600 dark:text-rose-400 mb-4">{error}</p>
+          <Button onClick={fetchDashboardData} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            {loading ? "Retrying..." : "Retry"}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -203,7 +225,7 @@ export default function DashboardPage() {
   }
 
   // ========== INTERNAL STAFF DASHBOARD ==========
-  const openNotificationModal = (notif: any) => setSelectedNotification(notif);
+  const openNotificationModal = (notif: DashboardNotification) => setSelectedNotification(notif);
   const closeNotificationModal = () => setSelectedNotification(null);
 
   return (
@@ -217,39 +239,46 @@ export default function DashboardPage() {
             </h1>
           </div>
 
-          {/* ===== TIER 1: KEY METRICS – unchanged ===== */}
+          {/* ===== TIER 1: KEY METRICS ===== */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Awarded 2026</p>
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-none p-3 sm:p-4 gap-0">
+              <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Awarded {new Date().getFullYear()}</p>
               <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{metrics.totalCompleted}</p>
-            </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4">
+            </Card>
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-none p-3 sm:p-4 gap-0">
               <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Tenders</p>
               <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.activeTendersCount}</p>
-            </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4">
+            </Card>
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-none p-3 sm:p-4 gap-0">
               <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">DLP Active</p>
               <p className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.dlpActive}</p>
-            </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4">
+            </Card>
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-none p-3 sm:p-4 gap-0">
               <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Unread Notifications</p>
               <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{metrics.pendingNotifications}</p>
-            </div>
+            </Card>
           </div>
 
           {/* ===== TIER 2: PRIMARY TASKS ===== */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-4 sm:mb-6">
-            {/* ===== ACTIVE TENDERS – Brutalist header only ===== */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+            {/* ===== ACTIVE TENDERS ===== */}
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-none overflow-hidden flex flex-col p-0 gap-0">
+              <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700">
+                <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                   Active Tenders
-                </h2>
-                <Link href="/tenders" className="text-[10px] sm:text-xs text-cyan-600 dark:text-cyan-400 hover:underline">View all →</Link>
-              </div>
-              <div className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
+                </CardTitle>
+                <Link href="/tenders" className="text-[10px] sm:text-xs text-cyan-600 dark:text-cyan-400 hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600">View all →</Link>
+              </CardHeader>
+              <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
                 {tendersLoading ? (
                   <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">Loading...</div>
+                ) : tendersError ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-rose-600 dark:text-rose-400 mb-2">{tendersError}</p>
+                    <Button size="sm" variant="outline" onClick={fetchTenders}>
+                      <RefreshCw className="w-3.5 h-3.5" /> Retry
+                    </Button>
+                  </div>
                 ) : activeTendersList.length === 0 ? (
                   <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No active tenders</div>
                 ) : (
@@ -317,23 +346,25 @@ export default function DashboardPage() {
                     })}
                   </div>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* DLP Deadlines – Brutalist header only */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+            {/* DLP Deadlines */}
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-none overflow-hidden flex flex-col p-0 gap-0">
+              <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700">
+                <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                   DLP Deadlines
-                </h2>
-                <button
+                </CardTitle>
+                <Button
+                  variant="link"
+                  size="inline"
                   onClick={() => setShowDlpModal(true)}
-                  className="text-[10px] sm:text-xs text-cyan-600 dark:text-cyan-400 hover:underline"
+                  className="text-[10px] sm:text-xs text-cyan-600 dark:text-cyan-400 no-underline hover:underline"
                 >
                   View all
-                </button>
-              </div>
-              <div className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
+                </Button>
+              </CardHeader>
+              <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
                 {!stats?.dlpSummary?.upcomingList?.length ? (
                   <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No upcoming DLP deadlines.</div>
                 ) : (
@@ -351,20 +382,27 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Upcoming Events – Brutalist header only */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+            {/* Upcoming Events */}
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-none overflow-hidden flex flex-col p-0 gap-0">
+              <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700">
+                <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                   Upcoming Events
-                </h2>
-                <Link href="/calendar" className="text-[10px] sm:text-xs text-cyan-600 dark:text-cyan-400 hover:underline">View all →</Link>
-              </div>
-              <div className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
+                </CardTitle>
+                <Link href="/calendar" className="text-[10px] sm:text-xs text-cyan-600 dark:text-cyan-400 hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600">View all →</Link>
+              </CardHeader>
+              <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
                 {eventsLoading ? (
                   <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">Loading...</div>
+                ) : eventsError ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-rose-600 dark:text-rose-400 mb-2">{eventsError}</p>
+                    <Button size="sm" variant="outline" onClick={fetchCalendarEvents}>
+                      <RefreshCw className="w-3.5 h-3.5" /> Retry
+                    </Button>
+                  </div>
                 ) : upcomingEvents.length === 0 ? (
                   <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No upcoming events</div>
                 ) : (
@@ -387,58 +425,60 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* ===== TIER 3: SECONDARY INFO ===== */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            {/* Notifications – Brutalist header only */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+            {/* Notifications */}
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-none overflow-hidden flex flex-col p-0 gap-0">
+              <CardHeader className="px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700 space-y-0">
+                <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                   Notifications
-                </h2>
-              </div>
-              <div className="flex-1 p-3 sm:p-4 overflow-auto max-h-[180px] sm:max-h-[200px]">
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[180px] sm:max-h-[200px]">
                 {!stats?.notifications?.length ? (
                   <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No new notifications</div>
                 ) : (
                   <div className="space-y-2">
-                    {stats.notifications.slice(0, 4).map((notif: any) => (
+                    {stats.notifications.slice(0, 4).map((notif) => (
                       <div key={notif.id} className="flex items-start gap-2 text-sm border-b border-slate-100 dark:border-slate-800 pb-2 last:border-0">
                         <div className="w-1.5 h-1.5 mt-1.5 rounded-full bg-cyan-600 dark:bg-cyan-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-slate-800 dark:text-slate-200 truncate text-xs sm:text-sm">{notif.message}</p>
                           <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">{formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}</p>
                         </div>
-                        <button
+                        <Button
+                          variant="link"
+                          size="inline"
                           onClick={() => openNotificationModal(notif)}
-                          className="text-cyan-600 dark:text-cyan-400 text-xs hover:underline flex-shrink-0 font-medium"
+                          className="text-cyan-600 dark:text-cyan-400 text-xs no-underline hover:underline flex-shrink-0 font-medium"
                         >
                           View
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Awarded Tenders – Brutalist header only */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700">
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+            {/* Awarded Tenders */}
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-none overflow-hidden flex flex-col p-0 gap-0">
+              <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700">
+                <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                   Awarded Tenders
-                </h2>
-                <Link href="/admin/awards" className="text-[10px] sm:text-xs text-cyan-600 dark:text-cyan-400 hover:underline">View all →</Link>
-              </div>
-              <div className="flex-1 p-3 sm:p-4 overflow-auto max-h-[180px] sm:max-h-[200px]">
+                </CardTitle>
+                <Link href="/admin/awards" className="text-[10px] sm:text-xs text-cyan-600 dark:text-cyan-400 hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600">View all →</Link>
+              </CardHeader>
+              <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[180px] sm:max-h-[200px]">
                 {!stats?.awardedTenders?.length ? (
                   <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No awarded tenders yet.</div>
                 ) : (
                   <div className="space-y-2">
-                    {stats.awardedTenders.slice(0, 4).map((item: any) => (
+                    {stats.awardedTenders.slice(0, 4).map((item) => (
                       <div key={item.tender_id} className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-800 pb-2 last:border-0">
                         <div className="min-w-0 flex-1">
                           <p
@@ -456,133 +496,155 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
 
-      {/* Notification Modal – unchanged */}
-      {selectedNotification && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full mx-auto border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 rounded-t-lg flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Tender Submission Details</h3>
-              <button onClick={closeNotificationModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition p-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Event Type</label>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1 capitalize">{selectedNotification.type}</p>
+      {/* Notification Modal */}
+      <Dialog
+        open={selectedNotification !== null}
+        onOpenChange={(open) => {
+          if (!open) closeNotificationModal();
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-2xl w-full rounded-lg p-0 gap-0 max-h-[90vh] overflow-y-auto sm:max-w-2xl"
+        >
+          {selectedNotification && (
+            <>
+              <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 rounded-t-lg flex justify-between items-center">
+                <DialogTitle className="text-lg font-semibold text-slate-900 dark:text-white">
+                  {selectedNotification.type === "awarded" ? "Tender Award Details" : "BQ Submission Details"}
+                </DialogTitle>
+                <DialogClose
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      aria-label="Close dialog"
+                    />
+                  }
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </DialogClose>
               </div>
-              <div>
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Message</label>
-                <p className="text-sm text-slate-900 dark:text-white mt-1">{selectedNotification.message}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="p-6 space-y-4">
                 <div>
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Tender Name</label>
-                  <p className="text-sm text-slate-900 dark:text-white mt-1">{selectedNotification.tender_name || "—"}</p>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Event Type</label>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1 capitalize">{selectedNotification.type}</p>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Contractor</label>
-                  <p className="text-sm text-slate-900 dark:text-white mt-1">{selectedNotification.contractor_name || "—"}</p>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Message</label>
+                  <p className="text-sm text-slate-900 dark:text-white mt-1">{selectedNotification.message}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Tender Name</label>
+                    <p className="text-sm text-slate-900 dark:text-white mt-1">{selectedNotification.tender_name || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Contractor</label>
+                    <p className="text-sm text-slate-900 dark:text-white mt-1">{selectedNotification.contractor_name || "—"}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+                    {selectedNotification.type === "awarded" ? "Contract Value" : "Details"}
+                  </label>
+                  {selectedNotification.type === "awarded" && typeof selectedNotification.contract_value === "number" ? (
+                    <div className="mt-2 bg-slate-50 dark:bg-slate-800/30 rounded-md p-3 text-sm text-slate-600 dark:text-slate-300">
+                      <p className="font-semibold text-slate-900 dark:text-white">{formatCurrency(selectedNotification.contract_value)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">A full BQ line-item breakdown isn&apos;t available here — view the full tender page for details.</p>
+                    </div>
+                  ) : selectedNotification.type === "submitted" ? (
+                    <div className="mt-2 bg-slate-50 dark:bg-slate-800/30 rounded-md p-3 text-sm text-slate-600 dark:text-slate-300">
+                      <p>The contractor has submitted a BQ for this tender. Please review the details on the tender page.</p>
+                    </div>
+                  ) : (
+                    <div className="mt-2 bg-slate-50 dark:bg-slate-800/30 rounded-md p-3 text-sm text-slate-600 dark:text-slate-300">
+                      <p>No further details available.</p>
+                    </div>
+                  )}
+                </div>
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+                  {selectedNotification.link && (
+                    <Link href={selectedNotification.link} className={buttonVariants({ className: "bg-cyan-700 hover:bg-cyan-800 text-white" })}>
+                      Go to Tender Page
+                    </Link>
+                  )}
+                  <DialogClose render={<Button variant="outline" />}>Close</DialogClose>
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">BQ Summary</label>
-                {selectedNotification.type === "awarded" && selectedNotification.contract_value ? (
-                  (() => {
-                    const subtotal = selectedNotification.contract_value;
-                    const gst = subtotal * 0.09;
-                    const grandTotal = subtotal + gst;
-                    return (
-                      <div className="mt-2 bg-slate-50 dark:bg-slate-800/30 rounded-md p-3 text-sm text-slate-600 dark:text-slate-300">
-                        <p><span className="font-medium">Total Line Items:</span> 12</p>
-                        <p><span className="font-medium">Subtotal:</span> {formatCurrency(subtotal)}</p>
-                        <p><span className="font-medium">GST (9%):</span> {formatCurrency(gst)}</p>
-                        <p className="pt-2 font-semibold border-t border-slate-200 dark:border-slate-700 mt-2">Grand Total: {formatCurrency(grandTotal)}</p>
-                      </div>
-                    );
-                  })()
-                ) : selectedNotification.type === "submitted" ? (
-                  <div className="mt-2 bg-slate-50 dark:bg-slate-800/30 rounded-md p-3 text-sm text-slate-600 dark:text-slate-300">
-                    <p>The contractor has submitted a BQ for this tender. Please review the details on the tender page.</p>
-                  </div>
-                ) : (
-                  <div className="mt-2 bg-slate-50 dark:bg-slate-800/30 rounded-md p-3 text-sm text-slate-600 dark:text-slate-300">
-                    <p>No BQ details available.</p>
-                  </div>
-                )}
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">* This is a mock preview. Actual BQ data can be viewed in the full tender page.</p>
-              </div>
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
-                {selectedNotification.link && (
-                  <Link href={selectedNotification.link} className="px-4 py-2 bg-cyan-700 hover:bg-cyan-800 text-white text-sm font-medium rounded-md transition">
-                    Go to Tender Page
-                  </Link>
-                )}
-                <button onClick={closeNotificationModal} className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium rounded-md transition">
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
-      {/* DLP Modal – unchanged */}
-      {showDlpModal && stats?.dlpSummary?.upcomingList && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full mx-auto border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Upcoming DLP Deadlines</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Defect Liability Period expiry dates</p>
-              </div>
-              <button onClick={() => setShowDlpModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition p-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+      {/* DLP Modal */}
+      <Dialog open={showDlpModal} onOpenChange={setShowDlpModal}>
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-2xl w-full rounded-2xl p-0 gap-0 max-h-[90vh] overflow-y-auto sm:max-w-2xl"
+        >
+          <div className="sticky top-0 bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+            <div>
+              <DialogTitle className="text-lg font-semibold text-slate-900 dark:text-white">Upcoming DLP Deadlines</DialogTitle>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Defect Liability Period expiry dates</p>
             </div>
-            <div className="p-6">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-                  <thead className="bg-slate-50 dark:bg-slate-800/30">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Outlet</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">DLP Due Date</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Days Left</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                    {stats.dlpSummary.upcomingList.map((item: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
-                        <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{item.outlet}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{formatDate(item.dueDate)}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.daysLeft <= 30 ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300'}`}>
-                            {item.daysLeft} days left
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {stats.dlpSummary.upcomingList.length === 0 && (
-                <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">No upcoming DLP deadlines.</div>
-              )}
-            </div>
-            <div className="sticky bottom-0 bg-white dark:bg-slate-900 px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex justify-end">
-              <button onClick={() => setShowDlpModal(false)} className="px-4 py-2 bg-cyan-700 hover:bg-cyan-800 text-white text-sm font-medium rounded-lg transition">
-                Close
-              </button>
-            </div>
+            <DialogClose
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  aria-label="Close dialog"
+                />
+              }
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </DialogClose>
           </div>
-        </div>
-      )}
+          <div className="p-6">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                <caption className="sr-only">Upcoming Defect Liability Period deadlines by outlet</caption>
+                <thead className="bg-slate-50 dark:bg-slate-800/30">
+                  <tr>
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Outlet</th>
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">DLP Due Date</th>
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Days Left</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {(stats?.dlpSummary?.upcomingList ?? []).map((item: any, idx: number) => (
+                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
+                      <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{item.outlet}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{formatDate(item.dueDate)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.daysLeft <= 30 ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300'}`}>
+                          {item.daysLeft} days left
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {(stats?.dlpSummary?.upcomingList?.length ?? 0) === 0 && (
+              <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">No upcoming DLP deadlines.</div>
+            )}
+          </div>
+          <div className="sticky bottom-0 bg-white dark:bg-slate-900 px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex justify-end">
+            <DialogClose render={<Button className="bg-cyan-700 hover:bg-cyan-800 text-white" />}>
+              Close
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

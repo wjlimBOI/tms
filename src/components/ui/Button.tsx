@@ -18,6 +18,20 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        // Colors/pattern for a pill button on a dark/photographic background
+        // (e.g. hero sections), where the default variants' light-theme
+        // tokens (bg-background, border-border, etc.) don't have enough
+        // contrast to be usable. Pair with size="pill".
+        heroLight:
+          "bg-white font-normal text-[var(--navy)] hover:bg-[var(--silver-pale)] focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--navy)]",
+        // Plain text link tab-stop on a dark background (e.g. a translucent
+        // nav bar). Pair with size="inline" or size="navPill".
+        heroNavLink:
+          "bg-transparent font-normal text-white/85 hover:text-white focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
+        // Small icon-only control on a dark background (e.g. a carousel
+        // play/pause toggle). Pair with size="icon-auto".
+        heroGhost:
+          "bg-white/10 text-white hover:bg-white/20 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--navy)]",
       },
       size: {
         default:
@@ -31,6 +45,17 @@ const buttonVariants = cva(
         "icon-sm":
           "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-9",
+        // Pill-shaped CTA button, sized by its own padding rather than a
+        // fixed height (used with variant="heroLight").
+        pill: "h-auto rounded-full px-6 py-3 text-base",
+        // Text-only tab stop with no button chrome (used with variant="heroNavLink").
+        inline: "h-auto rounded-md p-0 text-xs",
+        // Nav-bar link with a real hit area (>=24x24, matches the "lg" height
+        // scale) — used with variant="heroNavLink" where "inline" would be
+        // too small a touch/click target (WCAG 2.5.8).
+        navPill: "h-9 gap-1.5 rounded-md px-3 text-xs",
+        // Square icon-only control sized by its own padding (used with variant="heroGhost").
+        "icon-auto": "h-auto w-auto rounded-full p-2",
       },
     },
     defaultVariants: {

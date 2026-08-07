@@ -6,6 +6,7 @@ import { query } from "@/lib/db";
 import { logInsert } from "@/lib/audit";
 import { sendExtensionRequestEmail } from "@/lib/email";
 import { ROLE_IDS } from "@/lib/roles";
+import { autoCloseExpiredTenders } from "@/lib/tenderLifecycle";
 
 // ===== POST: Request a time extension =====
 export async function POST(req: Request) {
@@ -36,6 +37,8 @@ export async function POST(req: Request) {
   }
 
   const userId = (session.user as any).id;
+
+  await autoCloseExpiredTenders();
 
   // 1. Fetch tender details and validate existence
   const tenderRes = await query(

@@ -114,10 +114,10 @@ export async function POST(
       await client.query("ROLLBACK");
       return NextResponse.json({ error: "Tender not found" }, { status: 404, headers: corsHeaders });
     }
-    if (tenderRes.rows[0].stage !== 5) {
+    if (tenderRes.rows[0].stage !== 2) {
       await client.query("ROLLBACK");
       return NextResponse.json(
-        { error: "A tender can only be awarded while at the \"Pending Award of Tender\" stage" },
+        { error: "A tender can only be awarded while at the \"Closed\" stage" },
         { status: 400, headers: corsHeaders }
       );
     }
@@ -159,15 +159,15 @@ export async function POST(
     );
 
     const statusRes = await client.query(
-      `SELECT status_id FROM tender_status WHERE status_code = 'closed'`
+      `SELECT status_id FROM tender_status WHERE status_code = 'awarded'`
     );
     if (statusRes.rows.length === 0) {
       await client.query("ROLLBACK");
-      return NextResponse.json({ error: "Closed status not configured" }, { status: 500, headers: corsHeaders });
+      return NextResponse.json({ error: "Awarded status not configured" }, { status: 500, headers: corsHeaders });
     }
 
     await client.query(
-      `UPDATE tender SET stage = 6, status_id = $1, stage_updated_at = NOW(), updated_at = NOW() WHERE tender_id = $2`,
+      `UPDATE tender SET stage = 3, status_id = $1, stage_updated_at = NOW(), updated_at = NOW() WHERE tender_id = $2`,
       [statusRes.rows[0].status_id, tenderId]
     );
 

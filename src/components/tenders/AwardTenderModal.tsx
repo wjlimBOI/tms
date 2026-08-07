@@ -82,7 +82,7 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Unable to record the award.");
 
-      toast.success("Tender awarded — it has been moved to Closed.");
+      toast.success("Tender awarded successfully.");
       onAwarded();
       onClose();
     } catch (err: any) {

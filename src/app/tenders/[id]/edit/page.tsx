@@ -505,7 +505,9 @@ export default function TenderEditPage() {
   const handleSubmit = useCallback(async () => {
     const missing: string[] = [];
     if (!agreedName.trim()) missing.push("Name of Contractor / Tenderer");
+    if (!agreedDate.trim()) missing.push("Agreement date");
     if (!lumpSumRaw.trim()) missing.push("Total Lump Sum (SGD)");
+    if (!mainSignature) missing.push("Main tenderer signature");
     if (!declaration.iName.trim()) missing.push("Declaration: I, (your name)");
     if (!declaration.onBehalfOf.trim()) missing.push("Declaration: on behalf of (company name)");
     if (!declaration.name.trim()) missing.push("Declaration: Name of Tenderer");
@@ -521,7 +523,7 @@ export default function TenderEditPage() {
 
     setShowDisclaimerModal(true);
     setDisclaimerAgreed(false);
-  }, [agreedName, lumpSumRaw, declaration, declarationSignature, tendererAddress]);
+  }, [agreedName, agreedDate, lumpSumRaw, mainSignature, declaration, declarationSignature, tendererAddress]);
 
   // ===== Alert Modal renderer =====
   const renderAlertModal = () => {

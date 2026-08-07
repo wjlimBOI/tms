@@ -10,7 +10,11 @@ const nextConfig: NextConfig = {
 
     return [
       {
-        source: '/:path*',
+        // Excludes /documents/* (public reference PDFs meant to be embedded
+        // inline via <iframe> on the same origin) - X-Frame-Options: DENY
+        // would block the browser from rendering them in-page even though
+        // it's the app's own page framing its own same-origin file.
+        source: '/:path((?!documents/).*)',
         headers: [
           // Basic security headers
           { key: 'X-Frame-Options', value: 'DENY' },

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle, ArrowLeft, FileCheck, X } from "lucide-react";
 import TenderForm from "@/components/tenders/TenderForm";
+import { ROLE_IDS } from "@/lib/roles";
 
 interface AlertData {
   type: "success" | "error" | "warning" | "info";
@@ -26,7 +27,8 @@ export default function CreateProjectPage() {
 
   useEffect(() => {
     if (sessionStatus === "unauthenticated") router.push("/login");
-    if ((session?.user as any)?.role_id !== 1) router.push("/");
+    const roleIds = (session?.user as any)?.roleIds || [];
+    if (sessionStatus === "authenticated" && !roleIds.includes(ROLE_IDS.ADMIN)) router.push("/");
   }, [session, sessionStatus, router]);
 
   const renderAlertModal = () => {
