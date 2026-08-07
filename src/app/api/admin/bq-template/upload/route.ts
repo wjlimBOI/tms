@@ -10,6 +10,8 @@ import { getClient } from "@/lib/db";
 import ExcelJS from "exceljs";
 import { logUpdate, logAuthEvent } from "@/lib/audit"; // ✅ audit import
 
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+
 // Zod schema for form data validation
 const formSchema = z.object({
   tenderId: z.string().regex(/^\d+$/, "tenderId must be a numeric string"),
@@ -108,6 +110,13 @@ export async function POST(request: NextRequest) {
 
   const { tenderId: tenderIdStr, file: uploadedFile } = validation.data;
   const tenderId = parseInt(tenderIdStr, 10);
+
+  if (uploadedFile.size > MAX_BYTES) {
+    return NextResponse.json(
+      { error: "File too large" },
+      { status: 413, headers: corsHeaders }
+    );
+  }
 
   // Check if tender exists
   const tenderExists = await prisma.tender.findUnique({
@@ -310,7 +319,7 @@ export async function POST(request: NextRequest) {
     await client.query("ROLLBACK");
     console.error(err);
     return NextResponse.json(
-      { error: err.message || "Database error" },
+      { error: "Database error" },
       { status: 500, headers: corsHeaders }
     );
   } finally {

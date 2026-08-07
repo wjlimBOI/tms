@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { ROLE_IDS } from "@/lib/roles";
+import { logUpdate } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 
 async function getUserIdFromSession(session: any): Promise<number | null> {
   if (session.user?.id) return session.user.id;
@@ -71,26 +74,31 @@ export async function GET(
 
     // 2. Permissions – use session roles
     const userRoleIds = (session.user as any)?.roleIds || [];
-    const isAdmin = userRoleIds.includes(1);
-    const isContractor = userRoleIds.includes(13);
+    const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+    const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
+    const ownsSubmission = isContractor && submission.contractor_id === userId;
+
+    // Access control – only admins and the owning contractor may view this
+    // submission's pricing data (matches the pattern used by /api/bq/export
+    // and /api/bq/submission-item).
+    if (!isAdmin && !ownsSubmission) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     let canEdit = false;
     if (isAdmin) {
       canEdit = true;
-    } else if (isContractor) {
-      const ownsSubmission = submission.contractor_id === userId;
-      if (ownsSubmission) {
-        // Get latest round for this tender and contractor
-        const latestRes = await query(
-          `SELECT MAX(round_no) as max_round FROM tender_submission
-           WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false`,
-          [submission.tender_id, submission.contractor_id]
-        );
-        const maxRound = latestRes.rows[0]?.max_round || 0;
-        const isLatest = submission.round_no === maxRound;
-        const isDraft = submission.status === 'Draft';
-        canEdit = isDraft && isLatest;
-      }
+    } else if (ownsSubmission) {
+      // Get latest round for this tender and contractor
+      const latestRes = await query(
+        `SELECT MAX(round_no) as max_round FROM tender_submission
+         WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false`,
+        [submission.tender_id, submission.contractor_id]
+      );
+      const maxRound = latestRes.rows[0]?.max_round || 0;
+      const isLatest = submission.round_no === maxRound;
+      const isDraft = submission.status === 'Draft';
+      canEdit = isDraft && isLatest;
     }
 
     // 3. Categories
@@ -169,19 +177,22 @@ export async function PATCH(
   const body = await req.json();
   const { status: newStatus } = body;
 
-  if (!newStatus || !["approved", "rejected"].includes(newStatus)) {
+  if (!newStatus || !["approved", "rejected", "revert"].includes(newStatus)) {
     return NextResponse.json(
-      { error: "Invalid status. Use 'approved' or 'rejected'." },
+      { error: "Invalid status. Use 'approved', 'rejected', or 'revert'." },
       { status: 400 }
     );
   }
 
-  const titleCaseStatus = newStatus === 'approved' ? 'Approved' : 'Rejected';
+  const titleCaseStatus = newStatus === 'approved' ? 'Approved' : newStatus === 'rejected' ? 'Rejected' : 'Submitted';
 
   try {
     // Get current status and user roles
     const subRes = await query(
-      `SELECT ts.status FROM tender_submission ts WHERE ts.submission_id = $1`,
+      `SELECT ts.status, ts.contractor_id, ts.tender_id, ts.bq_name, t.tender_name
+       FROM tender_submission ts
+       JOIN tender t ON ts.tender_id = t.tender_id
+       WHERE ts.submission_id = $1`,
       [submissionId]
     );
     if (subRes.rows.length === 0) {
@@ -190,16 +201,36 @@ export async function PATCH(
 
     const currentStatus = subRes.rows[0].status;
     const userRoleIds = (session.user as any)?.roleIds || [];
-    const isAdmin = userRoleIds.includes(1);
+    const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
 
     if (!isAdmin) {
       return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
     }
 
-    if (currentStatus.toLowerCase() !== "submitted") {
+    if (newStatus === "revert") {
+      if (!["approved", "rejected"].includes(currentStatus.toLowerCase())) {
+        return NextResponse.json(
+          { error: `Cannot revert from '${currentStatus}'. Only an Approved or Rejected BQ can be reverted back to Submitted.` },
+          { status: 400 }
+        );
+      }
+    } else if (currentStatus.toLowerCase() !== "submitted") {
       return NextResponse.json(
         { error: `Cannot change status from '${currentStatus}'. Only 'Submitted' BQs can be approved or rejected.` },
         { status: 400 }
+      );
+    }
+
+    // Once a submission has actually been awarded, its status is frozen -
+    // the tender is closed and nothing should change it after the fact.
+    const awardedAs = await query(
+      `SELECT award_id FROM tender_award WHERE final_submission_id = $1`,
+      [submissionId]
+    );
+    if (awardedAs.rows.length > 0) {
+      return NextResponse.json(
+        { error: "This BQ has already been awarded and its status can no longer be changed" },
+        { status: 409 }
       );
     }
 
@@ -209,6 +240,34 @@ export async function PATCH(
        WHERE submission_id = $2`,
       [titleCaseStatus, submissionId]
     );
+
+    await logUpdate(
+      "tender_submission",
+      submissionId,
+      { status: currentStatus },
+      { status: titleCaseStatus },
+      userId,
+      req,
+      { action: `bq_${newStatus}` }
+    );
+
+    const bqLabel = subRes.rows[0].bq_name || `BQ #${submissionId}`;
+    const tenderName = subRes.rows[0].tender_name;
+    if (newStatus === "approved") {
+      await createNotification(
+        subRes.rows[0].contractor_id,
+        "Your BQ has been approved",
+        `"${bqLabel}" for "${tenderName}" has been approved.`,
+        `/bq/${submissionId}/view`
+      );
+    } else if (newStatus === "rejected") {
+      await createNotification(
+        subRes.rows[0].contractor_id,
+        "Your BQ has been rejected",
+        `"${bqLabel}" for "${tenderName}" has been rejected.`,
+        `/bq/${submissionId}/view`
+      );
+    }
 
     return NextResponse.json({ success: true, status: titleCaseStatus });
   } catch (error) {

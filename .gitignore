@@ -53,14 +53,12 @@ next-env.d.ts
 !src/lib/generated/.gitkeep
 !/prisma/generated/.gitkeep
 
-# Test files
+# Ad hoc scratch/debug scripts (not the Vitest suite — *.test.ts is tracked)
+/test-db.js
+/test-pg.js
 test-*.js
 test-*.ts
-*.test.js
-*.test.ts
-*.spec.js
-*.spec.ts
-__tests__/
+
 /test-results/
 /playwright-report/
 /cypress/

@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { sanitize } from "@/lib/sanitize";
 import { z } from "zod";
+import { ROLE_IDS } from "@/lib/roles";
 
 const querySchema = z.object({
   q: z.string().min(2, "Search query must be at least 2 characters"),
@@ -34,6 +35,18 @@ async function getUserRoleIds(userId: number): Promise<number[]> {
     select: { role_id: true },
   });
   return userRoles.map(ur => ur.role_id);
+}
+
+async function canViewCostComparison(userId: number): Promise<boolean> {
+  const rows = await prisma.$queryRaw`
+    SELECT 1
+    FROM user_roles ur
+    JOIN role_permissions rp ON rp.role_id = ur.role_id
+    JOIN permissions p ON p.permission_id = rp.permission_id
+    WHERE ur.user_id = ${userId} AND p.action = 'view_cost_comparison'
+    LIMIT 1
+  ` as any[];
+  return rows.length > 0;
 }
 
 export async function OPTIONS(request: NextRequest) {
@@ -68,23 +81,36 @@ export async function GET(request: NextRequest) {
   const keywords = extractKeywords(queryParam);
   const searchTerms = keywords.length > 0 ? keywords : [queryParam.toLowerCase()];
 
-  // Build WHERE clause for keywords
-  const keywordConditions = searchTerms.map(kw => {
-    const escaped = kw.replace(/'/g, "''");
-    return `(li.description ILIKE '%${escaped}%' OR li.brand ILIKE '%${escaped}%')`;
-  });
-  const whereClause = keywordConditions.join(" OR ");
-
   const userId = session.user.id;
   const roleIds = await getUserRoleIds(userId);
-  const isContractor = roleIds.includes(13);
+  const isContractor = roleIds.includes(ROLE_IDS.CONTRACTOR);
 
-  let contractorFilter = "";
-  const params: any[] = [];
-  if (isContractor) {
-    contractorFilter = " AND s.contractor_id = $1";
-    params.push(userId);
+  // Non-contractors search across every contractor's line items (including
+  // pricing), so require the same permission the compare page itself gates on.
+  if (!isContractor && !(await canViewCostComparison(userId))) {
+    return NextResponse.json(
+      { error: "Forbidden" },
+      { status: 403, headers: corsHeaders }
+    );
   }
+
+  const params: any[] = [];
+  let contractorFilter = "";
+  if (isContractor) {
+    params.push(userId);
+    contractorFilter = ` AND s.contractor_id = $${params.length}`;
+  }
+
+  // Build WHERE clause for keywords using parameter placeholders (no manual
+  // SQL escaping) so search terms can never influence query structure.
+  const keywordConditions = searchTerms.map(kw => {
+    params.push(`%${kw}%`);
+    const descIdx = params.length;
+    params.push(`%${kw}%`);
+    const brandIdx = params.length;
+    return `(li.description ILIKE $${descIdx} OR li.brand ILIKE $${brandIdx})`;
+  });
+  const whereClause = keywordConditions.join(" OR ");
 
   const finalSql = `
     SELECT 

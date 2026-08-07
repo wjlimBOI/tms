@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useEffect, useState, useRef, memo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useNotify } from "@/components/ui/notification-provider";
 import {
   FileSignature,
   Printer,
-  Upload,
   X,
-  File,
   ArrowLeft,
   Pencil,
   Clock,
@@ -28,38 +27,13 @@ import {
 } from "@/lib/tenderConstants";
 import { DATE_LABELS, EXTRA_DATE_NOTES } from "@/lib/tenderDateConfig";
 import { FORM_OF_TENDER_ITEMS } from "@/lib/tenderFormItems";
+import { ROLE_IDS } from "@/lib/roles";
+import { numberToWords } from "@/lib/numberToWords";
+import { formatTenderDate, formatTenderDateTime, formatTenderDateLong } from "@/lib/dateUtils";
+import { SignaturePad } from "@/components/tenders/SignaturePad";
+import { CompanyStampUpload } from "@/components/tenders/CompanyStampUpload";
 
 const PrintDateCleanup = dynamic(() => import("@/components/PrintDateCleanup"), { ssr: false });
-
-// ========== Number to Words ==========
-const numberToWords = (num: number): string => {
-  if (num === 0) return "Zero";
-  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
-  const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-  const thousands = ["", "Thousand", "Million", "Billion"];
-  const convertChunk = (n: number): string => {
-    if (n === 0) return "";
-    if (n < 10) return ones[n];
-    if (n < 20) return teens[n - 10];
-    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? " " + ones[n % 10] : "");
-    return ones[Math.floor(n / 100)] + " Hundred" + (n % 100 !== 0 ? " " + convertChunk(n % 100) : "");
-  };
-  let remaining = Math.floor(num);
-  let result = "";
-  let group = 0;
-  while (remaining > 0) {
-    const chunk = remaining % 1000;
-    if (chunk !== 0) {
-      result = convertChunk(chunk) + (thousands[group] ? " " + thousands[group] : "") + (result ? " " + result : "");
-    }
-    remaining = Math.floor(remaining / 1000);
-    group++;
-  }
-  const cents = Math.round((num - Math.floor(num)) * 100);
-  if (cents > 0) result += " and " + convertChunk(cents) + " Cents";
-  return result.trim();
-};
 
 // ========== Types ==========
 interface ProjectRow {
@@ -126,396 +100,6 @@ interface AlertState {
   details?: string;
 }
 
-// ========== Signature Pad ==========
-interface SignaturePadProps {
-  label: string;
-  value: string | null;
-  onChange: (dataUrl: string | null) => void;
-  className?: string;
-  disabled?: boolean;
-}
-const SignaturePad: React.FC<SignaturePadProps> = ({
-  label,
-  value,
-  onChange,
-  className,
-  disabled = false,
-}) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasSignature, setHasSignature] = useState(!!value);
-  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const hasDrawn = useRef(false);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.strokeStyle = "#000";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctxRef.current = ctx;
-    if (value) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        setHasSignature(true);
-      };
-      img.src = value;
-    }
-  }, [value]);
-
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (disabled) return;
-    e.preventDefault();
-    setIsDrawing(true);
-    hasDrawn.current = false;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    let clientX, clientY;
-    if ("touches" in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    ctxRef.current?.beginPath();
-    ctxRef.current?.moveTo(x, y);
-  };
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (disabled || !isDrawing) return;
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    let clientX, clientY;
-    if ("touches" in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    ctxRef.current?.lineTo(x, y);
-    ctxRef.current?.stroke();
-    ctxRef.current?.beginPath();
-    ctxRef.current?.moveTo(x, y);
-    hasDrawn.current = true;
-  };
-
-  const endDrawing = () => {
-    if (disabled) return;
-    setIsDrawing(false);
-    if (hasDrawn.current) {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const dataUrl = canvas.toDataURL();
-      onChange(dataUrl);
-      setHasSignature(true);
-    }
-  };
-
-  const clearSignature = () => {
-    if (disabled) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-    onChange(null);
-    setHasSignature(false);
-    hasDrawn.current = false;
-  };
-
-  return (
-    <div className={className}>
-      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{label}</label>
-      <div className="print:hidden">
-        <div
-          className="border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 p-1"
-          style={{ width: "100%", maxWidth: "300px" }}
-        >
-          <canvas
-            ref={canvasRef}
-            width={300}
-            height={120}
-            style={{
-              width: "100%",
-              height: "auto",
-              minHeight: "80px",
-              cursor: disabled ? "default" : "crosshair",
-            }}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={endDrawing}
-            onMouseLeave={endDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={endDrawing}
-            className="touch-none"
-          />
-        </div>
-        {!disabled && (
-          <div className="flex gap-2 mt-2">
-            <button
-              type="button"
-              onClick={clearSignature}
-              className="text-xs text-red-600 dark:text-red-400 hover:underline"
-            >
-              Clear
-            </button>
-            {hasSignature && (
-              <span className="text-xs text-green-600 dark:text-green-400">✓ Signature saved</span>
-            )}
-          </div>
-        )}
-      </div>
-      <div className="hidden print:block print-signature-line"></div>
-      <style jsx>{`
-        @media print {
-          .print-signature-line {
-            display: block !important;
-            margin-top: 10mm !important;
-            border-bottom: 1.5px solid #000000 !important;
-            width: auto !important;
-            min-width: 250px !important;
-            max-width: 300px !important;
-            min-height: 5mm !important;
-          }
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// ========== Company Stamp Upload ==========
-interface CompanyStampUploadProps {
-  label?: string;
-  preview: string | null;
-  onFileSelect: (file: File | null, previewUrl: string | null) => void;
-  className?: string;
-  disabled?: boolean;
-}
-const CompanyStampUpload: React.FC<CompanyStampUploadProps> = ({
-  label,
-  preview,
-  onFileSelect,
-  className,
-  disabled = false,
-}) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileSize, setFileSize] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const simulateProgress = (cb: () => void) => {
-    setUploadProgress(0);
-    setIsUploading(true);
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          cb();
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 30);
-  };
-  const processFile = (file: File) => {
-    if (disabled) return;
-    const valid = ["image/png", "image/jpeg", "image/jpg", "application/pdf"];
-    if (!valid.includes(file.type)) return alert("Please upload PNG, JPG, or PDF.");
-    if (file.size > 5 * 1024 * 1024) return alert("File must be <5MB.");
-    setFileName(file.name);
-    setFileSize((file.size / 1024).toFixed(0) + " KB");
-    simulateProgress(() => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onFileSelect(file, reader.result as string);
-        setIsUploading(false);
-        setUploadProgress(100);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0] && !disabled) processFile(e.target.files[0]);
-  };
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (!disabled) setIsDragging(true);
-  };
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (!disabled) setIsDragging(false);
-  };
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (disabled) return;
-    setIsDragging(false);
-    if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]);
-  };
-  const handleRemove = () => {
-    if (!disabled) onFileSelect(null, null);
-  };
-
-  return (
-    <div className={className}>
-      <label className="font-bold block text-sm text-slate-700 dark:text-slate-300 mb-2">{label}</label>
-      <div className="print:hidden">
-        {!preview ? (
-          <div
-            onClick={() => !disabled && fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`relative cursor-pointer border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300
-              ${disabled ? "cursor-default opacity-60" : ""}
-              ${
-                isDragging
-                  ? "border-blue-500 dark:border-blue-400 bg-blue-50/20 dark:bg-blue-950/20"
-                  : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50/80 dark:hover:bg-slate-800/80"
-              }`}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <Upload
-                className={`w-8 h-8 transition-transform ${
-                  isDragging ? "scale-105 text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
-                }`}
-              />
-              <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Drag & drop your stamp, or <span className="text-blue-600 dark:text-blue-400">click to browse</span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG, PDF up to 5MB</p>
-            </div>
-            {isUploading && (
-              <div
-                className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 dark:bg-blue-400 transition-all duration-100"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,application/pdf"
-              onChange={handleFileSelect}
-              className="hidden"
-              disabled={disabled}
-            />
-          </div>
-        ) : (
-          <div className="border rounded-xl p-4 bg-white/50 dark:bg-slate-800/50">
-            <div className="flex items-start gap-3">
-              {preview.startsWith("data:image") ? (
-                <img src={preview} alt="Stamp" className="w-16 h-16 object-contain border rounded dark:border-slate-700" />
-              ) : (
-                <div className="w-16 h-16 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded border dark:border-slate-600">
-                  <File className="w-8 h-8 text-slate-500 dark:text-slate-400" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate text-slate-700 dark:text-slate-300">{fileName}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{fileSize}</p>
-                {isUploading && (
-                  <div className="mt-2 h-1 bg-emerald-500 rounded-full" style={{ width: `${uploadProgress}%` }} />
-                )}
-              </div>
-              {!disabled && (
-                <button onClick={handleRemove} className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400">
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="hidden print:block print-stamp-line"></div>
-      <style jsx>{`
-        @media print {
-          .print-stamp-line {
-            display: block !important;
-            margin-top: 10mm !important;
-            border-bottom: 1.5px solid #000000 !important;
-            width: auto !important;
-            min-width: 200px !important;
-            max-width: 250px !important;
-            min-height: 5mm !important;
-          }
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// ========== FORMATTING HELPERS ==========
-const formatDate = (isoString: string | null | undefined): string => {
-  if (!isoString) return "To be confirmed";
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return "To be confirmed";
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
-
-const formatDateTime = (isoString: string | null | undefined): string => {
-  if (!isoString) return "To be confirmed";
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return "To be confirmed";
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  if (hours === "00" && minutes === "00") {
-    return `${day}/${month}/${year}`;
-  }
-  return `${day}/${month}/${year}, ${hours}:${minutes} Hrs`;
-};
-
-const formatDateLong = (isoString: string | null | undefined): string => {
-  if (!isoString) return "To be confirmed";
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return "To be confirmed";
-  const day = date.getDate();
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  const month = monthNames[date.getMonth()];
-  const year = date.getFullYear();
-  return `${day} ${month} ${year}`;
-};
 
 // ========== STAGE HELPERS ==========
 const STAGES = [
@@ -531,6 +115,67 @@ const getStageName = (stage: number): string => {
   if (stage < 0 || stage >= STAGES.length) return "Unknown";
   return STAGES[stage];
 };
+
+// ========== Read-only document field renderers ==========
+// This page only ever renders in read-only mode (see `readOnly` in the main
+// component below) — these always show the static text/print-friendly
+// display rather than an editable input.
+const renderStaticOrInput = (value: string, placeholder?: string) => (
+  <span className="block text-slate-800 dark:text-white py-1 text-sm sm:text-base print:border-b print:border-black print:pb-1 print:min-w-[200px]">
+    {value || placeholder || "—"}
+  </span>
+);
+
+const renderStaticTextarea = (value: string, placeholder?: string) => (
+  <div className="text-slate-800 dark:text-white py-1 whitespace-pre-wrap text-sm sm:text-base print:border-b print:border-black print:pb-1">
+    {value || placeholder || "—"}
+  </div>
+);
+
+const singleLineLabelClass = "font-bold block mb-1 text-slate-800 dark:text-white text-sm sm:text-base";
+
+const SingleLineInput = memo(
+  ({
+    label,
+    value,
+    placeholder,
+  }: {
+    label: string;
+    value: string;
+    onChange?: (val: string) => void;
+    type?: string;
+    placeholder?: string;
+  }) => (
+    <div className="print-field-row flex flex-col space-y-1 w-full">
+      <label className={singleLineLabelClass}>{label}</label>
+      {renderStaticOrInput(value, placeholder)}
+    </div>
+  )
+);
+SingleLineInput.displayName = "SingleLineInput";
+
+const FillableAddress = memo(
+  ({
+    label,
+    value,
+    placeholder,
+  }: {
+    label: string;
+    value: string;
+    onChange?: (val: string) => void;
+    placeholder?: string;
+  }) => (
+    <div className="print-field-row flex flex-col space-y-1 w-full mt-4 print:mt-6">
+      <label className="text-xs font-bold text-slate-800 dark:text-white uppercase print:text-black print:text-xs">{label}</label>
+      {renderStaticTextarea(value, placeholder)}
+      <div className="hidden print:block">
+        <div className="w-full print-address-line" style={{ height: "18pt", marginBottom: "2pt" }} />
+        <div className="w-full print-address-line" style={{ height: "18pt" }} />
+      </div>
+    </div>
+  )
+);
+FillableAddress.displayName = "FillableAddress";
 
 // ========== MAIN COMPONENT ==========
 export default function TenderDocumentPage() {
@@ -581,9 +226,9 @@ export default function TenderDocumentPage() {
 
   const userRoleIds = (session?.user as any)?.roleIds || [];
   const userRole = (session?.user as any)?.role_id;
-  const isAdmin = userRoleIds.includes(1);
-  const isContractor = userRoleIds.includes(13);
-  const canManageStage = [1, 6, 10].includes(userRole);
+  const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+  const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
+  const canManageStage = [ROLE_IDS.ADMIN, ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER].includes(userRole);
   const readOnly = true;
 
   // ---- Alert modal state ----
@@ -618,6 +263,7 @@ export default function TenderDocumentPage() {
       setTender(data);
       if (data.tender_id) {
         fetchExtensionStatus(data.tender_id);
+        if (isContractor) fetchMySubmission(data.tender_id);
       }
     } catch (err: any) {
       console.error(err);
@@ -651,6 +297,78 @@ export default function TenderDocumentPage() {
       }
     } catch (e) {
       // ignore
+    }
+  };
+
+  // ---- fetch and populate the current contractor's own submitted data ----
+  // (this page is otherwise a permanently-blank template — a contractor who
+  // already submitted digitally should see what they actually submitted)
+  const fetchMySubmission = async (tenderId: number) => {
+    try {
+      const res = await fetch(`/api/tenders/${tenderId}/my-submission`);
+      if (!res.ok) return;
+      const { submission } = await res.json();
+      const data = submission?.data;
+      if (!data) return;
+
+      setAgreedName(data.agreedName || "");
+      setAgreedDate(data.agreedDate || "");
+      setAgreedSignature(data.agreedSignature || null);
+      setAgreedStampPreview(data.agreedStampPreview || null);
+      setLumpSumRaw(data.lumpSumRaw || "");
+      setAmountInWords(data.amountInWords || "");
+      setMainStampPreview(data.stampPreview || null);
+      setDeclarationStampPreview(data.declarationStampPreview || null);
+
+      if (data.mainTenderer) {
+        setMainTenderer({
+          fullName: data.mainTenderer.fullName || "",
+          position: data.mainTenderer.position || "",
+          companyName: data.mainTenderer.companyName || "",
+          date: data.mainTenderer.date || "",
+        });
+        setMainSignature(data.mainTenderer.signature || null);
+        setMainAddress(data.mainTenderer.address || "");
+      }
+      if (data.witness) {
+        setWitness({ fullName: data.witness.fullName || "", date: data.witness.date || "" });
+        setWitnessSignature(data.witness.signature || null);
+        setWitnessAddress(data.witness.address || "");
+      }
+      if (data.declaration) {
+        setDeclaration({
+          iName: data.declaration.iName || "",
+          onBehalfOf: data.declaration.onBehalfOf || "",
+          name: data.declaration.name || "",
+          date: data.declaration.date || "",
+        });
+        setDeclarationSignature(data.declaration.signature || null);
+        setTendererAddress(data.declaration.address || "");
+      }
+      if (Array.isArray(data.projectExperience) && data.projectExperience.length > 0) {
+        setProjectRows(
+          data.projectExperience.map((r: any) => ({
+            id: r.id || crypto.randomUUID(),
+            projectName: r.projectName || "",
+            value: r.value || "",
+            date: r.date || "",
+            designer: r.designer || "",
+          }))
+        );
+      }
+      if (Array.isArray(data.currentCommitment) && data.currentCommitment.length > 0) {
+        setCommitmentRows(
+          data.currentCommitment.map((r: any) => ({
+            id: r.id || crypto.randomUUID(),
+            projectName: r.projectName || "",
+            value: r.value || "",
+            percentage: r.percentage || "",
+            designer: r.designer || "",
+          }))
+        );
+      }
+    } catch (e) {
+      console.error("Failed to load submitted data:", e);
     }
   };
 
@@ -794,29 +512,6 @@ export default function TenderDocumentPage() {
     if (!isNaN(num)) setAmountInWords(numberToWords(num));
     else setAmountInWords("");
   };
-  const addProjectRow = () => {
-    if (!readOnly)
-      setProjectRows((prev) => [...prev, { id: crypto.randomUUID(), projectName: "", value: "", date: "", designer: "" }]);
-  };
-  const updateProjectRow = (id: string, field: keyof ProjectRow, val: string) => {
-    if (readOnly) return;
-    setProjectRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
-  };
-  const deleteProjectRow = (id: string) => {
-    if (!readOnly) setProjectRows((prev) => prev.filter((r) => r.id !== id));
-  };
-  const addCommitmentRow = () => {
-    if (!readOnly)
-      setCommitmentRows((prev) => [...prev, { id: crypto.randomUUID(), projectName: "", value: "", percentage: "", designer: "" }]);
-  };
-  const updateCommitmentRow = (id: string, field: keyof CommitmentRow, val: string) => {
-    if (readOnly) return;
-    setCommitmentRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
-  };
-  const deleteCommitmentRow = (id: string) => {
-    if (!readOnly) setCommitmentRows((prev) => prev.filter((r) => r.id !== id));
-  };
-
   useEffect(() => {
     const handleScroll = () => {
       const pos = window.scrollY + 150;
@@ -947,8 +642,14 @@ export default function TenderDocumentPage() {
   const postalCode = tender?.branch_postal_code || "";
   const city = tender?.branch_city || "Singapore";
   const country = tender?.branch_country || "Singapore";
-  
-  const displayAddress = postalCode 
+
+  // branch_full_address is already a complete, formatted address (postal
+  // code and country included) — only append them when falling back to the
+  // shorter branch_address/branch_name fields, or we get "...Singapore
+  // 569933, 569933, Singapore, Singapore".
+  const displayAddress = tender?.branch_full_address
+    ? tender.branch_full_address
+    : postalCode
     ? `${fullAddress}, ${postalCode}, ${city}, ${country}`
     : `${fullAddress}, ${city}, ${country}`;
 
@@ -976,9 +677,9 @@ export default function TenderDocumentPage() {
       if (value !== undefined && value !== null && value !== "") {
         let formatted = "";
         if (field === "briefing_date" || field === "closing_date" || field === "renovation_end_date") {
-          formatted = formatDateTime(value as string);
+          formatted = formatTenderDateTime(value as string);
         } else {
-          formatted = formatDate(value as string);
+          formatted = formatTenderDate(value as string);
         }
         lines.push(`<div><span class='font-semibold'>• ${label}:</span> ${formatted}</div>`);
       }
@@ -1029,92 +730,6 @@ export default function TenderDocumentPage() {
       <div className="font-bold text-slate-800 dark:text-white">2) TERMINOLOGIES</div>
       <div className="ml-4 text-slate-700 dark:text-gray-300">
         The Terms “Company” in the contract shall mean {clientName}.
-      </div>
-    </div>
-  );
-
-  // ========== Render helpers ==========
-  const renderStaticOrInput = (
-    value: string,
-    onChange: (val: string) => void,
-    placeholder?: string,
-    type: string = "text"
-  ) => {
-    if (readOnly) {
-      return (
-        <span className="block text-slate-800 dark:text-white py-1 text-sm sm:text-base print:border-b print:border-black print:pb-1 print:min-w-[200px]">
-          {value || placeholder || "—"}
-        </span>
-      );
-    }
-    return (
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="border-b border-gray-300 dark:border-gray-600 w-auto min-w-[250px] pt-1 pb-3 text-slate-800 dark:text-white bg-transparent"
-        placeholder={placeholder}
-      />
-    );
-  };
-
-  const renderStaticTextarea = (value: string, onChange: (val: string) => void, placeholder?: string) => {
-    if (readOnly) {
-      return (
-        <div className="text-slate-800 dark:text-white py-1 whitespace-pre-wrap text-sm sm:text-base print:border-b print:border-black print:pb-1">
-          {value || placeholder || "—"}
-        </div>
-      );
-    }
-    return (
-      <textarea
-        className="border-b border-gray-300 dark:border-gray-600 w-full min-h-[80px] pt-1 pb-3 resize-y print:hidden text-slate-800 dark:text-white bg-transparent"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || "Enter address here..."}
-        rows={2}
-      />
-    );
-  };
-
-  const labelClass = "font-bold block mb-1 text-slate-800 dark:text-white text-sm sm:text-base";
-
-  const SingleLineInput = ({
-    label,
-    value,
-    onChange,
-    type = "text",
-    placeholder,
-  }: {
-    label: string;
-    value: string;
-    onChange: (val: string) => void;
-    type?: string;
-    placeholder?: string;
-  }) => (
-    <div className="print-field-row flex flex-col space-y-1 w-full">
-      <label className={labelClass}>{label}</label>
-      {renderStaticOrInput(value, onChange, placeholder, type)}
-    </div>
-  );
-
-  const FillableAddress = ({
-    label,
-    value,
-    onChange,
-    placeholder,
-  }: {
-    label: string;
-    value: string;
-    onChange: (val: string) => void;
-    placeholder?: string;
-  }) => (
-    <div className="print-field-row flex flex-col space-y-1 w-full mt-4 print:mt-6">
-      <label className="text-xs font-bold text-slate-800 dark:text-white uppercase print:text-black print:text-xs">{label}</label>
-      {renderStaticTextarea(value, onChange, placeholder)}
-      <div className="hidden print:block">
-        <div className="w-full print-address-line" style={{ height: "18pt", marginBottom: "2pt" }} />
-        <div className="w-full print-address-line" style={{ height: "18pt" }} />
       </div>
     </div>
   );
@@ -1291,7 +906,7 @@ export default function TenderDocumentPage() {
               </div>
               <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
                 You are requesting an extension for <strong>{tender.tender_name}</strong>. Current closing date:{" "}
-                <strong>{formatDateTime(tender.closing_date)}</strong>.
+                <strong>{formatTenderDateTime(tender.closing_date)}</strong>.
               </p>
               <div className="space-y-4">
                 <div>
@@ -1487,7 +1102,7 @@ export default function TenderDocumentPage() {
                     }
                     if (clause.title === "3) SUBMISSION OF TENDER") {
                       const tenderName = tender?.tender_name || "TENDER";
-                      const closingDate = formatDateLong(tender?.closing_date);
+                      const closingDate = formatTenderDateLong(tender?.closing_date);
                       const description = clause.description
                         .replace(/<tender title>/g, tenderName)
                         .replace(/<date>/g, closingDate);
@@ -1782,93 +1397,43 @@ export default function TenderDocumentPage() {
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 print:hidden">Provide at least 5 projects of similar nature.</p>
                 <div className="overflow-x-auto print:overflow-visible">
-                  <table className="w-full text-left border-collapse print:border-collapse">
+                  <table className="w-full text-left border-collapse print:border-collapse border border-slate-200 dark:border-slate-800">
                     <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 print:bg-transparent print:border-b">
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                      <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 divide-x divide-slate-200 dark:divide-slate-800 print:bg-transparent print:border-b">
+                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Project Name
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Value (SGD)
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Date
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Designer
                         </th>
-                        <th className="p-3 print:hidden"></th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {projectRows.map((row) => (
-                        <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800 print:border-none">
+                        <tr key={row.id} className="divide-x divide-slate-100 dark:divide-slate-800 print:border-none">
                           <td className="p-3 print:border print:border-slate-300">
-                            {readOnly ? (
-                              <span className="text-slate-800 dark:text-white">{row.projectName || "—"}</span>
-                            ) : (
-                              <input
-                                type="text"
-                                value={row.projectName}
-                                onChange={(e) => updateProjectRow(row.id, "projectName", e.target.value)}
-                                className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-slate-800 dark:text-white bg-transparent"
-                              />
-                            )}
+                            <span className="text-slate-800 dark:text-white">{row.projectName}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            {readOnly ? (
-                              <span className="text-slate-800 dark:text-white">{row.value || "—"}</span>
-                            ) : (
-                              <input
-                                type="text"
-                                value={row.value}
-                                onChange={(e) => updateProjectRow(row.id, "value", e.target.value)}
-                                className="w-32 border-0 focus:ring-0 focus:outline-none print:border-0 text-slate-800 dark:text-white bg-transparent"
-                              />
-                            )}
+                            <span className="text-slate-800 dark:text-white">{row.value}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            {readOnly ? (
-                              <span className="text-slate-800 dark:text-white">{row.date || "—"}</span>
-                            ) : (
-                              <input
-                                type="text"
-                                placeholder="YYYY-MM-DD"
-                                value={row.date}
-                                onChange={(e) => updateProjectRow(row.id, "date", e.target.value)}
-                                className="w-36 border-0 focus:ring-0 focus:outline-none print:border-0 text-slate-800 dark:text-white bg-transparent"
-                              />
-                            )}
+                            <span className="text-slate-800 dark:text-white">{row.date}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            {readOnly ? (
-                              <span className="text-slate-800 dark:text-white">{row.designer || "—"}</span>
-                            ) : (
-                              <input
-                                type="text"
-                                value={row.designer}
-                                onChange={(e) => updateProjectRow(row.id, "designer", e.target.value)}
-                                className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-slate-800 dark:text-white bg-transparent"
-                              />
-                            )}
-                          </td>
-                          <td className="p-3 print:hidden">
-                            <button
-                              onClick={() => deleteProjectRow(row.id)}
-                              className="text-red-500 dark:text-red-400 text-xs"
-                              disabled={readOnly}
-                            >
-                              Delete
-                            </button>
+                            <span className="text-slate-800 dark:text-white">{row.designer}</span>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <button onClick={addProjectRow} className="mt-2 text-sm text-blue-600 dark:text-blue-400 print:hidden" disabled={readOnly}>
-                  + Add Row
-                </button>
               </div>
 
               {/* CURRENT PROJECT COMMITMENT */}
@@ -1880,93 +1445,43 @@ export default function TenderDocumentPage() {
                   Provide particulars of projects presently engaged in.
                 </p>
                 <div className="overflow-x-auto print:overflow-visible">
-                  <table className="w-full text-left border-collapse print:border-collapse">
+                  <table className="w-full text-left border-collapse print:border-collapse border border-slate-200 dark:border-slate-800">
                     <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 print:bg-transparent print:border-b">
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                      <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 divide-x divide-slate-200 dark:divide-slate-800 print:bg-transparent print:border-b">
+                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Project Name
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Value (SGD)
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Percentage Completed
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Designer
                         </th>
-                        <th className="p-3 print:hidden"></th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {commitmentRows.map((row) => (
-                        <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800 print:border-none">
+                        <tr key={row.id} className="divide-x divide-slate-100 dark:divide-slate-800 print:border-none">
                           <td className="p-3 print:border print:border-slate-300">
-                            {readOnly ? (
-                              <span className="text-slate-800 dark:text-white">{row.projectName || "—"}</span>
-                            ) : (
-                              <input
-                                type="text"
-                                value={row.projectName}
-                                onChange={(e) => updateCommitmentRow(row.id, "projectName", e.target.value)}
-                                className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-slate-800 dark:text-white bg-transparent"
-                              />
-                            )}
+                            <span className="text-slate-800 dark:text-white">{row.projectName}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            {readOnly ? (
-                              <span className="text-slate-800 dark:text-white">{row.value || "—"}</span>
-                            ) : (
-                              <input
-                                type="text"
-                                value={row.value}
-                                onChange={(e) => updateCommitmentRow(row.id, "value", e.target.value)}
-                                className="w-32 border-0 focus:ring-0 focus:outline-none print:border-0 text-slate-800 dark:text-white bg-transparent"
-                              />
-                            )}
+                            <span className="text-slate-800 dark:text-white">{row.value}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            {readOnly ? (
-                              <span className="text-slate-800 dark:text-white">{row.percentage || "—"}</span>
-                            ) : (
-                              <input
-                                type="text"
-                                value={row.percentage}
-                                onChange={(e) => updateCommitmentRow(row.id, "percentage", e.target.value)}
-                                className="w-20 border-0 focus:ring-0 focus:outline-none print:border-0 text-slate-800 dark:text-white bg-transparent"
-                                placeholder="0-100"
-                              />
-                            )}
+                            <span className="text-slate-800 dark:text-white">{row.percentage}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            {readOnly ? (
-                              <span className="text-slate-800 dark:text-white">{row.designer || "—"}</span>
-                            ) : (
-                              <input
-                                type="text"
-                                value={row.designer}
-                                onChange={(e) => updateCommitmentRow(row.id, "designer", e.target.value)}
-                                className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-slate-800 dark:text-white bg-transparent"
-                              />
-                            )}
-                          </td>
-                          <td className="p-3 print:hidden">
-                            <button
-                              onClick={() => deleteCommitmentRow(row.id)}
-                              className="text-red-500 dark:text-red-400 text-xs"
-                              disabled={readOnly}
-                            >
-                              Delete
-                            </button>
+                            <span className="text-slate-800 dark:text-white">{row.designer}</span>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <button onClick={addCommitmentRow} className="mt-2 text-sm text-blue-600 dark:text-blue-400 print:hidden" disabled={readOnly}>
-                  + Add Row
-                </button>
               </div>
             </div>
           </div>

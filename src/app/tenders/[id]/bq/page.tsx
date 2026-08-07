@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useNotify } from "@/components/ui/notification-provider";
 import { Save, Printer, Loader2 } from "lucide-react";
 
 interface BQItem {
@@ -19,6 +20,7 @@ export default function BQPage() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const tenderId = params.id as string;
+  const toast = useNotify();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,9 +81,9 @@ export default function BQPage() {
         body: JSON.stringify({ items }),
       });
       if (!res.ok) throw new Error("Failed to save BQ");
-      alert("Bill of Quantities saved successfully!");
+      toast.success("Bill of Quantities saved successfully!");
     } catch (err) {
-      alert("Error saving BQ. Please try again.");
+      toast.error("Error saving BQ. Please try again.");
     } finally {
       setSaving(false);
     }

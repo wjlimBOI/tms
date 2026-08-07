@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { logInsert } from "@/lib/audit";
 import { sendExtensionRequestEmail } from "@/lib/email";
+import { ROLE_IDS } from "@/lib/roles";
 
 // ===== POST: Request a time extension =====
 export async function POST(req: Request) {
@@ -14,8 +15,8 @@ export async function POST(req: Request) {
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  // Allow only contractors (role 13)
-  if (!userRoleIds.includes(13)) {
+  // Allow only contractors
+  if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR)) {
     return NextResponse.json({ error: "Only contractors can request extensions" }, { status: 403 });
   }
 

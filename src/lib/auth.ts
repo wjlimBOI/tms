@@ -4,8 +4,18 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 import prisma from "@/lib/prisma";
 import { loginSchema } from "./validation";
-import { logAuthEvent } from "./audit"; // ✅ added
+import { logAuthEvent, extractAuditContext } from "./audit"; // ✅ added
+import { checkRateLimit } from "./rate-limit";
 
+// A fixed dummy hash to compare against when no user is found, so the
+// "unknown username" path takes roughly as long as the "wrong password"
+// path (which runs a real bcrypt.compare) - closes a timing side-channel
+// that would otherwise let an attacker enumerate valid usernames.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync("dummy-password-for-timing-equalisation", 12);
+
+// NOTE: session.user.role_id is the CANONICAL `roles.role_id` (plural RBAC family),
+// populated from user_roles below — it is NOT users.role_id (which FKs the legacy
+// `role` singular table). See docs/rbac.md before touching authorization logic.
 declare module "next-auth" {
   interface Session {
     user: {
@@ -37,6 +47,19 @@ export const authOptions: NextAuthOptions = {
       },
       // The `req` parameter is available in NextAuth v4+
       async authorize(credentials, req) {
+        // 0. Per-IP rate limit (protects against distributed credential stuffing
+        // across many usernames from one source, before any DB work happens)
+        const { ipAddress } = extractAuditContext(req);
+        const ipLimit = await checkRateLimit(`login:ip:${ipAddress}`);
+        if (!ipLimit.success) {
+          await logAuthEvent("LOGIN_FAILED", 0, req, {
+            username: credentials?.username || "unknown",
+            reason: "Rate limited (IP)",
+            source: "auth"
+          });
+          return null;
+        }
+
         if (!credentials?.username || !credentials?.password) {
           // Log missing credentials (optional)
           await logAuthEvent("LOGIN_FAILED", 0, req, {
@@ -50,6 +73,18 @@ export const authOptions: NextAuthOptions = {
         // 1. Trim username and validate with Zod
         const username = credentials.username.trim();
         const password = credentials.password;
+
+        // Per-username rate limit (account-targeted brute force)
+        const userLimit = await checkRateLimit(`login:user:${username}`);
+        if (!userLimit.success) {
+          await logAuthEvent("LOGIN_FAILED", 0, req, {
+            username,
+            reason: "Rate limited (username)",
+            source: "auth"
+          });
+          return null;
+        }
+
         const validation = loginSchema.safeParse({ username, password });
         if (!validation.success) {
           await logAuthEvent("LOGIN_FAILED", 0, req, {
@@ -65,6 +100,9 @@ export const authOptions: NextAuthOptions = {
           where: { username },
         });
         if (!user) {
+          // Run a dummy compare so this path takes about as long as the
+          // "wrong password" path below, rather than returning early.
+          await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
           await logAuthEvent("LOGIN_FAILED", 0, req, {
             username,
             reason: "User not found",
@@ -217,6 +255,25 @@ export const authOptions: NextAuthOptions = {
         token.role_name = (user as any).role_name;
         token.roleIds = (user as any).roleIds;
         token.must_change_password = (user as any).must_change_password;
+        return token;
+      }
+
+      // On every subsequent request (not initial sign-in), make sure this
+      // token wasn't issued before the account's password was last changed
+      // - otherwise a stolen/old token would keep working after the
+      // legitimate user "secures" their account by changing the password.
+      const userId = typeof token.id === "string" ? parseInt(token.id, 10) : Number(token.id);
+      if (userId && token.iat) {
+        const current = await prisma.users.findUnique({
+          where: { user_id: userId },
+          select: { password_changed_at: true },
+        });
+        if (current?.password_changed_at) {
+          const changedAtSeconds = Math.floor(current.password_changed_at.getTime() / 1000);
+          if (changedAtSeconds > (token.iat as number)) {
+            throw new Error("SessionInvalidatedByPasswordChange");
+          }
+        }
       }
       return token;
     },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useTheme } from "@/app/providers/ThemeProvider";
+import { ROLE_IDS } from "@/lib/roles";
 
 interface SearchResult {
   id: number;
@@ -15,14 +16,34 @@ interface SearchResult {
   matchedOn?: string;
 }
 
-// Fake data
-const FAKE_NOTIFICATIONS = [
-  { id: 1, unread: true, icon: "📋", title: "New Tender Published", body: "Tender #T-2025-041 is now open for bidding.", time: "2 min ago" },
-  { id: 2, unread: true, icon: "✅", title: "Bid Approved", body: "Your submission for Project Lumina has been approved.", time: "1 hr ago" },
-  { id: 3, unread: true, icon: "⏰", title: "Deadline Reminder", body: "Tender #T-2025-038 closes in 24 hours.", time: "3 hr ago" },
-  { id: 4, unread: false, icon: "💬", title: "Comment on Cost Estimate", body: "Sarah left a note on BQ-2025-012.", time: "Yesterday" },
-  { id: 5, unread: false, icon: "🔒", title: "Security Alert", body: "New login detected from Singapore (Chrome).", time: "2 days ago" },
-];
+interface NotificationItem {
+  notification_id: number;
+  title: string;
+  body: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+function notificationIcon(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("approved")) return "✅";
+  if (t.includes("rejected")) return "⚠️";
+  return "🔔";
+}
+
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return new Date(iso).toLocaleDateString();
+}
 
 const FAKE_MESSAGES = [
   { id: 1, unread: true, sender: "Raj Kumar", initials: "RK", color: "bg-violet-500", preview: "Can you send over the revised BQ for Block C?", time: "10:42 AM", tag: "Contractor" },
@@ -78,7 +99,7 @@ export default function Navbar() {
   });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
-  const [notiItems, setNotiItems] = useState(FAKE_NOTIFICATIONS);
+  const [notiItems, setNotiItems] = useState<NotificationItem[]>([]);
   const [msgItems, setMsgItems] = useState(FAKE_MESSAGES);
   const [isMobileSearchExpanded, setIsMobileSearchExpanded] = useState(false);
   const [searchType, setSearchType] = useState<"all" | "tender" | "bq">("all");
@@ -93,8 +114,8 @@ export default function Navbar() {
   const debounceTimer = useRef<number | undefined>(undefined);
 
   const userRole = (session?.user as any)?.role_id;
-  const isContractor = userRole === 13;
-  const isAdmin = userRole === 1;
+  const isContractor = userRole === ROLE_IDS.CONTRACTOR;
+  const isAdmin = userRole === ROLE_IDS.ADMIN;
   const isManagement = userRole === 2 || userRole === 3 || userRole === 4;
   const isFinance = userRole === 8;
   const canSeeProjectTools = !isContractor;
@@ -104,7 +125,7 @@ export default function Navbar() {
   const isExpressInterest = pathname === "/contractor/expressInterest";
   const isPublicMode = (!isLoggedIn && (isHomepage || isLoginPage)) || isExpressInterest;
 
-  const unreadNoti = notiItems.filter((n) => n.unread).length;
+  const unreadNoti = notiItems.filter((n) => !n.is_read).length;
   const unreadMsg = msgItems.filter((m) => m.unread).length;
 
   const fetchSearch = useCallback(async (q: string) => {
@@ -130,6 +151,22 @@ export default function Navbar() {
     }
   }, [isMobileSearchExpanded]);
 
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) return;
+      const data = await res.json();
+      setNotiItems(data.notifications || []);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetchNotifications();
+  }, [isLoggedIn, fetchNotifications]);
+
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       const t = e.target as Node;
@@ -143,11 +180,11 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [isMobileSearchExpanded]);
 
-  const closeAll = () => {
-    setIsMenuOpen(false);
-    setIsProfileOpen(false);
-    setIsNotiOpen(false);
-    setIsInboxOpen(false);
+  const closeAll = (except?: "menu" | "profile" | "noti" | "inbox") => {
+    if (except !== "menu") setIsMenuOpen(false);
+    if (except !== "profile") setIsProfileOpen(false);
+    if (except !== "noti") setIsNotiOpen(false);
+    if (except !== "inbox") setIsInboxOpen(false);
   };
 
   const userName = session?.user?.name || "User";
@@ -266,7 +303,7 @@ export default function Navbar() {
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               ref={menuBtnRef}
-              onClick={() => { closeAll(); setIsMenuOpen((o) => !o); }}
+              onClick={() => { closeAll("menu"); setIsMenuOpen((o) => !o); }}
               className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-[#15406a] dark:hover:text-cyan-400 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors focus:outline-none"
               aria-label="Toggle menu"
             >
@@ -370,7 +407,7 @@ export default function Navbar() {
               </button>
 
               <div className="relative" ref={notiRef}>
-                <button onClick={() => { closeAll(); setIsNotiOpen((o) => !o); }} className="relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-[#15406a] dark:hover:text-cyan-400 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors focus:outline-none">
+                <button onClick={() => { closeAll("noti"); setIsNotiOpen((o) => !o); }} className="relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-[#15406a] dark:hover:text-cyan-400 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors focus:outline-none">
                   <IconBell />
                   <Badge count={unreadNoti} />
                 </button>
@@ -378,27 +415,49 @@ export default function Navbar() {
                   <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                       <div><p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Notifications</p><p className="text-[11px] text-gray-400 dark:text-gray-500">{unreadNoti} unread</p></div>
-                      <button onClick={() => setNotiItems((n) => n.map((x) => ({ ...x, unread: false })))} className="text-[11px] text-[#15406a] dark:text-cyan-400 hover:underline font-medium">Mark all read</button>
+                      <button
+                        onClick={async () => {
+                          setNotiItems((n) => n.map((x) => ({ ...x, is_read: true })));
+                          await fetch("/api/notifications/mark-all-read", { method: "POST" });
+                        }}
+                        className="text-[11px] text-[#15406a] dark:text-cyan-400 hover:underline font-medium"
+                      >
+                        Mark all read
+                      </button>
                     </div>
                     <div className="max-h-72 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
-                      {notiItems.map((n) => (
-                        <button key={n.id} onClick={() => setNotiItems((prev) => prev.map((x) => x.id === n.id ? { ...x, unread: false } : x))} className={`w-full text-left flex items-start gap-3 px-4 py-3 transition-colors ${n.unread ? "bg-blue-50/50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30" : "hover:bg-slate-50 dark:hover:bg-gray-800"}`}>
-                          <span className="text-xl leading-none mt-0.5 flex-shrink-0">{n.icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2"><p className={`text-xs font-semibold truncate ${n.unread ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400"}`}>{n.title}</p>{n.unread && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}</div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug line-clamp-2">{n.body}</p>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{n.time}</p>
-                          </div>
-                        </button>
-                      ))}
+                      {notiItems.length === 0 ? (
+                        <p className="px-4 py-6 text-center text-xs text-gray-400 dark:text-gray-500">No notifications yet.</p>
+                      ) : (
+                        notiItems.map((n) => (
+                          <button
+                            key={n.notification_id}
+                            onClick={async () => {
+                              setIsNotiOpen(false);
+                              if (!n.is_read) {
+                                setNotiItems((prev) => prev.map((x) => x.notification_id === n.notification_id ? { ...x, is_read: true } : x));
+                                fetch(`/api/notifications/${n.notification_id}`, { method: "PATCH" });
+                              }
+                              if (n.link) router.push(n.link);
+                            }}
+                            className={`w-full text-left flex items-start gap-3 px-4 py-3 transition-colors ${!n.is_read ? "bg-blue-50/50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30" : "hover:bg-slate-50 dark:hover:bg-gray-800"}`}
+                          >
+                            <span className="text-xl leading-none mt-0.5 flex-shrink-0">{notificationIcon(n.title)}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2"><p className={`text-xs font-semibold truncate ${!n.is_read ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400"}`}>{n.title}</p>{!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}</div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug line-clamp-2">{n.body}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{relativeTime(n.created_at)}</p>
+                            </div>
+                          </button>
+                        ))
+                      )}
                     </div>
-                    <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 text-center"><button className="text-xs text-[#15406a] dark:text-cyan-400 hover:underline font-medium">View all notifications</button></div>
                   </div>
                 )}
               </div>
 
               <div className="relative" ref={inboxRef}>
-                <button onClick={() => { closeAll(); setIsInboxOpen((o) => !o); }} className="relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-[#15406a] dark:hover:text-cyan-400 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors focus:outline-none">
+                <button onClick={() => { closeAll("inbox"); setIsInboxOpen((o) => !o); }} className="relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-[#15406a] dark:hover:text-cyan-400 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors focus:outline-none">
                   <IconInbox />
                   <Badge count={unreadMsg} />
                 </button>
@@ -435,7 +494,7 @@ export default function Navbar() {
               </button>
 
               <div className="relative ml-1" ref={profileRef}>
-                <button onClick={() => { closeAll(); setIsProfileOpen((o) => !o); }} className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0d2d4a] to-[#15406a] dark:from-cyan-700 dark:to-blue-800 flex items-center justify-center text-white font-semibold text-sm hover:opacity-90 transition focus:outline-none">
+                <button onClick={() => { closeAll("profile"); setIsProfileOpen((o) => !o); }} className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0d2d4a] to-[#15406a] dark:from-cyan-700 dark:to-blue-800 flex items-center justify-center text-white font-semibold text-sm hover:opacity-90 transition focus:outline-none">
                   {userInitial}
                 </button>
                 {isProfileOpen && (

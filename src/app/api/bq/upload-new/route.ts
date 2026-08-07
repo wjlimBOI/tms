@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query, getClient } from "@/lib/db";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { ROLE_IDS } from "@/lib/roles";
 
 function mapUnit(unitRaw: string): string {
   const unit = unitRaw.trim().toUpperCase();
@@ -28,6 +29,8 @@ function truncateText(text: string, maxLength: number): string {
   return text.length > maxLength ? text.substring(0, maxLength) : text;
 }
 
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+
 function normalizeItemNumber(raw: any): string | null {
   const str = clean(raw);
   if (!str.includes('.')) return null;
@@ -47,8 +50,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userRole = (session.user as any)?.role_id;
-  if (userRole !== 13) {
+  const userRoleIds = (session.user as any)?.roleIds || [];
+  if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR)) {
     return NextResponse.json({ error: "Only contractors can create cost estimates" }, { status: 403 });
   }
 
@@ -59,6 +62,10 @@ export async function POST(req: Request) {
 
   if (!file || !tenderIdRaw) {
     return NextResponse.json({ error: "Missing file or tenderId" }, { status: 400 });
+  }
+
+  if (file.size > MAX_BYTES) {
+    return NextResponse.json({ error: "File too large" }, { status: 413 });
   }
 
   const tenderId = parseInt(tenderIdRaw, 10);
@@ -72,10 +79,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Tender not found" }, { status: 404 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const workbook = XLSX.read(buffer, { type: "buffer" });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = new ExcelJS.Workbook();
+  try {
+    await workbook.xlsx.load(arrayBuffer);
+  } catch (err) {
+    console.error("Failed to parse Excel file:", err);
+    return NextResponse.json({ error: "Invalid Excel file format. Please upload a valid .xlsx file." }, { status: 400 });
+  }
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    return NextResponse.json({ error: "No worksheet found in the uploaded file." }, { status: 400 });
+  }
+  const rows: any[][] = [];
+  for (let i = 1; i <= worksheet.rowCount; i++) {
+    const values = worksheet.getRow(i).values as any[];
+    values.shift(); // ExcelJS rows are 1-indexed; drop the leading undefined
+    rows.push(values);
+  }
 
   const categoriesRes = await query(
     `SELECT category_id, category_name, sort_order FROM work_category ORDER BY sort_order`
@@ -172,10 +193,10 @@ export async function POST(req: Request) {
 
     for (const item of parsedItems) {
       await client.query(
-        `INSERT INTO bq_line_item 
-           (submission_id, category_id, parent_item_id, description, quantity, unit, unit_price, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [submissionId, item.categoryId, null, item.description, item.quantity, item.unitCode, item.unitPrice, item.sortOrder]
+        `INSERT INTO bq_line_item
+           (submission_id, category_id, parent_item_id, description, quantity, unit, unit_price, amount, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [submissionId, item.categoryId, null, item.description, item.quantity, item.unitCode, item.unitPrice, item.quantity * item.unitPrice, item.sortOrder]
       );
     }
 
@@ -194,7 +215,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     await client.query("ROLLBACK");
     console.error("Upload-new error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to process upload" }, { status: 500 });
   } finally {
     client.release();
   }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { sanitize } from "@/lib/sanitize";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { extractAuditContext } from "@/lib/audit";
 
 // OPTIONS preflight handler
 export async function OPTIONS(request: NextRequest) {
@@ -14,6 +16,15 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
+
+  const { ipAddress } = extractAuditContext(request);
+  const { success } = await checkRateLimit(`pwreset-validate:${ipAddress}`);
+  if (!success) {
+    return NextResponse.json(
+      { valid: false, error: "Too many requests" },
+      { status: 429, headers: corsHeaders }
+    );
+  }
 
   try {
     const { token } = await request.json();

@@ -48,7 +48,7 @@ export const briefingDateSchema = z.object({
 // ===========================================
 // TENDER SCHEMAS
 // ===========================================
-export const tenderCreateSchema = z.object({
+const tenderBaseSchema = z.object({
   branch_id: z.number().int().positive(),
   renovation_type_id: z.number().int().positive(),
   status_id: z.number().int().positive().optional(),
@@ -76,7 +76,25 @@ export const tenderCreateSchema = z.object({
   }).optional(),
 });
 
-export const tenderUpdateSchema = tenderCreateSchema.partial();
+// Cross-field date-order checks - only fires when both sides of a pair are
+// actually present, so partial updates that only touch one date are unaffected.
+function validateTenderDateOrder(data: Partial<z.infer<typeof tenderBaseSchema>>, ctx: z.RefinementCtx) {
+  const toDate = (v: string | null | undefined) => (v ? new Date(v) : null);
+  const tenderDate = toDate(data.tender_date);
+  const closingDate = toDate(data.closing_date);
+  const renoStart = toDate(data.renovation_start_date);
+  const renoEnd = toDate(data.renovation_end_date);
+
+  if (tenderDate && closingDate && closingDate < tenderDate) {
+    ctx.addIssue({ code: "custom", message: "Closing date cannot be before the tender date", path: ["closing_date"] });
+  }
+  if (renoStart && renoEnd && renoEnd < renoStart) {
+    ctx.addIssue({ code: "custom", message: "Renovation end date cannot be before the renovation start date", path: ["renovation_end_date"] });
+  }
+}
+
+export const tenderCreateSchema = tenderBaseSchema.superRefine(validateTenderDateOrder);
+export const tenderUpdateSchema = tenderBaseSchema.partial().superRefine(validateTenderDateOrder);
 
 // ===========================================
 // TENDER LIST QUERY SCHEMA

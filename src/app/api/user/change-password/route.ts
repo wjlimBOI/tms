@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
   // 6. Update password in DB
   await query(
-    `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE user_id = $2`,
+    `UPDATE users SET password_hash = $1, password_changed_at = NOW(), updated_at = NOW() WHERE user_id = $2`,
     [newHash, session.user.id]
   );
 

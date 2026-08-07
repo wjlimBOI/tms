@@ -25,23 +25,8 @@ const nextConfig: NextConfig = {
             ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' }]
             : []),
 
-          // Content‑Security‑Policy (adjust for your specific needs)
-          {
-            key: 'Content-Security-Policy',
-            value: isProduction
-              ? [
-                  "default-src 'self'",
-                  "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // adjust if you use external scripts
-                  "style-src 'self' 'unsafe-inline'",
-                  "img-src 'self' data: https:",
-                  "font-src 'self'",
-                  "connect-src 'self' https://api.your-domain.com", // adjust for your APIs
-                  "frame-ancestors 'none'",
-                  "base-uri 'self'",
-                  "form-action 'self'",
-                ].join('; ')
-              : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;",
-          },
+          // Content-Security-Policy is set in proxy.ts (needs a per-request nonce,
+          // which static headers here can't provide). Do not duplicate it here.
         ],
       },
     ];

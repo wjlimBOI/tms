@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { ROLE_IDS } from "@/lib/roles";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -12,8 +13,8 @@ export async function GET(req: Request) {
   if (!tenderId) return NextResponse.json({ error: "Missing tenderId" }, { status: 400 });
 
   const userId = (session.user as any).id;
-  const userRole = (session.user as any).role_id;
-  if (userRole !== 13) {
+  const userRoleIds = (session.user as any).roleIds || [];
+  if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR)) {
     return NextResponse.json({ error: "Only contractors can check BQ submissions" }, { status: 403 });
   }
 

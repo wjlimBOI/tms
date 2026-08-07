@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
+import { ROLE_IDS } from "@/lib/roles";
 
 // ---------- GET (fetch single branch with address) ----------
 export async function GET(
@@ -11,7 +12,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role_id !== 1) {
+  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -73,7 +74,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role_id !== 1) {
+  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
     await logAuthEvent("PERMISSION_DENIED", session?.user?.id || 0, req, {
       action: "update_branch",
       reason: "Unauthorized",
@@ -280,7 +281,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role_id !== 1) {
+  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
     await logAuthEvent("PERMISSION_DENIED", session?.user?.id || 0, req, {
       action: "delete_branch",
       reason: "Unauthorized",

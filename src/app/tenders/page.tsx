@@ -9,7 +9,12 @@ import { format, isAfter, parseISO, differenceInDays } from "date-fns";
 import { getBrandColor } from "@/lib/brandColors";
 import { getTenderStatusBadgeStyle, getTenderStatusLabel } from "@/lib/statusColors";
 import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
-import { MoreVertical, Edit, FileText, Eye, GitBranch, CheckCircle, LayoutDashboard, Clock } from "lucide-react";
+import { MoreVertical, Edit, FileText, Eye, CheckCircle, LayoutDashboard, Clock, Users, UserPlus } from "lucide-react";
+import { ROLE_IDS } from "@/lib/roles";
+import { useNotify } from "@/components/ui/notification-provider";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import TenderInterestModal from "@/components/tenders/TenderInterestModal";
+import AwardTenderModal from "@/components/tenders/AwardTenderModal";
 
 // ---------- Interfaces ----------
 interface Tender {
@@ -27,6 +32,8 @@ interface Tender {
   stage: number;
   stage_updated_at?: string;
   building_name?: string;
+  interest_count?: number;
+  has_expressed_interest?: boolean;
 }
 
 interface ExtensionStatus {
@@ -35,13 +42,6 @@ interface ExtensionStatus {
   requestedDays?: number;
   reason?: string;
   createdAt?: string;
-}
-
-interface AlertState {
-  type: "success" | "error" | "warning" | "info";
-  title: string;
-  message: string;
-  details?: string;
 }
 
 // ---------- Constants & Helpers ----------
@@ -199,12 +199,17 @@ export default function TendersListPage() {
   const [extensionStatuses, setExtensionStatuses] = useState<Record<number, ExtensionStatus>>({});
   const [loadingExtensions, setLoadingExtensions] = useState(false);
 
-  const [alert, setAlert] = useState<AlertState | null>(null);
+  const [applyingInterestId, setApplyingInterestId] = useState<number | null>(null);
+  const [interestModalTender, setInterestModalTender] = useState<Tender | null>(null);
+  const [awardModalTender, setAwardModalTender] = useState<Tender | null>(null);
+
+  const toast = useNotify();
+  const confirm = useConfirm();
 
   const userRole = (session?.user as any)?.role_id;
-  const isAdmin = userRole === 1;
-  const isContractor = userRole === 13;
-  const canManageStage = [1, 6, 10].includes(userRole);
+  const isAdmin = userRole === ROLE_IDS.ADMIN;
+  const isContractor = userRole === ROLE_IDS.CONTRACTOR;
+  const canManageStage = [ROLE_IDS.ADMIN, ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER].includes(userRole);
 
   // ---------- Data fetching ----------
   const fetchTenders = async () => {
@@ -225,12 +230,7 @@ export default function TendersListPage() {
     } catch (err) {
       console.error(err);
       setError("Could not load tenders");
-      setAlert({
-        type: "error",
-        title: "Unable to Load Tenders",
-        message: "We couldn't retrieve your tenders. Please refresh the page or try again later.",
-        details: "If the problem persists, contact your system administrator.",
-      });
+      toast.error("We couldn't retrieve your tenders. Please refresh the page or try again later.");
     } finally {
       setLoading(false);
     }
@@ -339,11 +339,7 @@ export default function TendersListPage() {
 
   const saveEdit = async (tender: Tender) => {
     if (!editStart || !editEnd) {
-      setAlert({
-        type: "error",
-        title: "Dates Required",
-        message: "Both the start and end dates must be provided.",
-      });
+      toast.error("Both the start and end dates must be provided.");
       return;
     }
 
@@ -352,12 +348,10 @@ export default function TendersListPage() {
 
     setSaving(true);
     try {
-      const csrf = await fetch("/api/auth/csrf").then(res => res.json());
       const res = await fetch(`/api/tenders/${tender.tender_id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-csrf-token": csrf.csrfToken,
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -378,22 +372,48 @@ export default function TendersListPage() {
             : t
         )
       );
-      setAlert({
-        type: "success",
-        title: "Dates Updated",
-        message: "Renovation dates were updated successfully.",
-      });
+      toast.success("Renovation dates were updated successfully.");
       cancelEdit();
     } catch (err: any) {
       console.error(err);
-      setAlert({
-        type: "error",
-        title: "Update Failed",
-        message: err.message || "Something went wrong while updating the dates.",
-        details: "Please try again or contact support.",
-      });
+      toast.error(err.message || "Something went wrong while updating the dates.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ---------- Interest (contractor apply / admin view) ----------
+  const registerInterest = async (tender: Tender) => {
+    const proceed = await confirm({
+      title: "Register interest",
+      description: `Register your company's interest in "${tender.tender_name}"? The tender team will be able to see that you've applied.`,
+      confirmText: "Register Interest",
+    });
+    if (!proceed) return;
+
+    setApplyingInterestId(tender.tender_id);
+    try {
+      const res = await fetch(`/api/tenders/${tender.tender_id}/interest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Unable to register interest.");
+      }
+      setTenders(prev =>
+        prev.map(t =>
+          t.tender_id === tender.tender_id
+            ? { ...t, has_expressed_interest: true, interest_count: (t.interest_count || 0) + 1 }
+            : t
+        )
+      );
+      toast.success("Your interest has been registered.");
+    } catch (err: any) {
+      toast.error(err.message || "Unable to register interest.");
+    } finally {
+      setApplyingInterestId(null);
     }
   };
 
@@ -457,71 +477,9 @@ export default function TendersListPage() {
   const hasTenders = filteredTenders.length > 0;
   const showEmptyState = !hasTenders && !loading;
 
-  // ---------- Alert Modal ----------
-  const renderAlertModal = () => {
-    if (!alert) return null;
-    const { type, title, message, details } = alert;
-    let bgColor, borderColor, icon;
-    switch (type) {
-      case "success":
-        bgColor = "bg-emerald-50 dark:bg-emerald-900/30";
-        borderColor = "border-emerald-500";
-        icon = "✅";
-        break;
-      case "error":
-        bgColor = "bg-red-50 dark:bg-red-900/30";
-        borderColor = "border-red-500";
-        icon = "⚠️";
-        break;
-      case "warning":
-        bgColor = "bg-amber-50 dark:bg-amber-900/30";
-        borderColor = "border-amber-500";
-        icon = "⚠️";
-        break;
-      case "info":
-      default:
-        bgColor = "bg-blue-50 dark:bg-blue-900/30";
-        borderColor = "border-blue-500";
-        icon = "ℹ️";
-        break;
-    }
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div className={`w-full max-w-md ${bgColor} border-l-4 ${borderColor} rounded-2xl shadow-2xl p-6`}>
-          <div className="flex items-start gap-4">
-            <span className="text-3xl">{icon}</span>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h3>
-              <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">{message}</p>
-              {details && <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">{details}</p>}
-            </div>
-            <button
-              onClick={() => setAlert(null)}
-              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => setAlert(null)}
-              className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm font-medium transition"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // ---------- Main Render ----------
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {renderAlertModal()}
-
       <div className="max-w-7xl mx-auto py-4 px-3 sm:py-6 sm:px-4 lg:px-6">
         {/* ===== TOP SECTION ===== */}
         <div className="bg-gradient-to-br from-blue-100/80 via-white/95 to-cyan-100/80 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 rounded-xl border border-blue-200/60 dark:border-slate-700 shadow-lg shadow-blue-100/30 dark:shadow-slate-800/50 p-3 sm:p-4 mb-4 sm:mb-6">
@@ -768,6 +726,22 @@ export default function TendersListPage() {
                           >
                             {fullCompanyName}
                           </span>
+                          {isAdmin && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setInterestModalTender(item);
+                              }}
+                              className={`inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-medium transition ${
+                                item.interest_count
+                                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                              }`}
+                            >
+                              <Users className="w-2.5 h-2.5" />
+                              {item.interest_count ? `${item.interest_count} interested` : "No interest yet"}
+                            </button>
+                          )}
                         </div>
                       </td>
 
@@ -882,6 +856,16 @@ export default function TendersListPage() {
                                   >
                                     <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Submissions
                                   </Link>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setInterestModalTender(item);
+                                    }}
+                                    className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5"
+                                  >
+                                    <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    View Interest {item.interest_count ? `(${item.interest_count})` : ""}
+                                  </button>
                                   {canManageStage && <hr className="my-1 border-slate-200 dark:border-slate-700" />}
                                 </>
                               )}
@@ -894,45 +878,10 @@ export default function TendersListPage() {
                                   <button
                                     onClick={async (e) => {
                                       e.stopPropagation();
-                                      try {
-                                        const res = await fetch(`/api/tenders/${item.tender_id}/stage`, {
-                                          method: 'PUT',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ action: 'revert' }),
-                                        });
-                                        if (!res.ok) {
-                                          const err = await res.json();
-                                          setAlert({
-                                            type: "error",
-                                            title: "Stage Revert Failed",
-                                            message: err.error || "Unable to revert the stage.",
-                                            details: "If the problem persists, contact support.",
-                                          });
-                                        } else {
-                                          setAlert({
-                                            type: "success",
-                                            title: "Stage Reverted",
-                                            message: "The stage was reverted successfully.",
-                                          });
-                                          fetchTenders();
-                                        }
-                                      } catch {
-                                        setAlert({
-                                          type: "error",
-                                          title: "Network Error",
-                                          message: "Could not connect to the server.",
-                                          details: "Try again later or contact support.",
-                                        });
+                                      if (stageIdx === 5) {
+                                        setAwardModalTender(item);
+                                        return;
                                       }
-                                    }}
-                                    disabled={stageIdx <= 0 || item.status_label === "Upcoming"}
-                                    className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                                  >
-                                    <GitBranch className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Revert
-                                  </button>
-                                  <button
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
                                       try {
                                         const res = await fetch(`/api/tenders/${item.tender_id}/stage`, {
                                           method: 'PUT',
@@ -941,33 +890,20 @@ export default function TendersListPage() {
                                         });
                                         if (!res.ok) {
                                           const err = await res.json();
-                                          setAlert({
-                                            type: "error",
-                                            title: "Stage Advance Failed",
-                                            message: err.error || "Unable to advance the stage.",
-                                            details: "If the problem persists, contact support.",
-                                          });
+                                          toast.error(err.error || "Unable to advance the stage.");
                                         } else {
-                                          setAlert({
-                                            type: "success",
-                                            title: "Stage Advanced",
-                                            message: "The stage was advanced successfully.",
-                                          });
+                                          toast.success("The stage was advanced successfully.");
                                           fetchTenders();
                                         }
                                       } catch {
-                                        setAlert({
-                                          type: "error",
-                                          title: "Network Error",
-                                          message: "Could not connect to the server.",
-                                          details: "Try again later or contact support.",
-                                        });
+                                        toast.error("Could not connect to the server. Try again later.");
                                       }
                                     }}
                                     disabled={stageIdx >= 6 || item.status_label === "Upcoming"}
                                     className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                                   >
-                                    <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {stageIdx === 0 ? "Open Tender" : "Advance"}
+                                    <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    {stageIdx === 0 ? "Open Tender" : stageIdx === 5 ? "Award Tender" : "Advance"}
                                   </button>
                                 </>
                               )}
@@ -984,8 +920,26 @@ export default function TendersListPage() {
                                   >
                                     <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> View Details
                                   </Link>
+                                  {item.has_expressed_interest ? (
+                                    <div className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                      <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Interest Registered
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        registerInterest(item);
+                                      }}
+                                      disabled={applyingInterestId === item.tender_id}
+                                      className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 disabled:opacity-50"
+                                    >
+                                      <UserPlus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                      {applyingInterestId === item.tender_id ? "Registering…" : "Register Interest"}
+                                    </button>
+                                  )}
                                 </>
                               )}
+
                             </DropdownActions>
                           )}
                         </div>
@@ -1038,6 +992,23 @@ export default function TendersListPage() {
           </div>
         )}
       </div>
+
+      {interestModalTender && (
+        <TenderInterestModal
+          tenderId={interestModalTender.tender_id}
+          tenderName={interestModalTender.tender_name}
+          onClose={() => setInterestModalTender(null)}
+        />
+      )}
+
+      {awardModalTender && (
+        <AwardTenderModal
+          tenderId={awardModalTender.tender_id}
+          tenderName={awardModalTender.tender_name}
+          onClose={() => setAwardModalTender(null)}
+          onAwarded={fetchTenders}
+        />
+      )}
     </div>
   );
 }

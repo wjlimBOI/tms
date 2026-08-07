@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { getBQStatusStyles, getBQStatusLabel } from "@/lib/statusColors";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useNotify } from "@/components/ui/notification-provider";
 
 // ------------------------- Types ---------------------------------
 interface Tender {
@@ -54,7 +56,7 @@ const formatCurrency = (value?: number) => {
 };
 
 // ------------------------- Detail Drawer -----------------
-const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading }: { isOpen: boolean; onClose: () => void; bq: BQ | null; bqDetail: BQDetail | null; loading: boolean }) => {
+const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: { isOpen: boolean; onClose: () => void; bq: BQ | null; bqDetail: BQDetail | null; loading: boolean; onSetStatus: (submissionId: number, status: "approved" | "rejected" | "revert") => void }) => {
   if (!bq) return null;
   const totalFromItems = bqDetail?.items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
 
@@ -150,6 +152,34 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading }: { isOpen: bool
                 <p className="text-center text-gray-500">Failed to load details.</p>
               )}
             </div>
+            {bqDetail && (
+              <div className="p-5 border-t border-gray-200 dark:border-white/10 flex items-center justify-end gap-2">
+                {bqDetail.submission.status === "Submitted" && (
+                  <>
+                    <button
+                      onClick={() => onSetStatus(bqDetail.submission.submission_id, "rejected")}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800/70 transition"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => onSetStatus(bqDetail.submission.submission_id, "approved")}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 transition"
+                    >
+                      Approve
+                    </button>
+                  </>
+                )}
+                {(bqDetail.submission.status === "Approved" || bqDetail.submission.status === "Rejected") && (
+                  <button
+                    onClick={() => onSetStatus(bqDetail.submission.submission_id, "revert")}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700/70 transition"
+                  >
+                    Revert to Submitted
+                  </button>
+                )}
+              </div>
+            )}
           </motion.div>
         </>
       )}
@@ -212,11 +242,13 @@ const LoadingSkeleton = () => (
 export default function AdminTenderBQsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useNotify();
 
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [selectedTenderId, setSelectedTenderId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"All" | "Draft" | "Submitted">("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Draft" | "Submitted" | "Approved" | "Rejected">("All");
   const [bqs, setBqs] = useState<BQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingTenders, setLoadingTenders] = useState(true);
@@ -230,16 +262,6 @@ export default function AdminTenderBQsPage() {
   const [tenderDropdownOpen, setTenderDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Delete modal state
-  const [modal, setModal] = useState<{
-    isOpen: boolean;
-    type: "confirm" | "success" | "error";
-    title: string;
-    message: string;
-    note?: string;
-    onConfirm?: () => void;
-  }>({ isOpen: false, type: "confirm", title: "", message: "" });
-  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
   // ------------------------- Fetch Tenders -----------------
   useEffect(() => {
@@ -286,7 +308,9 @@ export default function AdminTenderBQsPage() {
       const res = await fetch(`/api/admin/tenders/${selectedTenderId}/bqs`);
       if (!res.ok) throw new Error("Failed to load BQs");
       const allBqs = await res.json();
-      const filtered = allBqs.filter((bq: BQ) => bq.status === "Draft" || bq.status === "Submitted");
+      const filtered = allBqs.filter((bq: BQ) =>
+        ["Draft", "Submitted", "Approved", "Rejected"].includes(bq.status)
+      );
       setBqs(filtered);
     } catch (err: any) {
       setError(err.message);
@@ -319,30 +343,22 @@ export default function AdminTenderBQsPage() {
   }, {} as Record<string, BQ[]>);
 
   // ------------------------- Delete BQ -----------------
-  const confirmDelete = (submissionId: number) => {
-    setPendingDeleteId(submissionId);
-    setModal({
-      isOpen: true,
-      type: "confirm",
+  const confirmDelete = async (submissionId: number) => {
+    const proceed = await confirm({
       title: "Delete Bill of Quantity",
-      message: `Are you sure you want to delete BQ #${submissionId}?`,
-      note: "This action cannot be undone.",
-      onConfirm: () => handleDeleteBQ(),
+      description: `Are you sure you want to delete BQ #${submissionId}? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
     });
-  };
+    if (!proceed) return;
 
-  const handleDeleteBQ = async () => {
-    if (!pendingDeleteId) return;
-    setModal({ ...modal, isOpen: false });
     try {
-      const res = await fetch(`/api/admin/bqs/${pendingDeleteId}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/bqs/${submissionId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
-      setBqs(prev => prev.filter(bq => bq.submission_id !== pendingDeleteId));
-      setModal({ isOpen: true, type: "success", title: "Deleted Successfully", message: `BQ #${pendingDeleteId} has been deleted.`, onConfirm: () => setModal({ ...modal, isOpen: false }) });
+      setBqs(prev => prev.filter(bq => bq.submission_id !== submissionId));
+      toast.success(`BQ #${submissionId} has been deleted.`);
     } catch (err: any) {
-      setModal({ isOpen: true, type: "error", title: "Deletion Failed", message: err.message, onConfirm: () => setModal({ ...modal, isOpen: false }) });
-    } finally {
-      setPendingDeleteId(null);
+      toast.error(err.message);
     }
   };
 
@@ -361,6 +377,33 @@ export default function AdminTenderBQsPage() {
       setBqDetail(null);
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  // ------------------------- Approve / Reject / Revert -----------------
+  const setBqStatus = async (submissionId: number, status: "approved" | "rejected" | "revert") => {
+    const labels = { approved: "approve", rejected: "reject", revert: "revert this BQ back to Submitted" };
+    const proceed = await confirm({
+      title: status === "approved" ? "Approve BQ" : status === "rejected" ? "Reject BQ" : "Revert BQ",
+      description: `Are you sure you want to ${labels[status]}?`,
+      confirmText: status === "rejected" ? "Reject" : status === "approved" ? "Approve" : "Revert",
+      variant: status === "rejected" ? "destructive" : "default",
+    });
+    if (!proceed) return;
+
+    try {
+      const res = await fetch(`/api/bq/${submissionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update status");
+      toast.success(`BQ #${submissionId} is now ${data.status}.`);
+      await fetchBQs();
+      if (selectedBq?.submission_id === submissionId) await openDrawer({ ...selectedBq, status: data.status });
+    } catch (err: any) {
+      toast.error(err.message || "Could not update BQ status");
     }
   };
 
@@ -467,6 +510,26 @@ export default function AdminTenderBQsPage() {
                 >
                   Submitted
                 </button>
+                <button
+                  onClick={() => setStatusFilter("Approved")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    statusFilter === "Approved"
+                      ? "bg-teal-600 text-white shadow-md"
+                      : "bg-white/60 dark:bg-[#0f1630]/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                  }`}
+                >
+                  Approved
+                </button>
+                <button
+                  onClick={() => setStatusFilter("Rejected")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    statusFilter === "Rejected"
+                      ? "bg-rose-600 text-white shadow-md"
+                      : "bg-white/60 dark:bg-[#0f1630]/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                  }`}
+                >
+                  Rejected
+                </button>
               </div>
               <div className="flex-1">
                 <div className="relative">
@@ -494,7 +557,7 @@ export default function AdminTenderBQsPage() {
             </motion.div>
           ) : (
             <div className="space-y-3">
-              {["Draft", "Submitted"].map((status) => {
+              {["Draft", "Submitted", "Approved", "Rejected"].map((status) => {
                 const statusBQs = groupedBqs[status] || [];
                 if (statusBQs.length === 0) return null;
                 return (
@@ -547,6 +610,30 @@ export default function AdminTenderBQsPage() {
                                   >
                                     Inspect
                                   </button>
+                                  {bq.status === "Submitted" && (
+                                    <>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setBqStatus(bq.submission_id, "approved"); }}
+                                        className="bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-teal-200 dark:hover:bg-teal-800/70 transition whitespace-nowrap"
+                                      >
+                                        Approve
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setBqStatus(bq.submission_id, "rejected"); }}
+                                        className="bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-amber-200 dark:hover:bg-amber-800/70 transition whitespace-nowrap"
+                                      >
+                                        Reject
+                                      </button>
+                                    </>
+                                  )}
+                                  {(bq.status === "Approved" || bq.status === "Rejected") && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setBqStatus(bq.submission_id, "revert"); }}
+                                      className="bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700/70 transition whitespace-nowrap"
+                                    >
+                                      Revert
+                                    </button>
+                                  )}
                                   <button
                                     onClick={(e) => { e.stopPropagation(); confirmDelete(bq.submission_id); }}
                                     className="bg-rose-100 dark:bg-rose-900/50 text-rose-800 dark:text-rose-200 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-rose-200 dark:hover:bg-rose-800/70 transition whitespace-nowrap"
@@ -568,19 +655,7 @@ export default function AdminTenderBQsPage() {
         </div>
       </div>
 
-      <DetailDrawer isOpen={drawerOpen} onClose={closeDrawer} bq={selectedBq} bqDetail={bqDetail} loading={loadingDetail} />
-
-      <CustomModal
-        isOpen={modal.isOpen}
-        onClose={() => setModal({ ...modal, isOpen: false })}
-        title={modal.title}
-        message={modal.message}
-        note={modal.note}
-        type={modal.type}
-        onConfirm={modal.onConfirm}
-        confirmText={modal.type === "confirm" ? "Delete" : "OK"}
-        cancelText="Cancel"
-      />
+      <DetailDrawer isOpen={drawerOpen} onClose={closeDrawer} bq={selectedBq} bqDetail={bqDetail} loading={loadingDetail} onSetStatus={setBqStatus} />
     </div>
   );
 }
@@ -597,57 +672,3 @@ const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void
   </div>
 );
 
-// ------------------------- Custom Modal -----------------
-const CustomModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  message: string;
-  note?: string;
-  type: 'confirm' | 'success' | 'error';
-  onConfirm?: () => void;
-  confirmText?: string;
-  cancelText?: string;
-}> = ({ isOpen, onClose, title, message, note, type, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel' }) => {
-  if (!isOpen) return null;
-  const getIconColors = () => {
-    switch (type) {
-      case 'success': return { bg: 'bg-emerald-100 dark:bg-emerald-500/20', icon: 'text-emerald-600 dark:text-emerald-400', button: 'from-emerald-600 to-teal-600' };
-      case 'error': return { bg: 'bg-rose-100 dark:bg-rose-500/20', icon: 'text-rose-600 dark:text-rose-400', button: 'from-rose-600 to-pink-600' };
-      default: return { bg: 'bg-blue-100 dark:bg-blue-500/20', icon: 'text-blue-600 dark:text-blue-400', button: 'from-blue-600 to-indigo-600' };
-    }
-  };
-  const colors = getIconColors();
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center`}>
-              {type === 'success' ? (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-              ) : type === 'error' ? (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-              ) : (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              )}
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            {message}
-            {note && <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">{note}</span>}
-          </p>
-          <div className="flex gap-3 justify-end">
-            {type === 'confirm' && (
-              <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-medium text-sm">{cancelText}</button>
-            )}
-            <button onClick={type === 'confirm' ? onConfirm : onClose} className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}>
-              {type === 'confirm' ? confirmText : 'OK'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};

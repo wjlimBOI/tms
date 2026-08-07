@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useNotify } from "@/components/ui/notification-provider";
+import { ROLE_IDS } from "@/lib/roles";
 
 const ALL_CATEGORIES = [
   { id: 1, name: "1. Preliminary & Demolition Works" },
@@ -23,6 +25,7 @@ export default function NewCostEstimatePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useNotify();
 
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [tenderId, setTenderId] = useState("");
@@ -84,8 +87,8 @@ export default function NewCostEstimatePage() {
   };
 
   const handleCreate = async () => {
-    if (!tenderId) return alert("Please select a project");
-    if (selectedCategories.length === 0) return alert("Please select at least one category");
+    if (!tenderId) return toast.error("Please select a project");
+    if (selectedCategories.length === 0) return toast.error("Please select at least one category");
 
     setLoading(true);
     try {
@@ -101,10 +104,10 @@ export default function NewCostEstimatePage() {
       if (res.ok) {
         router.push(`/bq/${data.submission_id}/edit`);
       } else {
-        alert(data.error || "Failed to create BQ");
+        toast.error(data.error || "Failed to create BQ");
       }
     } catch (err) {
-      alert("Network error. Please try again.");
+      toast.error("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -112,8 +115,8 @@ export default function NewCostEstimatePage() {
 
   // --- UPDATED: Excel upload flow ---
   const handleUploadCreate = async () => {
-    if (!tenderId) return alert("Please select a project");
-    if (!uploadFile) return alert("Please select an Excel file");
+    if (!tenderId) return toast.error("Please select a project");
+    if (!uploadFile) return toast.error("Please select an Excel file");
 
     setUploading(true);
     try {
@@ -149,7 +152,7 @@ export default function NewCostEstimatePage() {
       // 3. Redirect to the edit page
       router.push(`/bq/${submissionId}/edit`);
     } catch (err: any) {
-      alert(err.message || "Upload failed. Please check console for details.");
+      toast.error(err.message || "Upload failed. Please check console for details.");
       console.error("Upload error:", err);
     } finally {
       setUploading(false);
@@ -166,7 +169,7 @@ export default function NewCostEstimatePage() {
   );
   if (!session) return null;
 
-  const isContractor = (session.user as any)?.role_id === 13;
+  const isContractor = (session.user as any)?.role_id === ROLE_IDS.CONTRACTOR;
   const allSelected = selectedCategories.length === ALL_CATEGORIES.length;
 
   return (

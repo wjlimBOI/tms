@@ -67,15 +67,16 @@ export async function POST(req: Request) {
       [newSubmissionId, submission_id]
     );
 
-    // Copy line items
+    // Copy line items - amount is what the edit/view UI actually reads, so it
+    // must be carried over explicitly (it is not DB-generated).
     await client.query(
       `INSERT INTO bq_line_item
         (submission_id, category_id, parent_item_id,
          location, description, specifications, brand,
-         quantity, unit, unit_price, discount, sort_order, level, total_price)
+         quantity, unit, unit_price, discount, sort_order, level, total_price, amount)
        SELECT $1, category_id, parent_item_id,
               location, description, specifications, brand,
-              quantity, unit, unit_price, discount, sort_order, level, total_price
+              quantity, unit, unit_price, discount, sort_order, level, total_price, amount
        FROM bq_line_item
        WHERE submission_id = $2`,
       [newSubmissionId, submission_id]

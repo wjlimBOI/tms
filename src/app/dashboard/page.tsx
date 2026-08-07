@@ -9,6 +9,7 @@ import {
   getBQStatusStyles,
   getBQStatusLabel,
 } from "@/lib/statusColors";
+import { ROLE_IDS } from "@/lib/roles";
 
 function normalizeBQStatus(rawStatus: string): "draft" | "submitted" {
   const lower = rawStatus?.toLowerCase() || "";
@@ -59,8 +60,8 @@ export default function DashboardPage() {
   const [eventsLoading, setEventsLoading] = useState(true);
 
   const userRole = (session?.user as any)?.role_id;
-  const isContractor = userRole === 13;
-  const isAdmin = userRole === 1;
+  const isContractor = userRole === ROLE_IDS.CONTRACTOR;
+  const isAdmin = userRole === ROLE_IDS.ADMIN;
 
   // ========== CONTRACTORS REDIRECT TO /tenders ==========
   useEffect(() => {
@@ -219,7 +220,7 @@ export default function DashboardPage() {
           {/* ===== TIER 1: KEY METRICS – unchanged ===== */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Completed 2026</p>
+              <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Awarded 2026</p>
               <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{metrics.totalCompleted}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4">

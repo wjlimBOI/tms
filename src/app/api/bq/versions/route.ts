@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { ROLE_IDS } from "@/lib/roles";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -30,8 +31,8 @@ export async function GET(req: Request) {
     );
   }
 
-  // Contractors (role 4) may only see their own versions
-  if (session.user.role_id === 4 && contractorId !== session.user.id) {
+  // Contractors may only see their own versions
+  if (((session.user as any).roleIds || []).includes(ROLE_IDS.CONTRACTOR) && contractorId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

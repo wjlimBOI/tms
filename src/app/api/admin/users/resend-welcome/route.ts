@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
     data: {
       password_hash: hashedPassword,
       must_change_password: true,
+      password_changed_at: new Date(),
       updated_at: new Date(),
     },
     select: { username: true, email: true, must_change_password: true },

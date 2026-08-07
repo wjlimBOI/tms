@@ -15,9 +15,7 @@ const redis = redisUrl && redisToken
   ? new Redis({ url: redisUrl, token: redisToken })
   : null;
 
-// The limiter – passing windowSeconds as a number (the library accepts numbers as milliseconds)
-// The `as any` bypasses a TypeScript strictness issue; the runtime works fine.
-const limiter = Ratelimit.slidingWindow(maxRequests, windowSeconds as any);
+const limiter = Ratelimit.slidingWindow(maxRequests, `${windowSeconds} s`);
 
 export const rateLimit = redis
   ? new Ratelimit({ redis, limiter })

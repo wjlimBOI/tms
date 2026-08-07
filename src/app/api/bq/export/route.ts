@@ -3,7 +3,19 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { ROLE_IDS } from "@/lib/roles";
+
+async function buildXlsxBlob(rows: any[][], colWidths?: number[]): Promise<Blob> {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("BQ_Submission");
+  for (const row of rows) ws.addRow(row);
+  if (colWidths) {
+    colWidths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  }
+  const arrayBuffer = await wb.xlsx.writeBuffer();
+  return new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
 
 const UNIT_MAP: Record<string, string> = {
   NOS: "Nos",
@@ -43,12 +55,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Missing submissionId" }, { status: 400 });
   }
 
-  const userRoleId = (session.user as any)?.role_id;
+  const userRoleIds = (session.user as any)?.roleIds || [];
   const userId = session.user.id;
 
   // Access control
   let hasAccess = false;
-  if (userRoleId === 1) {
+  if (userRoleIds.includes(ROLE_IDS.ADMIN)) {
     hasAccess = true;
   } else {
     const check = await query(
@@ -73,11 +85,7 @@ export async function GET(req: Request) {
   const categories = categoriesRes.rows;
 
   if (categories.length === 0) {
-    const wsData = [["No categories found for this submission"]];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "BQ_Submission");
-    const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+    const buffer = await buildXlsxBlob([["No categories found for this submission"]]);
     return new NextResponse(buffer, {
       status: 200,
       headers: {
@@ -168,13 +176,7 @@ export async function GET(req: Request) {
   // Grand total
   wsData.push(["", "", "", "", "", "GRAND TOTAL:", formatCurrency(grandTotal)]);
 
-  // Auto-size columns
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = [{wch:12}, {wch:50}, {wch:12}, {wch:12}, {wch:15}, {wch:15}, {wch:18}];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "BQ_Submission");
-  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+  const buffer = await buildXlsxBlob(wsData, [12, 50, 12, 12, 15, 15, 18]);
 
   return new NextResponse(buffer, {
     status: 200,

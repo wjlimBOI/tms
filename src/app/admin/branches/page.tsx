@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getBranchStatusBadgeStyle, getBranchStatusLabel } from "@/lib/statusColors";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useNotify } from "@/components/ui/notification-provider";
 
 // ---------- Interfaces ----------
 interface Branch {
@@ -66,110 +68,13 @@ const OPERATION_STATUSES = [
   'Closed',
 ];
 
-// ---------- StyledModal ----------
-interface StyledModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  message: string;
-  note?: string;
-  type: "confirm" | "success" | "error";
-  onConfirm?: () => void;
-  confirmText?: string;
-  cancelText?: string;
-}
-
-const StyledModal: React.FC<StyledModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  message,
-  note,
-  type,
-  onConfirm,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
-}) => {
-  if (!isOpen) return null;
-
-  const getIconColors = () => {
-    switch (type) {
-      case "success":
-        return {
-          bg: "bg-emerald-100 dark:bg-emerald-500/20",
-          icon: "text-emerald-600 dark:text-emerald-400",
-          button: "from-emerald-600 to-teal-600",
-        };
-      case "error":
-        return {
-          bg: "bg-rose-100 dark:bg-rose-500/20",
-          icon: "text-rose-600 dark:text-rose-400",
-          button: "from-rose-600 to-pink-600",
-        };
-      default:
-        return {
-          bg: "bg-blue-100 dark:bg-blue-500/20",
-          icon: "text-blue-600 dark:text-blue-400",
-          button: "from-blue-600 to-indigo-600",
-        };
-    }
-  };
-
-  const colors = getIconColors();
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center`}>
-              {type === "success" ? (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-              ) : type === "error" ? (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              )}
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            {message}
-            {note && <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">{note}</span>}
-          </p>
-          <div className="flex gap-3 justify-end">
-            {type === "confirm" && (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-medium text-sm"
-              >
-                {cancelText}
-              </button>
-            )}
-            <button
-              onClick={type === "confirm" ? onConfirm : onClose}
-              className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}
-            >
-              {type === "confirm" ? confirmText : "OK"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // ---------- Main Page Component ----------
 export default function AdminBranchesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const confirm = useConfirm();
+  const toast = useNotify();
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -194,19 +99,6 @@ export default function AdminBranchesPage() {
     }
   });
 
-  const [confirmModal, setConfirmModal] = useState<{ open: boolean; branchId: number | null; name: string }>({
-    open: false,
-    branchId: null,
-    name: "",
-  });
-  const [successModal, setSuccessModal] = useState<{ open: boolean; message: string }>({
-    open: false,
-    message: "",
-  });
-  const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({
-    open: false,
-    message: "",
-  });
 
   // Auth check
   useEffect(() => {
@@ -234,10 +126,7 @@ export default function AdminBranchesPage() {
       setBrands(sorted);
     } catch (err: any) {
       console.error("Error fetching brands:", err);
-      setErrorModal({
-        open: true,
-        message: "Could not load brands. Please refresh the page.",
-      });
+      toast.error("Could not load brands. Please refresh the page.");
       setBrands([]);
     } finally {
       setBrandsLoading(false);
@@ -352,30 +241,28 @@ export default function AdminBranchesPage() {
 
       setShowModal(false);
       await fetchBranches();
-      setSuccessModal({
-        open: true,
-        message: `Branch ${editingBranch ? "updated" : "created"} successfully.`,
-      });
+      toast.success(`Branch ${editingBranch ? "updated" : "created"} successfully.`);
     } catch (err: any) {
-      setErrorModal({ open: true, message: err.message });
+      toast.error(err.message);
     }
   };
 
-  const handleDelete = (branchId: number, name: string) => {
-    setConfirmModal({ open: true, branchId, name });
-  };
+  const handleDelete = async (branchId: number, name: string) => {
+    const proceed = await confirm({
+      title: "Confirm Delete",
+      description: `Are you sure you want to delete the branch "${name}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+    });
+    if (!proceed) return;
 
-  const confirmDelete = async () => {
-    const { branchId } = confirmModal;
-    if (!branchId) return;
     try {
       const res = await fetch(`/api/branches/${branchId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Deletion failed");
-      setConfirmModal({ open: false, branchId: null, name: "" });
       await fetchBranches();
-      setSuccessModal({ open: true, message: "Branch deleted successfully." });
+      toast.success("Branch deleted successfully.");
     } catch (err) {
-      setErrorModal({ open: true, message: "Could not delete branch." });
+      toast.error("Could not delete branch.");
     }
   };
 
@@ -806,35 +693,6 @@ export default function AdminBranchesPage() {
           </div>
         </div>
       )}
-
-      {/* Confirmation modals */}
-      <StyledModal
-        isOpen={confirmModal.open}
-        onClose={() => setConfirmModal({ open: false, branchId: null, name: "" })}
-        title="Confirm Delete"
-        message={`Are you sure you want to delete the branch "${confirmModal.name}"?`}
-        note="This action cannot be undone."
-        type="confirm"
-        onConfirm={confirmDelete}
-        confirmText="Delete"
-        cancelText="Cancel"
-      />
-
-      <StyledModal
-        isOpen={successModal.open}
-        onClose={() => setSuccessModal({ open: false, message: "" })}
-        title="Success"
-        message={successModal.message}
-        type="success"
-      />
-
-      <StyledModal
-        isOpen={errorModal.open}
-        onClose={() => setErrorModal({ open: false, message: "" })}
-        title="Error"
-        message={errorModal.message}
-        type="error"
-      />
     </div>
   );
 }

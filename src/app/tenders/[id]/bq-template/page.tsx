@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useNotify } from "@/components/ui/notification-provider";
 import { getBrandColor } from "@/lib/brandColors";
+import { ROLE_IDS } from "@/lib/roles";
 
 interface LineItem {
   line_item_id: number;
@@ -43,13 +45,14 @@ export default function TenderTemplateView() {
   const { id } = useParams();
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
+  const toast = useNotify();
   const [template, setTemplate] = useState<TemplateData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingAck, setCheckingAck] = useState(true);
 
   const userRole = (session?.user as any)?.role_id;
-  const isContractor = userRole === 13;
+  const isContractor = userRole === ROLE_IDS.CONTRACTOR;
 
   // First: check if user has acknowledged the tender document
   useEffect(() => {
@@ -214,10 +217,10 @@ export default function TenderTemplateView() {
                 if (res.ok) {
                   router.push(`/bq/${data.submission_id}/edit`);
                 } else {
-                  alert(data.error || "Failed to create BQ from template");
+                  toast.error(data.error || "Failed to create BQ from template");
                 }
               } catch (err) {
-                alert("Network error. Please try again.");
+                toast.error("Network error. Please try again.");
               }
             }}
             className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium shadow-md transition flex items-center gap-2"

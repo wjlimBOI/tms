@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import nodemailer from "nodemailer";
 import { logInsert, logAuthEvent } from "@/lib/audit"; // ✅ audit imports
+import { ROLE_IDS } from "@/lib/roles";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -22,10 +23,10 @@ export async function POST(req: NextRequest) { // ✅ Changed to NextRequest
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userRole = (session.user as any).role_id;
+  const userRoleIds = (session.user as any).roleIds || [];
   const userId = (session.user as any).id;
 
-  if (userRole !== 13) {
+  if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR)) {
     await logAuthEvent("PERMISSION_DENIED", userId, req, {
       action: "create_tender_request",
       reason: "Only contractors can submit requests",

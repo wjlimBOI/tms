@@ -5,11 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { useNotify } from "@/components/ui/notification-provider";
 
 export default function ExtensionApprovalPage() {
   const router = useRouter();
   const { id, requestId } = useParams();
   const { data: session, status: sessionStatus } = useSession();
+  const toast = useNotify();
 
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<any>(null);
@@ -46,7 +48,7 @@ export default function ExtensionApprovalPage() {
 
   const handleDecision = async (status: "Approved" | "Rejected") => {
     if (status === "Rejected" && !rejectionReason.trim()) {
-      alert("Please provide a reason for rejection.");
+      toast.error("Please provide a reason for rejection.");
       return;
     }
 
@@ -67,7 +69,7 @@ export default function ExtensionApprovalPage() {
       // Redirect back to the tender detail page
       router.push(`/admin/tenders/${id}`);
     } catch (err: any) {
-      alert(`Error: ${err.message}`);
+      toast.error(err.message);
     } finally {
       setProcessing(false);
     }

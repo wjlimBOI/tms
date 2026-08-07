@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { sanitize } from "@/lib/sanitize";
 import { z } from "zod";
+import { ROLE_IDS } from "@/lib/roles";
 
 // ============================================================
 // FIXED: query schema handles null, undefined, and empty strings
@@ -74,8 +75,8 @@ export async function GET(request: NextRequest) {
 
   const userId = session.user.id;
   const roleIds = await getUserRoleIds(userId);
-  const isContractor = roleIds.includes(13);
-  const isAdmin = roleIds.includes(1);
+  const isContractor = roleIds.includes(ROLE_IDS.CONTRACTOR);
+  const isAdmin = roleIds.includes(ROLE_IDS.ADMIN);
 
   // Parse and validate query params
   const searchParams = request.nextUrl.searchParams;

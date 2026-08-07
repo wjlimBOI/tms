@@ -4,8 +4,11 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useNotify } from "@/components/ui/notification-provider";
 import { ArrowLeft, Save, Eye, Menu, X, RotateCw, Plus } from "lucide-react";
 import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
+import { isoToLocalDateTime } from "@/lib/dateUtils";
+import { ROLE_IDS } from "@/lib/roles";
 import { DEFAULT_CRITICAL, DEFAULT_SCOPE, DEFAULT_TERMS } from "@/lib/tenderClauses";
 import {
   DEFAULT_COMPANY_ADDRESS,
@@ -237,6 +240,7 @@ export default function AdminEditTenderPage() {
   const { id } = useParams();
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
+  const toast = useNotify();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -253,7 +257,6 @@ export default function AdminEditTenderPage() {
   const sectionRefs = { critical: criticalRef, scope: scopeRef, terms: termsRef };
 
   const [formData, setFormData] = useState<Tender | null>(null);
-  const [originalTimes, setOriginalTimes] = useState<Record<string, string>>({});
   const [criticalClauses, setCriticalClauses] = useState(DEFAULT_CRITICAL);
   const [scopeClauses, setScopeClauses] = useState(DEFAULT_SCOPE);
   const [termsClauses, setTermsClauses] = useState(DEFAULT_TERMS);
@@ -264,12 +267,11 @@ export default function AdminEditTenderPage() {
   const [projectManagers, setProjectManagers] = useState<DropdownOption[]>([]);
 
   const userRoleIds = (session?.user as any)?.roleIds || [];
-  const isAdmin = userRoleIds.includes(1);
-  const isContentEditor = userRoleIds.includes(3);
-  const isLegal = userRoleIds.includes(4);
+  const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+  const isLegal = userRoleIds.includes(ROLE_IDS.LEGAL_TEAM);
 
-  const canEditMetadata = isAdmin || isLegal;
-  const canEditContent = isAdmin || isContentEditor;
+  const canEditMetadata = isAdmin;
+  const canEditContent = isAdmin || isLegal;
   const canEditDynamicClauses = isAdmin;
 
   // ===== Update dynamic clauses =====
@@ -361,21 +363,16 @@ export default function AdminEditTenderPage() {
 
         if (!tenderRes.ok) throw new Error("Failed to fetch tender");
         const tender = await tenderRes.json();
-        setFormData(tender);
-
-        const timeFields = [
-          "tender_date", "closing_date", "renovation_start_date", "renovation_end_date",
-        ];
-        const times: Record<string, string> = {};
-        for (const field of timeFields) {
-          if (tender[field]) {
-            const date = new Date(tender[field]);
-            if (!isNaN(date.getTime())) {
-              times[field] = date.toTimeString().slice(0, 5);
-            }
-          }
-        }
-        setOriginalTimes(times);
+        setFormData({
+          ...tender,
+          briefing_dates: Array.isArray(tender.briefing_dates)
+            ? tender.briefing_dates.map((d: any) => ({
+                id: d.id,
+                briefing_date: isoToLocalDateTime(d.briefing_date),
+                description: d.description || "",
+              }))
+            : [],
+        });
 
         if (tender.clauses && typeof tender.clauses === "object") {
           setCriticalClauses(
@@ -476,16 +473,6 @@ export default function AdminEditTenderPage() {
     setFormData({ ...formData, [name]: parsedValue });
   };
 
-  const handleDateChange = (field: string, dateValue: string) => {
-    if (!formData) return;
-    const time = originalTimes[field] || "00:00";
-    const combined = `${dateValue}T${time}:00`;
-    const date = new Date(combined);
-    if (!isNaN(date.getTime())) {
-      setFormData({ ...formData, [field]: date.toISOString() });
-    }
-  };
-
   const handlePMChange = async (pmId: number | null) => {
     if (!formData) return;
     if (!pmId) {
@@ -574,27 +561,6 @@ export default function AdminEditTenderPage() {
     }
   };
 
-  const formatDateTimeLocal = (isoString: string | null) => {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return "";
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  const toDateOnly = (isoString: string | null | undefined) => {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return "";
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
   const scrollToSection = (sectionId: string) => {
     const ref = sectionRefs[sectionId as keyof typeof sectionRefs];
@@ -650,18 +616,30 @@ export default function AdminEditTenderPage() {
         "renovation_end_date",
       ] as const;
 
+      const dateTimeFields = new Set([
+        "tender_date", "closing_date", "renovation_start_date", "renovation_end_date",
+      ]);
+
       for (const field of metadataFields) {
         const value = formData[field as keyof Tender];
         if (!(field in formData) || value === undefined || value === null) continue;
-        basePayload[field] = value;
+        if (dateTimeFields.has(field) && typeof value === "string") {
+          const parsed = new Date(value);
+          basePayload[field] = !isNaN(parsed.getTime()) ? parsed.toISOString() : value;
+        } else {
+          basePayload[field] = value;
+        }
       }
 
       // Add briefing dates
       if (formData.briefing_dates) {
-        basePayload.briefing_dates = formData.briefing_dates.map(d => ({
-          date: d.briefing_date,
-          description: d.description || "",
-        }));
+        basePayload.briefing_dates = formData.briefing_dates.map(d => {
+          const parsed = new Date(d.briefing_date);
+          return {
+            date: !isNaN(parsed.getTime()) ? parsed.toISOString() : d.briefing_date,
+            description: d.description || "",
+          };
+        });
       }
     }
 
@@ -686,11 +664,11 @@ export default function AdminEditTenderPage() {
       }
 
       setLastSaved(new Date().toLocaleString());
-      alert("✅ Tender updated successfully!");
+      toast.success("Tender updated successfully!");
       router.push(`/tenders/${id}`);
     } catch (err: any) {
       console.error("Submit error:", err);
-      alert(`❌ Error: ${err.message}`);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -1008,15 +986,14 @@ export default function AdminEditTenderPage() {
                   <div>
                     <label htmlFor="tender_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
                       Tender Start
-                      <span className="text-xs font-normal text-slate-400 ml-1">(time locked)</span>
                     </label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       id="tender_date"
                       name="tender_date"
-                      value={toDateOnly(formData.tender_date)}
-                      onChange={(e) => handleDateChange("tender_date", e.target.value)}
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={isoToLocalDateTime(formData.tender_date)}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
                     />
                   </div>
                 )}
@@ -1024,15 +1001,14 @@ export default function AdminEditTenderPage() {
                   <div>
                     <label htmlFor="closing_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
                       Closing Date
-                      <span className="text-xs font-normal text-slate-400 ml-1">(time locked)</span>
                     </label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       id="closing_date"
                       name="closing_date"
-                      value={toDateOnly(formData.closing_date)}
-                      onChange={(e) => handleDateChange("closing_date", e.target.value)}
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={isoToLocalDateTime(formData.closing_date)}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
                     />
                   </div>
                 )}
@@ -1040,15 +1016,14 @@ export default function AdminEditTenderPage() {
                   <div>
                     <label htmlFor="renovation_start_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
                       Renovation Start
-                      <span className="text-xs font-normal text-slate-400 ml-1">(time locked)</span>
                     </label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       id="renovation_start_date"
                       name="renovation_start_date"
-                      value={toDateOnly(formData.renovation_start_date)}
-                      onChange={(e) => handleDateChange("renovation_start_date", e.target.value)}
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={isoToLocalDateTime(formData.renovation_start_date)}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
                     />
                   </div>
                 )}
@@ -1056,15 +1031,14 @@ export default function AdminEditTenderPage() {
                   <div>
                     <label htmlFor="renovation_end_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
                       Renovation End
-                      <span className="text-xs font-normal text-slate-400 ml-1">(time locked)</span>
                     </label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       id="renovation_end_date"
                       name="renovation_end_date"
-                      value={toDateOnly(formData.renovation_end_date)}
-                      onChange={(e) => handleDateChange("renovation_end_date", e.target.value)}
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={isoToLocalDateTime(formData.renovation_end_date)}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
                     />
                   </div>
                 )}

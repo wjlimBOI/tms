@@ -1321,7 +1321,7 @@ export default function ExpressInterestPage() {
             <span className="section-number">03</span>
             <h2 className="section-heading">Authorized <span className="accent">Personnel</span></h2>
           </div>
-          <p className="section-description">Primary contacts for this partnership</p>
+          <p className="section-description">Primary contacts from your company</p>
           
           <div className="personnel-role">Director — Primary Authority</div>
           <div className="content-grid">
@@ -1470,12 +1470,34 @@ export default function ExpressInterestPage() {
           
           <p className="submit-instruction">
             Please compile all required information and supporting documents into a single email 
-            and forward your submission to <strong>tender@yourcompany.com</strong>
+            and forward your submission to <strong>tender_enquiries@beautyone.com.sg</strong>
           </p>
 
           <div>
             <a
-              href="mailto:tender@yourcompany.com?subject=Expression%20of%20Interest%20-%20Renovation%20Contract"
+              href="mailto:tender_enquiries@beautyone.com.sg
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              ?subject=Expression%20of%20Interest%20-%20Renovation%20Contract"
               className="btn-bauhaus"
             >
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

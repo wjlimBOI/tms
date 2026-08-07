@@ -2,25 +2,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { query, getClient } from "@/lib/db";
 import { sendStageNotificationEmail } from "@/lib/email";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
+import { ROLE_IDS } from "@/lib/roles";
 
 // Map current stage -> allowed roles to advance (role_id)
 const allowedAdvanceRoles: Record<number, number[]> = {
-  0: [1],       // Admin: Submission → Finance GM Viewing
-  1: [10],      // Finance GM: Finance GM Viewing → FM RD Viewing
-  2: [6],       // FM RD: FM RD Viewing → Cost Comparison
-  3: [1, 10],   // Admin or Finance GM: Cost Comparison → FM RD Final Viewing
-  4: [6],       // FM RD: FM RD Final Viewing → Award
-  5: [1],       // Admin: Award → Closed
+  0: [ROLE_IDS.ADMIN],                                        // Submission → Finance GM Viewing
+  1: [ROLE_IDS.FINANCE_GENERAL_MANAGER],                       // Finance GM Viewing → FM RD Viewing
+  2: [ROLE_IDS.FM_REGIONAL_DIRECTOR],                          // FM RD Viewing → Cost Comparison
+  3: [ROLE_IDS.ADMIN, ROLE_IDS.FINANCE_GENERAL_MANAGER],       // Cost Comparison → FM RD Final Viewing
+  4: [ROLE_IDS.FM_REGIONAL_DIRECTOR],                          // FM RD Final Viewing → Award
+  5: [ROLE_IDS.ADMIN],                                         // Award → Closed
 };
 
 // Map stage -> status_code
 function getStatusCodeForStage(stage: number): string {
   if (stage === 0) return 'Upcoming';
   if (stage >= 1 && stage <= 5) return 'Open';
-  if (stage >= 6) return 'Closed';
+  if (stage >= 6) return 'closed';
   return 'Open';
 }
 
@@ -52,7 +53,7 @@ export async function PUT(
 
     const user = session.user as any;
     const userId = user.id;
-    const userRole = user.role_id;
+    const userRoleIds: number[] = user.roleIds || [];
 
     // 2. Parse tender ID
     const { id } = await params;
@@ -64,22 +65,6 @@ export async function PUT(
       );
     }
 
-    // 3. Fetch tender details
-    const tenderRes = await query(
-      `SELECT tender_id, tender_name, stage, status_id, closing_date
-       FROM tender
-       WHERE tender_id = $1 AND is_deleted = false`,
-      [tenderId]
-    );
-    if (tenderRes.rows.length === 0) {
-      return NextResponse.json(
-        { error: "Tender not found" },
-        { status: 404, headers: corsHeaders }
-      );
-    }
-    const tender = tenderRes.rows[0];
-    const currentStage = tender.stage;
-
     // 4. Parse action
     const body = await request.json().catch(() => ({}));
     const { action } = body;
@@ -90,69 +75,127 @@ export async function PUT(
       );
     }
 
-    // 5. Determine new stage and validate
-    let newStage = currentStage;
+    // 3, 5-7. Fetch (with row lock), validate, and update the stage inside a
+    // transaction so the award-revert check below can't race a concurrent
+    // request (F14: revert must not silently disagree with tender_award).
+    const client = await getClient();
+    let tender: any;
+    let currentStage: number;
+    let newStage: number;
+    let newStatusId: number;
+    let newStatusCode: string;
+    try {
+      await client.query('BEGIN');
 
-    if (action === 'advance') {
-      if (currentStage >= 6) {
-        return NextResponse.json(
-          { error: "Tender is already at the final stage" },
-          { status: 400, headers: corsHeaders }
-        );
-      }
-      if (currentStage === -1) {
-        return NextResponse.json(
-          { error: "Cancelled tenders cannot be advanced" },
-          { status: 400, headers: corsHeaders }
-        );
-      }
-
-      const allowed = allowedAdvanceRoles[currentStage]?.includes(userRole);
-      if (!allowed) {
-        return NextResponse.json(
-          { error: "You are not authorized to advance this stage" },
-          { status: 403, headers: corsHeaders }
-        );
-      }
-      newStage = currentStage + 1;
-    } else {
-      // Revert: only admins
-      if (userRole !== 1) {
-        return NextResponse.json(
-          { error: "Only admins can revert a stage" },
-          { status: 403, headers: corsHeaders }
-        );
-      }
-      if (currentStage <= 0) {
-        return NextResponse.json(
-          { error: "Tender is already at the initial stage" },
-          { status: 400, headers: corsHeaders }
-        );
-      }
-      newStage = currentStage - 1;
-    }
-
-    // 6. Get status_id for new status_code
-    const newStatusCode = getStatusCodeForStage(newStage);
-    const statusRes = await query(
-      `SELECT status_id FROM tender_status WHERE status_code = $1`,
-      [newStatusCode]
-    );
-    if (statusRes.rows.length === 0) {
-      return NextResponse.json(
-        { error: `Status '${newStatusCode}' not found in tender_status` },
-        { status: 500, headers: corsHeaders }
+      const tenderRes = await client.query(
+        `SELECT tender_id, tender_name, stage, status_id, closing_date
+         FROM tender
+         WHERE tender_id = $1 AND is_deleted = false
+         FOR UPDATE`,
+        [tenderId]
       );
-    }
-    const newStatusId = statusRes.rows[0].status_id;
+      if (tenderRes.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          { error: "Tender not found" },
+          { status: 404, headers: corsHeaders }
+        );
+      }
+      tender = tenderRes.rows[0];
+      currentStage = tender.stage;
+      newStage = currentStage;
 
-    // 7. Update tender
-    await query(
-      `UPDATE tender
-       SET stage = $1, status_id = $2, stage_updated_at = NOW(), updated_at = NOW()
-       WHERE tender_id = $3`,
-      [newStage, newStatusId, tenderId]
-    );
+      if (action === 'advance') {
+        if (currentStage >= 6) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            { error: "Tender is already at the final stage" },
+            { status: 400, headers: corsHeaders }
+          );
+        }
+        if (currentStage === -1) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            { error: "Cancelled tenders cannot be advanced" },
+            { status: 400, headers: corsHeaders }
+          );
+        }
+
+        const allowed = allowedAdvanceRoles[currentStage]?.some((r) => userRoleIds.includes(r));
+        if (!allowed) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            { error: "You are not authorized to advance this stage" },
+            { status: 403, headers: corsHeaders }
+          );
+        }
+        newStage = currentStage + 1;
+      } else {
+        // Revert: only admins
+        if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            { error: "Only admins can revert a stage" },
+            { status: 403, headers: corsHeaders }
+          );
+        }
+        if (currentStage <= 0) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            { error: "Tender is already at the initial stage" },
+            { status: 400, headers: corsHeaders }
+          );
+        }
+
+        // F14: refuse to revert out of Award(5) while an award record still
+        // references this tender — stage and tender_award must not disagree
+        // about whether the tender is awarded.
+        if (currentStage === 5) {
+          const awardRes = await client.query(
+            `SELECT award_id FROM tender_award WHERE tender_id = $1`,
+            [tenderId]
+          );
+          if (awardRes.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return NextResponse.json(
+              { error: "Cannot revert: this tender has an award record. Void the award before reverting its stage." },
+              { status: 409, headers: corsHeaders }
+            );
+          }
+        }
+
+        newStage = currentStage - 1;
+      }
+
+      // Get status_id for new status_code
+      newStatusCode = getStatusCodeForStage(newStage);
+      const statusRes = await client.query(
+        `SELECT status_id FROM tender_status WHERE status_code = $1`,
+        [newStatusCode]
+      );
+      if (statusRes.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          { error: `Status '${newStatusCode}' not found in tender_status` },
+          { status: 500, headers: corsHeaders }
+        );
+      }
+      newStatusId = statusRes.rows[0].status_id;
+
+      await client.query(
+        `UPDATE tender
+         SET stage = $1, status_id = $2, stage_updated_at = NOW(), updated_at = NOW()
+         WHERE tender_id = $3`,
+        [newStage, newStatusId, tenderId]
+      );
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
 
     // 8. Audit log – fix column name
     // 👇 Replace 'performed_by' with the actual column name in your audit_log table.
@@ -185,11 +228,11 @@ export async function PUT(
     if (action === 'advance') {
       const nextStage = newStage;
       let notifyRoleIds: number[] = [];
-      if (nextStage === 1) notifyRoleIds = [10]; // Finance GM
-      else if (nextStage === 2) notifyRoleIds = [6]; // FM RD
-      else if (nextStage === 3) notifyRoleIds = [10]; // Finance GM (or cost comp role)
-      else if (nextStage === 4) notifyRoleIds = [6]; // FM RD
-      else if (nextStage === 5) notifyRoleIds = [1]; // Admin
+      if (nextStage === 1) notifyRoleIds = [ROLE_IDS.FINANCE_GENERAL_MANAGER];
+      else if (nextStage === 2) notifyRoleIds = [ROLE_IDS.FM_REGIONAL_DIRECTOR];
+      else if (nextStage === 3) notifyRoleIds = [ROLE_IDS.FINANCE_GENERAL_MANAGER]; // or cost comp role
+      else if (nextStage === 4) notifyRoleIds = [ROLE_IDS.FM_REGIONAL_DIRECTOR];
+      else if (nextStage === 5) notifyRoleIds = [ROLE_IDS.ADMIN];
 
       if (notifyRoleIds.length > 0) {
         const placeholders = notifyRoleIds.map((_, i) => `$${i + 1}`).join(',');

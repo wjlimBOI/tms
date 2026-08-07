@@ -4,11 +4,12 @@ import { query } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { logInsert, logAuthEvent } from "@/lib/audit";
+import { ROLE_IDS } from "@/lib/roles";
 
 // ---------- GET (read-only, no audit) ----------
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role_id !== 1) {
+  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
 // ---------- POST (create branch with address) ----------
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role_id !== 1) {
+  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
     await logAuthEvent("PERMISSION_DENIED", session?.user?.id || 0, req, {
       action: "create_branch",
       reason: "Unauthorized",

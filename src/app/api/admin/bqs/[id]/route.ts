@@ -230,6 +230,17 @@ export async function DELETE(
     );
   }
 
+  const awardedAs = await prisma.tender_award.findFirst({
+    where: { final_submission_id: submissionId },
+    select: { award_id: true },
+  });
+  if (awardedAs) {
+    return NextResponse.json(
+      { error: "This BQ is the awarded winning submission for its tender and cannot be deleted" },
+      { status: 409, headers: corsHeaders }
+    );
+  }
+
   try {
     if (hard) {
       // Hard delete – cascade manually

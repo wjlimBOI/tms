@@ -4,6 +4,8 @@ import bcrypt from "bcrypt";
 import { passwordValidation } from "@/lib/validation";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { sanitize } from "@/lib/sanitize";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { extractAuditContext } from "@/lib/audit";
 
 // OPTIONS preflight handler
 export async function OPTIONS(request: NextRequest) {
@@ -16,6 +18,15 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
+
+  const { ipAddress } = extractAuditContext(request);
+  const { success: withinLimit } = await checkRateLimit(`pwreset-set:${ipAddress}`);
+  if (!withinLimit) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: corsHeaders }
+    );
+  }
 
   try {
     // 1. Parse and validate request body
@@ -66,6 +77,7 @@ export async function POST(request: NextRequest) {
       data: {
         password_hash: hashedPassword,
         must_change_password: false,
+        password_changed_at: new Date(),
         updated_at: new Date(),
       },
     });

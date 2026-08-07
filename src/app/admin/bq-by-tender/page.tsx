@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getBQStatusStyles, getBQStatusLabel } from "@/lib/statusColors";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useNotify } from "@/components/ui/notification-provider";
 
 interface Tender {
   tender_id: number;
@@ -35,127 +37,17 @@ interface BQ {
   total_amount?: number;
 }
 
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  message: string;
-  type: 'success' | 'error' | 'confirm';
-  onConfirm?: () => void;
-  onCancel?: () => void;
-}
-
-const CustomModal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  message,
-  type,
-  onConfirm,
-  onCancel,
-}) => {
-  if (!isOpen) return null;
-
-  const getIconColors = () => {
-    switch (type) {
-      case 'success':
-        return { bg: 'bg-emerald-100 dark:bg-emerald-500/20', icon: 'text-emerald-600 dark:text-emerald-400', button: 'from-emerald-600 to-teal-600' };
-      case 'error':
-        return { bg: 'bg-rose-100 dark:bg-rose-500/20', icon: 'text-rose-600 dark:text-rose-400', button: 'from-rose-600 to-pink-600' };
-      default:
-        return { bg: 'bg-amber-100 dark:bg-amber-500/20', icon: 'text-amber-600 dark:text-amber-400', button: 'from-amber-600 to-orange-600' };
-    }
-  };
-
-  const colors = getIconColors();
-
-  const renderIcon = () => {
-    if (type === 'success') {
-      return (
-        <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-        </svg>
-      );
-    } else if (type === 'error') {
-      return (
-        <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      );
-    } else {
-      return (
-        <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      );
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center`}>
-              {renderIcon()}
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
-          <div className="flex gap-3 justify-end">
-            {type === 'confirm' ? (
-              <>
-                <button
-                  onClick={onCancel || onClose}
-                  className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium text-sm transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={onConfirm || onClose}
-                  className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}
-                >
-                  Confirm
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={onConfirm || onClose}
-                className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}
-              >
-                OK
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function AdminBQByTenderPage() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
+  const confirmDialog = useConfirm();
+  const toast = useNotify();
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [bqsMap, setBqsMap] = useState<Record<number, BQ[]>>({});
   const [expandedTender, setExpandedTender] = useState<number | null>(null);
   const [loadingTenders, setLoadingTenders] = useState(true);
   const [loadingBQs, setLoadingBQs] = useState<Record<number, boolean>>({});
   const [deletingBqId, setDeletingBqId] = useState<number | null>(null);
-  
-  const [modal, setModal] = useState<{
-    isOpen: boolean;
-    type: "success" | "error" | "confirm";
-    title: string;
-    message: string;
-    onConfirm?: () => void;
-    onCancel?: () => void;
-  }>({
-    isOpen: false,
-    type: "success",
-    title: "",
-    message: "",
-  });
 
   const isDeletingRef = useRef(false);
 
@@ -244,41 +136,26 @@ export default function AdminBQByTenderPage() {
 
       await fetchBQsForTender(tenderId, true);
 
-      setModal({
-        isOpen: true,
-        type: "success",
-        title: "Deleted Successfully",
-        message: `BQ "${getBQDisplayName(bq)}" has been deleted.`,
-        onConfirm: () => setModal(prev => ({ ...prev, isOpen: false })),
-      });
+      toast.success(`BQ "${getBQDisplayName(bq)}" has been deleted.`);
     } catch (err: any) {
       console.error("Delete error:", err);
-      setModal({
-        isOpen: true,
-        type: "error",
-        title: "Deletion Failed",
-        message: err.message || "Something went wrong while deleting the BQ.",
-        onConfirm: () => setModal(prev => ({ ...prev, isOpen: false })),
-      });
+      toast.error(err.message || "Something went wrong while deleting the BQ.");
     } finally {
       isDeletingRef.current = false;
       setDeletingBqId(null);
     }
   };
 
-  const confirmDelete = (bq: BQ, tenderId: number) => {
+  const confirmDelete = async (bq: BQ, tenderId: number) => {
     if (isDeletingRef.current) return;
-    setModal({
-      isOpen: true,
-      type: "confirm",
+    const proceed = await confirmDialog({
       title: "Confirm Delete",
-      message: `Are you sure you want to delete "${getBQDisplayName(bq)}"? This action cannot be undone.`,
-      onConfirm: () => {
-        setModal(prev => ({ ...prev, isOpen: false }));
-        performDelete(bq, tenderId);
-      },
-      onCancel: () => setModal(prev => ({ ...prev, isOpen: false })),
+      description: `Are you sure you want to delete "${getBQDisplayName(bq)}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
     });
+    if (!proceed) return;
+    performDelete(bq, tenderId);
   };
 
   const formatDate = (dateStr?: string) => {
@@ -522,16 +399,6 @@ export default function AdminBQByTenderPage() {
           </div>
         )}
       </div>
-
-      <CustomModal
-        isOpen={modal.isOpen}
-        onClose={() => setModal(prev => ({ ...prev, isOpen: false }))}
-        title={modal.title}
-        message={modal.message}
-        type={modal.type}
-        onConfirm={modal.onConfirm}
-        onCancel={modal.onCancel}
-      />
     </div>
   );
 }

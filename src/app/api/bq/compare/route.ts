@@ -10,8 +10,28 @@ const querySchema = z.object({
   ids: z.string().regex(/^\d+(,\d+)*$/, "ids must be comma-separated integers"),
 });
 
+// Used to group the "same" line item across different contractors'
+// submissions - normalize case, punctuation, and whitespace so minor
+// wording differences (capitalization, a trailing period) don't make an
+// identical item appear as two unmatched rows in the comparison.
 function normalizeDescription(desc: string): string {
-  return desc.trim().replace(/\s+/g, ' ');
+  return desc
+    .trim()
+    .toLowerCase()
+    .replace(/[.,;:]+$/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+async function canViewCostComparison(userId: number): Promise<boolean> {
+  const rows = await prisma.$queryRaw`
+    SELECT 1
+    FROM user_roles ur
+    JOIN role_permissions rp ON rp.role_id = ur.role_id
+    JOIN permissions p ON p.permission_id = rp.permission_id
+    WHERE ur.user_id = ${userId} AND p.action = 'view_cost_comparison'
+    LIMIT 1
+  ` as any[];
+  return rows.length > 0;
 }
 
 export async function OPTIONS(request: NextRequest) {
@@ -30,6 +50,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 401, headers: corsHeaders }
+    );
+  }
+
+  if (!(await canViewCostComparison(session.user.id))) {
+    return NextResponse.json(
+      { error: "Forbidden" },
+      { status: 403, headers: corsHeaders }
     );
   }
 
@@ -95,7 +122,7 @@ export async function GET(request: NextRequest) {
     for (const item of items) {
       const subId = item.submission_id;
       const normalizedDesc = normalizeDescription(item.description || '');
-      const key = `${item.category_name}|${normalizedDesc}|${item.brand || ''}|${item.unit}`;
+      const key = `${item.category_name}|${normalizedDesc}|${normalizeDescription(item.brand || '')}|${(item.unit || '').trim().toLowerCase()}`;
       if (!aggregatedBySubmission[subId]) aggregatedBySubmission[subId] = new Map();
       const map = aggregatedBySubmission[subId];
       const quantity = Number(item.quantity) || 0;

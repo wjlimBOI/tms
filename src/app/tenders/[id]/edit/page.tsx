@@ -2,15 +2,14 @@
 
 "use client";
 
-import { useEffect, useState, useRef, DragEvent, ChangeEvent, useCallback, memo } from "react";
+import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useNotify } from "@/components/ui/notification-provider";
 import {
   FileSignature,
   Printer,
-  Upload,
   X,
-  File,
   ArrowLeft,
   CheckCircle,
   ShieldCheck,
@@ -29,6 +28,10 @@ import {
 } from "@/lib/tenderConstants";
 import { DATE_LABELS, EXTRA_DATE_NOTES } from "@/lib/tenderDateConfig";
 import { FORM_OF_TENDER_ITEMS } from "@/lib/tenderFormItems";
+import { numberToWords } from "@/lib/numberToWords";
+import { formatTenderDate, formatTenderDateTime, formatTenderDateLong } from "@/lib/dateUtils";
+import { SignaturePad } from "@/components/tenders/SignaturePad";
+import { CompanyStampUpload } from "@/components/tenders/CompanyStampUpload";
 
 const PrintDateCleanup = dynamic(() => import("@/components/PrintDateCleanup"), { ssr: false });
 
@@ -39,36 +42,6 @@ interface AlertState {
   message: string;
   details?: string;
 }
-
-// ========== Number to Words ==========
-const numberToWords = (num: number): string => {
-  if (num === 0) return "Zero";
-  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
-  const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-  const thousands = ["", "Thousand", "Million", "Billion"];
-  const convertChunk = (n: number): string => {
-    if (n === 0) return "";
-    if (n < 10) return ones[n];
-    if (n < 20) return teens[n - 10];
-    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? " " + ones[n % 10] : "");
-    return ones[Math.floor(n / 100)] + " Hundred" + (n % 100 !== 0 ? " " + convertChunk(n % 100) : "");
-  };
-  let remaining = Math.floor(num);
-  let result = "";
-  let group = 0;
-  while (remaining > 0) {
-    const chunk = remaining % 1000;
-    if (chunk !== 0) {
-      result = convertChunk(chunk) + (thousands[group] ? " " + thousands[group] : "") + (result ? " " + result : "");
-    }
-    remaining = Math.floor(remaining / 1000);
-    group++;
-  }
-  const cents = Math.round((num - Math.floor(num)) * 100);
-  if (cents > 0) result += " and " + convertChunk(cents) + " Cents";
-  return result.trim();
-};
 
 // ========== Types ==========
 interface ProjectRow {
@@ -118,318 +91,6 @@ interface TenderData {
 }
 
 // ========== Signature Pad ==========
-interface SignaturePadProps {
-  label: string;
-  value: string | null;
-  onChange: (dataUrl: string | null) => void;
-  className?: string;
-  disabled?: boolean;
-}
-const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange, className, disabled = false }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasSignature, setHasSignature] = useState(!!value);
-  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const hasDrawn = useRef(false);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.strokeStyle = "#000";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctxRef.current = ctx;
-    if (value) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        setHasSignature(true);
-      };
-      img.src = value;
-    }
-  }, [value]);
-
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (disabled) return;
-    e.preventDefault();
-    setIsDrawing(true);
-    hasDrawn.current = false;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    let clientX, clientY;
-    if ("touches" in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    ctxRef.current?.beginPath();
-    ctxRef.current?.moveTo(x, y);
-  };
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (disabled || !isDrawing) return;
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    let clientX, clientY;
-    if ("touches" in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    ctxRef.current?.lineTo(x, y);
-    ctxRef.current?.stroke();
-    ctxRef.current?.beginPath();
-    ctxRef.current?.moveTo(x, y);
-    hasDrawn.current = true;
-  };
-
-  const endDrawing = () => {
-    if (disabled) return;
-    setIsDrawing(false);
-    if (hasDrawn.current) {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const dataUrl = canvas.toDataURL();
-      onChange(dataUrl);
-      setHasSignature(true);
-    }
-  };
-
-  const clearSignature = () => {
-    if (disabled) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-    onChange(null);
-    setHasSignature(false);
-    hasDrawn.current = false;
-  };
-
-  return (
-    <div className={className}>
-      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{label}</label>
-      <div className="print:hidden">
-        <div className="border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 p-1" style={{ width: "100%", maxWidth: "300px" }}>
-          <canvas
-            ref={canvasRef}
-            width={300}
-            height={120}
-            style={{ width: "100%", height: "auto", minHeight: "80px", cursor: disabled ? "default" : "crosshair" }}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={endDrawing}
-            onMouseLeave={endDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={endDrawing}
-            className="touch-none"
-          />
-        </div>
-        {!disabled && (
-          <div className="flex gap-2 mt-2">
-            <button type="button" onClick={clearSignature} className="text-xs text-red-600 dark:text-red-400 hover:underline">Clear</button>
-            {hasSignature && <span className="text-xs text-green-600 dark:text-green-400">✓ Signature saved</span>}
-          </div>
-        )}
-      </div>
-      <div className="hidden print:block">
-        {value ? (
-          <img src={value} alt="Signature" className="max-w-full max-h-16 object-contain mt-1" />
-        ) : (
-          <div className="print-signature-line" style={{ borderBottom: '1.5px solid #000', minHeight: '0.5cm', marginTop: '0.5cm' }} />
-        )}
-      </div>
-      <style jsx>{`
-        @media print {
-          .print-signature-line {
-            display: block !important;
-            margin-top: 10mm !important;
-            border-bottom: 1.5px solid #000000 !important;
-            width: auto !important;
-            min-width: 250px !important;
-            max-width: 300px !important;
-            min-height: 5mm !important;
-          }
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// ========== Company Stamp Upload ==========
-interface CompanyStampUploadProps {
-  label?: string;
-  preview: string | null;
-  onFileSelect: (file: File | null, previewUrl: string | null) => void;
-  className?: string;
-  disabled?: boolean;
-}
-const CompanyStampUpload: React.FC<CompanyStampUploadProps> = ({ label, preview, onFileSelect, className, disabled = false }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileSize, setFileSize] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const simulateProgress = (cb: () => void) => {
-    setUploadProgress(0);
-    setIsUploading(true);
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          cb();
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 30);
-  };
-  const processFile = (file: File) => {
-    if (disabled) return;
-    const valid = ["image/png", "image/jpeg", "image/jpg", "application/pdf"];
-    if (!valid.includes(file.type)) return alert("Please upload PNG, JPG, or PDF.");
-    if (file.size > 5 * 1024 * 1024) return alert("File must be <5MB.");
-    setFileName(file.name);
-    setFileSize((file.size / 1024).toFixed(0) + " KB");
-    simulateProgress(() => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onFileSelect(file, reader.result as string);
-        setIsUploading(false);
-        setUploadProgress(100);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0] && !disabled) processFile(e.target.files[0]);
-  };
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (!disabled) setIsDragging(true);
-  };
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (!disabled) setIsDragging(false);
-  };
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (disabled) return;
-    setIsDragging(false);
-    if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]);
-  };
-  const handleRemove = () => {
-    if (!disabled) onFileSelect(null, null);
-  };
-
-  return (
-    <div className={className}>
-      <label className="font-bold block text-sm text-slate-700 dark:text-slate-300 mb-2">{label}</label>
-      <div className="print:hidden">
-        {!preview ? (
-          <div
-            onClick={() => !disabled && fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`relative cursor-pointer border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300
-              ${disabled ? "cursor-default opacity-60" : ""}
-              ${
-                isDragging
-                  ? "border-blue-500 dark:border-blue-400 bg-blue-50/20 dark:bg-blue-950/20"
-                  : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50/80 dark:hover:bg-slate-800/80"
-              }`}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <Upload
-                className={`w-8 h-8 transition-transform ${
-                  isDragging ? "scale-105 text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
-                }`}
-              />
-              <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Drag & drop your stamp, or <span className="text-blue-600 dark:text-blue-400">click to browse</span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG, PDF up to 5MB</p>
-            </div>
-            {isUploading && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 dark:bg-blue-400 transition-all duration-100" style={{ width: `${uploadProgress}%` }} />
-            )}
-            <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/jpg,application/pdf" onChange={handleFileSelect} className="hidden" disabled={disabled} />
-          </div>
-        ) : (
-          <div className="border rounded-xl p-4 bg-white/50 dark:bg-slate-800/50">
-            <div className="flex items-start gap-3">
-              {preview.startsWith("data:image") ? (
-                <img src={preview} alt="Stamp" className="w-16 h-16 object-contain border rounded dark:border-slate-700" />
-              ) : (
-                <div className="w-16 h-16 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded border dark:border-slate-600">
-                  <File className="w-8 h-8 text-slate-500 dark:text-slate-400" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate text-slate-700 dark:text-slate-300">{fileName}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{fileSize}</p>
-                {isUploading && <div className="mt-2 h-1 bg-emerald-500 rounded-full" style={{ width: `${uploadProgress}%` }} />}
-              </div>
-              {!disabled && (
-                <button onClick={handleRemove} className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400">
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="hidden print:block">
-        {preview ? (
-          <img src={preview} alt="Company Stamp" className="max-w-full max-h-20 object-contain mt-1" />
-        ) : (
-          <div className="print-stamp-line" style={{ borderBottom: '1.5px solid #000', minHeight: '0.5cm', marginTop: '0.5cm' }} />
-        )}
-      </div>
-      <style jsx>{`
-        @media print {
-          .print-stamp-line {
-            display: block !important;
-            margin-top: 10mm !important;
-            border-bottom: 1.5px solid #000000 !important;
-            width: auto !important;
-            min-width: 200px !important;
-            max-width: 250px !important;
-            min-height: 5mm !important;
-          }
-        }
-      `}</style>
-    </div>
-  );
-};
-
 // ========== Memoized Input Components ==========
 const SingleLineInput = memo(
   ({
@@ -503,43 +164,6 @@ const FillableAddress = memo(
   }
 );
 FillableAddress.displayName = "FillableAddress";
-
-// ========== FORMATTING HELPERS ==========
-const formatDate = (isoString: string | null | undefined): string => {
-  if (!isoString) return "To be confirmed";
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return "To be confirmed";
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
-
-const formatDateTime = (isoString: string | null | undefined): string => {
-  if (!isoString) return "To be confirmed";
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return "To be confirmed";
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  if (hours === "00" && minutes === "00") {
-    return `${day}/${month}/${year}`;
-  }
-  return `${day}/${month}/${year}, ${hours}:${minutes} Hrs`;
-};
-
-const formatDateLong = (isoString: string | null | undefined): string => {
-  if (!isoString) return "To be confirmed";
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return "To be confirmed";
-  const day = date.getDate();
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const month = monthNames[date.getMonth()];
-  const year = date.getFullYear();
-  return `${day} ${month} ${year}`;
-};
 
 // ========== Main Component ==========
 export default function TenderEditPage() {
@@ -621,6 +245,7 @@ export default function TenderEditPage() {
       })
       .then((data) => {
         setTender(data);
+        fetchMySubmission();
         setLoading(false);
       })
       .catch((err) => {
@@ -635,6 +260,78 @@ export default function TenderEditPage() {
         setLoading(false);
       });
   }, [id, sessionStatus, router]);
+
+  // Preload whatever the contractor already submitted, so reopening this
+  // form to fix one field doesn't start from blank and overwrite/destroy
+  // everything else on the next submit.
+  const fetchMySubmission = async () => {
+    try {
+      const res = await fetch(`/api/tenders/${id}/my-submission`);
+      if (!res.ok) return;
+      const { submission } = await res.json();
+      const data = submission?.data;
+      if (!data) return;
+
+      setAgreedName(data.agreedName || "");
+      setAgreedDate(data.agreedDate || "");
+      setAgreedSignature(data.agreedSignature || null);
+      setAgreedStampPreview(data.agreedStampPreview || null);
+      setLumpSumRaw(data.lumpSumRaw || "");
+      setAmountInWords(data.amountInWords || "");
+      setMainStampPreview(data.stampPreview || null);
+      setDeclarationStampPreview(data.declarationStampPreview || null);
+
+      if (data.mainTenderer) {
+        setMainTenderer({
+          fullName: data.mainTenderer.fullName || "",
+          position: data.mainTenderer.position || "",
+          companyName: data.mainTenderer.companyName || "",
+          date: data.mainTenderer.date || "",
+        });
+        setMainSignature(data.mainTenderer.signature || null);
+        setMainAddress(data.mainTenderer.address || "");
+      }
+      if (data.witness) {
+        setWitness({ fullName: data.witness.fullName || "", date: data.witness.date || "" });
+        setWitnessSignature(data.witness.signature || null);
+        setWitnessAddress(data.witness.address || "");
+      }
+      if (data.declaration) {
+        setDeclaration({
+          iName: data.declaration.iName || "",
+          onBehalfOf: data.declaration.onBehalfOf || "",
+          name: data.declaration.name || "",
+          date: data.declaration.date || "",
+        });
+        setDeclarationSignature(data.declaration.signature || null);
+        setTendererAddress(data.declaration.address || "");
+      }
+      if (Array.isArray(data.projectExperience) && data.projectExperience.length > 0) {
+        setProjectRows(
+          data.projectExperience.map((r: any) => ({
+            id: r.id || crypto.randomUUID(),
+            projectName: r.projectName || "",
+            value: r.value || "",
+            date: r.date || "",
+            designer: r.designer || "",
+          }))
+        );
+      }
+      if (Array.isArray(data.currentCommitment) && data.currentCommitment.length > 0) {
+        setCommitmentRows(
+          data.currentCommitment.map((r: any) => ({
+            id: r.id || crypto.randomUUID(),
+            projectName: r.projectName || "",
+            value: r.value || "",
+            percentage: r.percentage || "",
+            designer: r.designer || "",
+          }))
+        );
+      }
+    } catch (e) {
+      console.error("Failed to load submitted data:", e);
+    }
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -734,23 +431,76 @@ export default function TenderEditPage() {
   const performSubmit = useCallback(async () => {
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const num = parseFloat(lumpSumRaw.replace(/[^0-9.]/g, ""));
+      const lumpSumFormatted = !isNaN(num)
+        ? num.toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : lumpSumRaw;
+
+      const res = await fetch(`/api/tenders/${id}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agreedName,
+          agreedDate,
+          agreedSignature,
+          agreedStampPreview,
+          stampPreview: mainStampPreview,
+          lumpSumRaw,
+          lumpSumFormatted,
+          amountInWords,
+          mainTenderer: { ...mainTenderer, signature: mainSignature, address: mainAddress },
+          witness: { ...witness, signature: witnessSignature, address: witnessAddress },
+          declaration: { ...declaration, signature: declarationSignature, address: tendererAddress },
+          declarationStampPreview,
+          projectExperience: projectRows,
+          currentCommitment: commitmentRows,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Unable to submit your tender. Please try again.");
+      }
+
       setSubmittedTenderName(tender?.tender_name || "this tender");
       setSubmittedContractor(agreedName);
       setSubmittedAmount(lumpSumRaw);
       setShowDisclaimerModal(false);
       setShowSuccessModal(true);
-    } catch (err) {
+    } catch (err: any) {
+      setShowDisclaimerModal(false);
       setAlert({
         type: "error",
         title: "Submission Failed",
-        message: "Unable to submit your tender. Please try again.",
-        details: "If the problem persists, contact support.",
+        message: err.message || "Unable to submit your tender. Please try again.",
+        details: "Your entries have been preserved — please try submitting again. If the problem persists, contact support.",
       });
     } finally {
       setIsSubmitting(false);
     }
-  }, [tender, agreedName, lumpSumRaw]);
+  }, [
+    id,
+    tender,
+    agreedName,
+    agreedDate,
+    agreedSignature,
+    agreedStampPreview,
+    mainStampPreview,
+    lumpSumRaw,
+    amountInWords,
+    mainTenderer,
+    mainSignature,
+    mainAddress,
+    witness,
+    witnessSignature,
+    witnessAddress,
+    declaration,
+    declarationSignature,
+    tendererAddress,
+    declarationStampPreview,
+    projectRows,
+    commitmentRows,
+  ]);
 
   const handleSubmit = useCallback(async () => {
     const missing: string[] = [];
@@ -897,9 +647,9 @@ export default function TenderEditPage() {
       if (value !== undefined && value !== null && value !== "") {
         let formatted = "";
         if (field === "briefing_date" || field === "closing_date" || field === "renovation_end_date") {
-          formatted = formatDateTime(value as string);
+          formatted = formatTenderDateTime(value as string);
         } else {
-          formatted = formatDate(value as string);
+          formatted = formatTenderDate(value as string);
         }
         lines.push(`<div><span class='font-semibold'>• ${label}:</span> ${formatted}</div>`);
       }
@@ -1161,7 +911,7 @@ export default function TenderEditPage() {
                     }
                     if (clause.title === "3) SUBMISSION OF TENDER") {
                       const tenderName = tender?.tender_name || "TENDER";
-                      const closingDate = formatDateLong(tender?.closing_date);
+                      const closingDate = formatTenderDateLong(tender?.closing_date);
                       const description = clause.description.replace(/<tender title>/g, tenderName).replace(/<date>/g, closingDate);
                       return (
                         <div key={idx} className="critical-clause mb-3 break-inside-avoid-page">

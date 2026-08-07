@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { ROLE_IDS } from "@/lib/roles";
 
 function formatMatchLabel(field: string): string {
   const labels: Record<string, string> = {
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
   }
 
   const userId = session.user.id;
-  const userRole = (session.user as any)?.role_id;
+  const userRoleIds = (session.user as any)?.roleIds || [];
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim();
   const type = searchParams.get("type") || "all";
@@ -157,7 +158,7 @@ export async function GET(req: Request) {
       )
     `;
     const params: any[] = [contains, prefix];
-    if (userRole === 4) {
+    if (userRoleIds.includes(ROLE_IDS.CONTRACTOR)) {
       bqQuery += ` AND ts.contractor_id = $3`;
       params.push(userId);
     }

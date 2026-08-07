@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useNotify } from "@/components/ui/notification-provider";
 
 interface Setting {
   id: number;
@@ -15,6 +16,7 @@ interface Setting {
 export default function ExtensionSettings() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const toast = useNotify();
   const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,7 +53,7 @@ export default function ExtensionSettings() {
       // Refresh
       await fetchSettings();
     } catch (err: any) {
-      alert(`Error: ${err.message}`);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }

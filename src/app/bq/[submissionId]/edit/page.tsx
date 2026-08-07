@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { BQTable } from "@/components/bq/BQTable";
 import { useBQ } from "@/hooks/useBQ";
 import { getBrandColor } from "@/lib/brandColors";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const ALL_CATEGORIES = [
   { id: 1, name: "1. Preliminary & Demolition Works" },
@@ -47,6 +48,7 @@ export default function EditCostEstimatePage() {
   const { submissionId } = useParams();
   const { data: session } = useSession();
   const router = useRouter();
+  const confirm = useConfirm();
   const {
     submission,
     categories,
@@ -181,9 +183,14 @@ export default function EditCostEstimatePage() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  const handleBackToBQs = () => {
+  const handleBackToBQs = async () => {
     if (isDirtyRef.current) {
-      const confirmLeave = window.confirm("You have unsaved changes. If you leave now, they will be lost. Do you still want to leave?");
+      const confirmLeave = await confirm({
+        title: "Unsaved changes",
+        description: "You have unsaved changes. If you leave now, they will be lost. Do you still want to leave?",
+        confirmText: "Leave",
+        variant: "destructive",
+      });
       if (confirmLeave) {
         setIsDirty(false);
         isDirtyRef.current = false;

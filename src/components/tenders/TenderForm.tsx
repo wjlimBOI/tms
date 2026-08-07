@@ -8,10 +8,11 @@ import { CapExCalculator } from "@/components/capex/CapExCalculator";
 import { Button } from "@/components/ui/Button";
 import { getLogoPath } from "@/lib/brandLogos";
 import { brandOrder } from "@/lib/brandOrder";
-import { toDateOnly, isoToLocalDate } from "@/lib/dateUtils";
+import { isoToLocalDateTime } from "@/lib/dateUtils";
 import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
-import { toast } from "sonner";
-import { Plus, X, Calendar } from "lucide-react";
+import { useNotify } from "@/components/ui/notification-provider";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { Plus, X, Calendar, Sparkles } from "lucide-react";
 
 // --- Types ---
 interface Branch {
@@ -84,9 +85,11 @@ function DateTimeLocalInput({
   };
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-        {label} {required && <span className="text-rose-500">*</span>}
-      </label>
+      {label && (
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          {label} {required && <span className="text-rose-500">*</span>}
+        </label>
+      )}
       <div
         onClick={handleContainerClick}
         className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-within:border-indigo-500 dark:focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-500 dark:focus-within:ring-indigo-400 transition cursor-text"
@@ -239,8 +242,8 @@ export default function TenderForm({
   const [renovationTypes, setRenovationTypes] = useState<RenovationType[]>([]);
   const [loadingLookups, setLoadingLookups] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [originalTimes, setOriginalTimes] = useState<Record<string, string>>({});
+  const confirm = useConfirm();
+  const toast = useNotify();
 
   const [branchSearchTerm, setBranchSearchTerm] = useState("");
   const [filteredBranches, setFilteredBranches] = useState<Branch[]>([]);
@@ -255,6 +258,10 @@ export default function TenderForm({
 
   const [briefingDates, setBriefingDates] = useState<BriefingDate[]>([]);
   const [briefingErrors, setBriefingErrors] = useState<string[]>([]);
+
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const [aiDescriptionInput, setAiDescriptionInput] = useState("");
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   const [formData, setFormData] = useState({
     branch_id: "",
@@ -320,28 +327,10 @@ export default function TenderForm({
   useEffect(() => {
     if (!initialData || branches.length === 0) return;
 
-    const timeFields = [
-      "tender_date",
-      "closing_date",
-      "renovation_start_date",
-      "renovation_end_date",
-    ] as const;
-
-    const times: Record<string, string> = {};
-    for (const field of timeFields) {
-      if (initialData[field]) {
-        const date = new Date(initialData[field]);
-        if (!isNaN(date.getTime())) {
-          times[field] = date.toTimeString().slice(0, 5);
-        }
-      }
-    }
-    setOriginalTimes(times);
-
     if (initialData.briefing_dates && Array.isArray(initialData.briefing_dates)) {
       const dates = initialData.briefing_dates.map((d: any) => ({
         id: d.id?.toString() || `existing-${Date.now()}-${Math.random()}`,
-        date: isoToLocalDate(d.briefing_date) || "",
+        date: isoToLocalDateTime(d.briefing_date) || "",
         description: d.description || "",
       }));
       setBriefingDates(dates);
@@ -352,10 +341,10 @@ export default function TenderForm({
       renovation_type_id: initialData.renovation_type_id?.toString() || "",
       tender_name: initialData.tender_name || "",
       tender_description: initialData.tender_description || "",
-      tender_date: toDateOnly(initialData.tender_date),
-      closing_date: toDateOnly(initialData.closing_date),
-      renovation_start_date: toDateOnly(initialData.renovation_start_date),
-      renovation_end_date: toDateOnly(initialData.renovation_end_date),
+      tender_date: isoToLocalDateTime(initialData.tender_date),
+      closing_date: isoToLocalDateTime(initialData.closing_date),
+      renovation_start_date: isoToLocalDateTime(initialData.renovation_start_date),
+      renovation_end_date: isoToLocalDateTime(initialData.renovation_end_date),
       estimated_budget: initialData.estimated_budget?.toString() || "",
       project_manager_id: initialData.project_manager_id?.toString() || "",
       project_manager_name: initialData.project_manager_name || "",
@@ -432,25 +421,6 @@ export default function TenderForm({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleDateChange = (field: string, dateValue: string) => {
-    const time = originalTimes[field] || "00:00";
-    const combined = `${dateValue}T${time}:00`;
-    const date = new Date(combined);
-    if (!isNaN(date.getTime())) {
-      setFormData((prev) => ({ ...prev, [field]: date.toISOString() }));
-    }
-  };
-
-  const toDateOnlyValue = (isoString: string | null | undefined) => {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return "";
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -463,6 +433,50 @@ export default function TenderForm({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleGenerateDescription = async () => {
+    const input = aiDescriptionInput.trim();
+    if (!input) {
+      toast.error("Describe the project first, e.g. \"minor project, no closure, night work only\"");
+      return;
+    }
+
+    const hasExistingText = formData.tender_description.trim().length > 0;
+    if (hasExistingText) {
+      const proceed = await confirm("This will replace the current description. Continue?");
+      if (!proceed) return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      const res = await fetch("/api/tenders/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input,
+          tenderName: formData.tender_name || undefined,
+          renovationType: renovationTypes.find(
+            (t) => t.type_id === parseInt(formData.renovation_type_id)
+          )?.type_name,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to generate description");
+        return;
+      }
+      setFormData((prev) => ({ ...prev, tender_description: data.description }));
+      toast.success(
+        data.groundedInPastExamples
+          ? "Description generated from your past tenders' style"
+          : "Description generated"
+      );
+    } catch {
+      toast.error("Failed to generate description");
+    } finally {
+      setIsGeneratingDescription(false);
+    }
   };
 
   const handleSelectBranch = (branch: Branch) => {
@@ -518,6 +532,19 @@ export default function TenderForm({
       return;
     }
 
+    if (formData.tender_date && formData.closing_date) {
+      if (new Date(formData.closing_date) < new Date(formData.tender_date)) {
+        toast.error("Closing date cannot be before the tender date.");
+        return;
+      }
+    }
+    if (formData.renovation_start_date && formData.renovation_end_date) {
+      if (new Date(formData.renovation_end_date) < new Date(formData.renovation_start_date)) {
+        toast.error("Renovation end date cannot be before the renovation start date.");
+        return;
+      }
+    }
+
     const dateFields = [
       "tender_date",
       "closing_date",
@@ -528,9 +555,7 @@ export default function TenderForm({
     const submitData = { ...formData };
     for (const field of dateFields) {
       if (submitData[field]) {
-        const time = originalTimes[field] || "00:00";
-        const combined = `${submitData[field]}T${time}:00`;
-        const date = new Date(combined);
+        const date = new Date(submitData[field]);
         if (!isNaN(date.getTime())) {
           submitData[field] = date.toISOString();
         }
@@ -551,10 +576,13 @@ export default function TenderForm({
       project_manager_name: submitData.project_manager_name || null,
       project_manager_email: submitData.project_manager_email || null,
       project_manager_phone: submitData.project_manager_phone || null,
-      briefing_dates: briefingDates.map(d => ({
-        date: d.date,
-        description: d.description || "",
-      })),
+      briefing_dates: briefingDates.map(d => {
+        const parsed = new Date(d.date);
+        return {
+          date: !isNaN(parsed.getTime()) ? parsed.toISOString() : d.date,
+          description: d.description || "",
+        };
+      }),
     };
     onSubmit(payload);
   };
@@ -632,7 +660,7 @@ export default function TenderForm({
             {branches.find((b) => b.branch_id === parseInt(formData.branch_id))?.brand_name ||
               "Select a branch"}
             {branches.find((b) => b.branch_id === parseInt(formData.branch_id))?.building_name &&
-              ` — Building: ${
+              ` — ${
                 branches.find((b) => b.branch_id === parseInt(formData.branch_id))?.building_name
               }`}
           </p>
@@ -680,7 +708,7 @@ export default function TenderForm({
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
           />
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Auto‑generated from branch, building name, and renovation type – you can edit it.
+            Auto‑generated – you can edit it.
           </p>
         </div>
 
@@ -755,7 +783,39 @@ export default function TenderForm({
           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Description
           </label>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+            <input
+              type="text"
+              value={aiDescriptionInput}
+              onChange={(e) => setAiDescriptionInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleGenerateDescription();
+                }
+              }}
+              placeholder='e.g. "minor project, no closure, night work only, 2 phases"'
+              className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition text-sm px-3 py-2"
+            />
+            <Button
+              type="button"
+              onClick={handleGenerateDescription}
+              disabled={isGeneratingDescription}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1.5 border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 whitespace-nowrap disabled:opacity-50"
+            >
+              <Sparkles className={`w-4 h-4 ${isGeneratingDescription ? "animate-pulse" : ""}`} />
+              {isGeneratingDescription ? "Generating…" : "Generate with AI"}
+            </Button>
+          </div>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">
+            Type a short note about the project and generate a full description — you can edit it after.
+          </p>
+
           <textarea
+            ref={descriptionRef}
             name="tender_description"
             rows={6}
             value={formData.tender_description}
@@ -776,60 +836,56 @@ export default function TenderForm({
           <div>
             <label htmlFor="tender_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
               Tender Start
-              <span className="text-xs font-normal text-slate-400 ml-1">(time locked)</span>
             </label>
             <input
-              type="date"
+              type="datetime-local"
               id="tender_date"
               name="tender_date"
-              value={toDateOnlyValue(formData.tender_date)}
-              onChange={(e) => handleDateChange("tender_date", e.target.value)}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+              value={formData.tender_date}
+              onChange={handleChange}
+              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
             />
           </div>
 
           <div>
             <label htmlFor="closing_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
               Closing Date
-              <span className="text-xs font-normal text-slate-400 ml-1">(time locked)</span>
             </label>
             <input
-              type="date"
+              type="datetime-local"
               id="closing_date"
               name="closing_date"
-              value={toDateOnlyValue(formData.closing_date)}
-              onChange={(e) => handleDateChange("closing_date", e.target.value)}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+              value={formData.closing_date}
+              onChange={handleChange}
+              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
             />
           </div>
 
           <div>
             <label htmlFor="renovation_start_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
               Renovation Start
-              <span className="text-xs font-normal text-slate-400 ml-1">(time locked)</span>
             </label>
             <input
-              type="date"
+              type="datetime-local"
               id="renovation_start_date"
               name="renovation_start_date"
-              value={toDateOnlyValue(formData.renovation_start_date)}
-              onChange={(e) => handleDateChange("renovation_start_date", e.target.value)}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+              value={formData.renovation_start_date}
+              onChange={handleChange}
+              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
             />
           </div>
 
           <div>
             <label htmlFor="renovation_end_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
               Renovation End
-              <span className="text-xs font-normal text-slate-400 ml-1">(time locked)</span>
             </label>
             <input
-              type="date"
+              type="datetime-local"
               id="renovation_end_date"
               name="renovation_end_date"
-              value={toDateOnlyValue(formData.renovation_end_date)}
-              onChange={(e) => handleDateChange("renovation_end_date", e.target.value)}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+              value={formData.renovation_end_date}
+              onChange={handleChange}
+              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
             />
           </div>
         </div>
@@ -898,7 +954,7 @@ export default function TenderForm({
           </div>
         </div>
         <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-          These fields are pre‑filled when you select a manager, but you can edit them for this tender.
+          Auto‑filled – you can edit it.
         </p>
       </div>
 

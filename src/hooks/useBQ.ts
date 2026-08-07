@@ -1,11 +1,14 @@
 // hooks/useBQ.ts
 import { useState, useCallback, useEffect } from "react";
 import { Category, LineItem, CreateItemDto } from "@/types/bq";
-import { getCsrfHeader } from "@/lib/csrf-client";
 import { useSession } from "next-auth/react";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useNotify } from "@/components/ui/notification-provider";
 
 export function useBQ(submissionId: string | string[] | undefined) {
   const { data: session } = useSession();
+  const confirm = useConfirm();
+  const toast = useNotify();
   const [submission, setSubmission] = useState<any>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,11 +82,10 @@ export function useBQ(submissionId: string | string[] | undefined) {
   // Update submission header (client, branch, etc.)
   const updateSubmission = useCallback(async (fields: any) => {
     if (!submission) return;
-    const csrfHeader = await getCsrfHeader();
     try {
       const res = await fetch("/api/bq/submission", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", ...csrfHeader },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ submission_id: submission.submission_id, ...fields }),
       });
       if (res.ok) {
@@ -131,43 +133,40 @@ export function useBQ(submissionId: string | string[] | undefined) {
 
   const saveAsNewVersion = useCallback(async (versionName: string) => {
     if (!submission) return;
-    const csrfHeader = await getCsrfHeader();
     try {
       const res = await fetch("/api/bq/version", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...csrfHeader },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ submission_id: submission.submission_id, version_name: versionName }),
       });
       const data = await res.json();
       if (res.ok) {
         window.location.href = `/bq/${data.submission_id}/edit`;
       } else {
-        alert(`Failed to create new version: ${data.error || "Unknown error"}`);
+        toast.error(`Failed to create new version: ${data.error || "Unknown error"}`);
       }
     } catch (err) {
       console.error("Save version error:", err);
-      alert("An error occurred while saving the new version.");
+      toast.error("An error occurred while saving the new version.");
     }
   }, [submission]);
 
   const renameVersion = useCallback(async (versionId: number, newName: string) => {
-    const csrfHeader = await getCsrfHeader();
     const res = await fetch(`/api/bq/version/${versionId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", ...csrfHeader },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ version_name: newName }),
     });
     if (res.ok) {
       if (submission?.tender_id && submission?.contractor_id) {
         fetchVersions(submission.tender_id, submission.contractor_id);
       }
-    } else alert("Failed to rename version");
+    } else toast.error("Failed to rename version");
   }, [submission, fetchVersions]);
 
   const deleteVersion = useCallback(async (versionId: number) => {
-    if (!confirm("Delete this version permanently?")) return;
-    const csrfHeader = await getCsrfHeader();
-    const res = await fetch(`/api/bq/version/${versionId}`, { method: "DELETE", headers: csrfHeader });
+    if (!(await confirm({ description: "Delete this version permanently?", confirmText: "Delete", variant: "destructive" }))) return;
+    const res = await fetch(`/api/bq/version/${versionId}`, { method: "DELETE" });
     if (res.ok) {
       if (versionId === Number(submission?.submission_id)) {
         const nextVersion = versions.find(v => v.submission_id !== versionId);
@@ -178,8 +177,8 @@ export function useBQ(submissionId: string | string[] | undefined) {
           fetchVersions(submission.tender_id, submission.contractor_id);
         }
       }
-    } else alert("Failed to delete version");
-  }, [submission, versions, fetchVersions]);
+    } else toast.error("Failed to delete version");
+  }, [submission, versions, fetchVersions, confirm]);
 
   // Update a single line item (optimistic)
   const updateItem = useCallback(async (item: LineItem, updatedFields: Partial<LineItem>) => {
@@ -203,12 +202,12 @@ export function useBQ(submissionId: string | string[] | undefined) {
     );
 
     try {
-      const csrfHeader = await getCsrfHeader();
-      await fetch("/api/bq/item", {
+      const res = await fetch("/api/bq/items", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", ...csrfHeader },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ line_item_id: item.line_item_id, ...updatedFields }),
       });
+      if (!res.ok) throw new Error("Update failed");
     } catch (err) {
       // Revert on error
       setCategories(prev =>
@@ -218,7 +217,7 @@ export function useBQ(submissionId: string | string[] | undefined) {
         }))
       );
       console.error("Failed to save update", err);
-      alert("Update failed. Please try again.");
+      toast.error("Update failed. Please try again.");
     }
   }, [canEdit]);
 
@@ -239,63 +238,61 @@ export function useBQ(submissionId: string | string[] | undefined) {
       discount: 0,
     };
     try {
-      const csrfHeader = await getCsrfHeader();
-      const res = await fetch("/api/bq/item", {
+      const res = await fetch("/api/bq/items", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...csrfHeader },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newItem),
       });
       if (!res.ok) throw new Error("Failed to add item");
       await fetchBQ();
     } catch (err) {
       console.error(err);
-      alert("Could not add item");
+      toast.error("Could not add item");
     }
   }, [submissionId, canEdit, fetchBQ]);
 
   // Delete single item
   const deleteItem = useCallback(async (line_item_id: number) => {
     if (!canEdit) return;
-    if (!confirm("Delete this line item and its sub‑items?")) return;
+    if (!(await confirm({ description: "Delete this line item and its sub‑items?", confirmText: "Delete", variant: "destructive" }))) return;
     try {
-      const csrfHeader = await getCsrfHeader();
-      await fetch("/api/bq/item", {
+      const res = await fetch("/api/bq/items", {
         method: "DELETE",
-        headers: csrfHeader,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ line_item_id }),
       });
+      if (!res.ok) throw new Error("Delete failed");
       await fetchBQ();
     } catch (err) {
       console.error(err);
-      alert("Could not delete item");
+      toast.error("Could not delete item");
     }
-  }, [canEdit, fetchBQ]);
+  }, [canEdit, fetchBQ, confirm]);
 
   // Batch delete selected items
   const deleteSelectedItems = useCallback(async (ids: number[]) => {
     if (!canEdit || !ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected item(s) and their sub‑items?`)) return;
+    if (!(await confirm({ description: `Delete ${ids.length} selected item(s) and their sub‑items?`, confirmText: "Delete", variant: "destructive" }))) return;
     try {
-      const csrfHeader = await getCsrfHeader();
-      await fetch("/api/bq/item", {
+      const res = await fetch("/api/bq/items", {
         method: "DELETE",
-        headers: csrfHeader,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ line_item_ids: ids }),
       });
+      if (!res.ok) throw new Error("Delete failed");
       await fetchBQ();
     } catch (err) {
       console.error(err);
-      alert("Could not delete selected items");
+      toast.error("Could not delete selected items");
     }
-  }, [canEdit, fetchBQ]);
+  }, [canEdit, fetchBQ, confirm]);
 
   // Add category
   const addCategory = useCallback(async (categoryId: number) => {
     if (!submission) return;
-    const csrfHeader = await getCsrfHeader();
     await fetch("/api/bq/category", {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...csrfHeader },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ submission_id: submission.submission_id, category_id: categoryId }),
     });
     await fetchBQ();
@@ -304,23 +301,20 @@ export function useBQ(submissionId: string | string[] | undefined) {
   // Remove category
   const removeCategory = useCallback(async (categoryId: number) => {
     if (!submission) return;
-    if (!confirm(`Remove entire category and all its items?`)) return;
-    const csrfHeader = await getCsrfHeader();
+    if (!(await confirm({ description: "Remove entire category and all its items?", confirmText: "Remove", variant: "destructive" }))) return;
     await fetch("/api/bq/category", {
       method: "DELETE",
-      headers: csrfHeader,
       body: JSON.stringify({ submission_id: submission.submission_id, category_id: categoryId }),
     });
     await fetchBQ();
-  }, [submission, fetchBQ]);
+  }, [submission, fetchBQ, confirm]);
 
   // ** NEW: Reset BQ to original template (admin only) **
   const resetToTemplate = useCallback(async () => {
     if (!submissionId) return;
-    const csrfHeader = await getCsrfHeader();
     const res = await fetch("/api/bq/reset", {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...csrfHeader },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ submissionId }),
     });
     if (!res.ok) {

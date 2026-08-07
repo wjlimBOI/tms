@@ -259,7 +259,7 @@ export async function DELETE(
 
     // Delete related records and the role itself inside a transaction
     await prisma.$transaction(async (tx) => {
-      await tx.role_permission.deleteMany({
+      await tx.role_permissions.deleteMany({
         where: { role_id: roleId },
       });
       await tx.approval_chains.deleteMany({

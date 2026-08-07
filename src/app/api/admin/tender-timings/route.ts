@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { ROLE_IDS } from "@/lib/roles";
 
 async function getDefaultTimings() {
   const result = await query(
@@ -65,9 +66,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userRole = (session.user as any).role_id;
+  const userRoleIds = (session.user as any).roleIds || [];
   const userId = (session.user as any).id;
-  if (userRole !== 1) {
+  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
     const permCheck = await query(
       `SELECT 1 FROM role_permissions rp
        JOIN permissions p ON rp.permission_id = p.permission_id
@@ -96,9 +97,9 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userRole = (session.user as any).role_id;
+  const userRoleIds = (session.user as any).roleIds || [];
   const userId = (session.user as any).id;
-  if (userRole !== 1) {
+  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
     const permCheck = await query(
       `SELECT 1 FROM role_permissions rp
        JOIN permissions p ON rp.permission_id = p.permission_id

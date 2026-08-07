@@ -4,11 +4,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import ExcelJS from "exceljs"; // ✅ replaced xlsx
+import { ROLE_IDS } from "@/lib/roles";
+import { canEditSubmission } from "@/lib/permissions";
 
 // ----- Constants for clamping (adjust as needed) -----
 const MAX_QTY = 9999.99;
 const MAX_RATE = 9999.99;
 const MAX_AMOUNT = 99999999.99;
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 function parseNumeric(value: any): number {
   if (value === undefined || value === null) return 0;
@@ -82,16 +85,19 @@ export async function POST(req: Request) {
   if (!file || !submissionIdRaw) {
     return NextResponse.json({ error: "Missing file or submissionId" }, { status: 400 });
   }
+  if (file.size > MAX_BYTES) {
+    return NextResponse.json({ error: "File too large" }, { status: 413 });
+  }
   const submissionId = parseInt(submissionIdRaw, 10);
   if (isNaN(submissionId)) {
     return NextResponse.json({ error: "Invalid submissionId" }, { status: 400 });
   }
 
   // Access control...
-  const userRoleId = (session.user as any)?.role_id;
+  const userRoleIds = (session.user as any)?.roleIds || [];
   const userId = session.user.id;
   let hasAccess = false;
-  if (userRoleId === 1) {
+  if (userRoleIds.includes(ROLE_IDS.ADMIN)) {
     hasAccess = true;
   } else {
     const check = await query(
@@ -104,12 +110,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const canEdit = await canEditSubmission(submissionId, userId, userRoleIds);
+  if (!canEdit) {
+    return NextResponse.json({ error: "This submission can no longer be edited" }, { status: 403 });
+  }
+
   // ----- 1. Get tender and categories -----
   const subInfo = await query(
     `SELECT ts.tender_id, wc.category_name, wc.category_id
      FROM tender_submission ts
-     JOIN bq_submission_categories bsc ON ts.submission_id = bsc.submission_id
-     JOIN work_category wc ON bsc.category_id = wc.category_id
+     JOIN submission_category sc ON ts.submission_id = sc.submission_id
+     JOIN work_category wc ON sc.category_id = wc.category_id
      WHERE ts.submission_id = $1
      ORDER BY wc.sort_order`,
     [submissionId]
@@ -349,8 +360,8 @@ export async function POST(req: Request) {
 
         await client.query(
           `INSERT INTO bq_line_item
-             (submission_id, category_id, description, unit, quantity, unit_price, total_price, sort_order, discount, level)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 0)`,
+             (submission_id, category_id, description, unit, quantity, unit_price, total_price, amount, sort_order, discount, level)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8, 0, 0)`,
           [submissionId, catId, excelItem.description, templateInfo.unit, quantity, rate, amount, sortOrder]
         );
         sortOrder++;

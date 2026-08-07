@@ -18,6 +18,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import ExcelJS from "exceljs"; // ✅ replaced xlsx
+import { useNotify } from "@/components/ui/notification-provider";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface WorkCategory {
   category_id: number;
@@ -222,6 +224,8 @@ export default function BQTemplateEditPage() {
   const { tenderId } = useParams();
   const { data: session, status } = useSession();
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useNotify();
 
   const [items, setItems] = useState<BQTemplateItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -249,11 +253,10 @@ export default function BQTemplateEditPage() {
 
   const fetchTenderName = async () => {
     try {
-      const res = await fetch(`/api/tenders?tenderId=${tenderId}&limit=1`);
+      const res = await fetch(`/api/tenders/${tenderId}`);
       const data = await res.json();
-      const tendersArray = data.data || [];
-      if (tendersArray.length > 0) {
-        setTenderName(tendersArray[0].tender_name);
+      if (res.ok && data.tender_name) {
+        setTenderName(data.tender_name);
       } else {
         setTenderName(`#${tenderId}`);
       }
@@ -410,14 +413,14 @@ export default function BQTemplateEditPage() {
   };
 
   const handleDelete = async (itemId: number) => {
-    if (!confirm("Delete this item? It will also delete all sub‑items and contractor entries."))
+    if (!(await confirm({ description: "Delete this item? It will also delete all sub‑items and contractor entries.", confirmText: "Delete", variant: "destructive" })))
       return;
     const res = await fetch(`/api/admin/bq-template/item?id=${itemId}`, { method: "DELETE" });
     if (res.ok) {
       fetchItems();
     } else {
       const err = await res.json();
-      alert(err.error || "Delete failed");
+      toast.error(err.error || "Delete failed");
     }
   };
 
@@ -437,7 +440,7 @@ export default function BQTemplateEditPage() {
   const handleAddItem = async () => {
     if (!newItemForm) return;
     if (!newItemForm.description.trim() || !newItemForm.unitDisplay.trim()) {
-      alert("Please fill in description and unit");
+      toast.error("Please fill in description and unit");
       return;
     }
 
@@ -475,11 +478,11 @@ export default function BQTemplateEditPage() {
         fetchItems();
       } else {
         const errText = await res.text();
-        alert("Failed to add item: " + errText);
+        toast.error("Failed to add item: " + errText);
       }
     } catch (err) {
       console.error("Network error:", err);
-      alert("Network error. Please try again.");
+      toast.error("Network error. Please try again.");
     }
   };
 
@@ -549,7 +552,7 @@ export default function BQTemplateEditPage() {
       setShowCategoryModal(false);
       fetchItems();
     } else {
-      alert("Failed to update categories");
+      toast.error("Failed to update categories");
     }
   };
 
@@ -626,13 +629,13 @@ export default function BQTemplateEditPage() {
       const res = await fetch("/api/admin/bq-template/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok) {
-        alert(`Imported ${data.imported} items.`);
+        toast.success(`Imported ${data.imported} items.`);
         await loadData(); // Reload everything, auto-enable categories
       } else {
-        alert(data.error || "Upload failed");
+        toast.error(data.error || "Upload failed");
       }
     } catch (err) {
-      alert("Network error. Please try again.");
+      toast.error("Network error. Please try again.");
     } finally {
       setUploading(false);
       e.target.value = "";

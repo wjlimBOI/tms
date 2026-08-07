@@ -175,6 +175,7 @@ export async function PUT(
     }
     userUpdateData.password_hash = await bcrypt.hash(password, 12);
     userUpdateData.must_change_password = true;
+    userUpdateData.password_changed_at = new Date();
     changedFields.push('password_hash', 'must_change_password');
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 interface UserProfile {
@@ -209,7 +209,7 @@ export default function ProfilePage() {
         }),
       });
       if (res.ok) {
-        showToast("Password changed successfully", "success");
+        showToast("Password changed. Please log in again with your new password.", "success");
         setPasswordForm({
           current_password: "",
           new_password: "",
@@ -217,6 +217,10 @@ export default function ProfilePage() {
         });
         setPasswordValidation({ isValid: false, errors: [], score: 0 });
         setIsChangingPassword(false);
+        // Changing the password invalidates the current session token server-side,
+        // so sign out immediately for a clean re-login instead of a confusing
+        // failure on the next request.
+        await signOut({ callbackUrl: "/login" });
       } else {
         const err = await res.json();
         showToast(err.error || "Password change failed", "error");

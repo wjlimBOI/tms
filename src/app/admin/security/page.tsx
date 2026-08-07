@@ -21,7 +21,7 @@ import {
 import { SortableItem } from "@/components/ui/SortableItem";
 import { format } from "date-fns";
 import { Lock, Clock, GitBranch, Mail } from "lucide-react";
-import { Toaster, toast } from "sonner";
+import { useNotify } from "@/components/ui/notification-provider";
 
 // ============================================================
 // Types & Shared Helpers
@@ -130,6 +130,7 @@ function sortRoles(roles: Role[]): Role[] {
 // Tender Timings Component (with refresh fix)
 // ============================================================
 function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
+  const toast = useNotify();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -371,6 +372,7 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
 // CC Recipients Settings
 // ============================================================
 function CCSettings() {
+  const toast = useNotify();
   const [roles, setRoles] = useState<Role[]>([]);
   const [ccRoleIds, setCcRoleIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -599,8 +601,6 @@ export default function SecurityDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0a1228] dark:to-[#0a0f20] py-8 px-4 sm:px-6 lg:px-8">
-      <Toaster position="top-right" richColors closeButton />
-
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 backdrop-blur-sm bg-white/30 dark:bg-black/20 rounded-2xl p-6 border border-white/20 dark:border-white/10 shadow-xl">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-cyan-300 bg-clip-text text-transparent">
@@ -699,6 +699,7 @@ function SubTabButton({ active, onClick, label }: { active: boolean; onClick: ()
 // Notifications Component (full implementation)
 // ============================================================
 function Notifications({ userRoleId }: { userRoleId: number | null }) {
+  const toast = useNotify();
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: "1",
@@ -959,6 +960,7 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
 // Workflow Configuration (full implementation)
 // ============================================================
 function WorkflowConfig({ roles }: { roles: Role[] }) {
+  const toast = useNotify();
   type ResourceType = "bq_submission" | "tender_creation" | "tender_submission";
 
   const resourceConfig: Record<ResourceType, { label: string; description: string }> = {
@@ -1312,6 +1314,7 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
 // Role Permissions – single table with integrated Extension Approver
 // ============================================================
 function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermissions: string[] }) {
+  const toast = useNotify();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePerms, setRolePerms] = useState<Record<number, number[]>>({});
   const [loading, setLoading] = useState(true);
@@ -1757,6 +1760,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
 // TimeLockedAccess (full implementation)
 // ============================================================
 function TimeLockedAccess({ roles }: { roles: Role[] }) {
+  const toast = useNotify();
   const [accessWindows, setAccessWindows] = useState<AccessWindow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -2053,6 +2057,7 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
 // AuditLogs (full implementation)
 // ============================================================
 function AuditLogs() {
+  const toast = useNotify();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

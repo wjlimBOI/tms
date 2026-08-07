@@ -12,6 +12,7 @@ import {
 import { logInsert, logAuthEvent } from "@/lib/audit";
 import { syncTenderToCalendar } from "@/lib/syncTenderToCalendar";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
+import { ROLE_IDS } from "@/lib/roles";
 
 // ---------- OPTIONS (CORS preflight) ----------
 export async function OPTIONS(request: NextRequest) {
@@ -47,24 +48,31 @@ export async function GET(request: NextRequest) {
   const { page, limit, status: statusCode, search } = queryResult.data;
 
   const offset = (page - 1) * limit;
-  const userRole = (session.user as any)?.role_id;
+  const userRoleIds = (session.user as any)?.roleIds || [];
+
+  const userId = (session.user as any)?.id;
+  const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
 
   let sql = `
-    SELECT 
-      t.tender_id, 
-      t.tender_name, 
+    SELECT
+      t.tender_id,
+      t.tender_name,
       t.tender_description,
-      b.branch_name, 
+      b.branch_name,
       ba.building_name,
-      br.brand_name, 
+      br.brand_name,
       rt.type_name AS renovation_type,
       ts.label AS status_label,
-      t.tender_date, 
-      t.renovation_start_date, 
+      t.tender_date,
+      t.renovation_start_date,
       t.renovation_end_date,
       t.closing_date,
       t.stage,
-      ts.status_code
+      ts.status_code,
+      (SELECT COUNT(*) FROM tender_interest ti WHERE ti.tender_id = t.tender_id)::int AS interest_count
+      ${isContractor ? `,
+      EXISTS(SELECT 1 FROM tender_interest ti2 WHERE ti2.tender_id = t.tender_id AND ti2.contractor_id = $${1}) AS has_expressed_interest
+      ` : ""}
     FROM tender t
     JOIN branch b ON t.branch_id = b.branch_id
     LEFT JOIN branch_address ba ON b.branch_id = ba.branch_id AND ba.is_primary = true
@@ -77,7 +85,9 @@ export async function GET(request: NextRequest) {
   const params: any[] = [];
   let idx = 1;
 
-  if (userRole === 13) {
+  if (isContractor) {
+    params.push(userId);
+    idx = 2;
     sql += ` AND ts.status_code = 'Open'`;
   }
 
@@ -102,7 +112,7 @@ export async function GET(request: NextRequest) {
   `;
   const countParams: any[] = [];
   let cIdx = 1;
-  if (userRole === 13) {
+  if (isContractor) {
     countSql += ` AND ts.status_code = 'Open'`;
   }
   if (statusCode) {
@@ -134,8 +144,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
   }
 
-  const userRole = (session.user as any)?.role_id;
-  if (userRole !== 1) {
+  const userRoleIds = (session.user as any)?.roleIds || [];
+  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, request, `User ${session.user.id} attempted to create tender without admin role`);
     return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403, headers: corsHeaders });
   }
@@ -163,6 +173,13 @@ export async function POST(request: NextRequest) {
   }
   const statusId = statusRes.rows[0].status_id;
 
+  // Get the active contract template — its content becomes this tender's
+  // `clauses` snapshot at creation time (see docs on contract_template, F8).
+  const templateRes = await query(
+    `SELECT template_id, content FROM contract_template WHERE is_active = true ORDER BY version DESC LIMIT 1`
+  );
+  const activeTemplate = templateRes.rows[0] || null;
+
   // Start transaction
   const client = await query('BEGIN');
 
@@ -174,9 +191,10 @@ export async function POST(request: NextRequest) {
          tender_name, tender_description, tender_date, closing_date,
          renovation_start_date, renovation_end_date, estimated_budget,
          project_manager_id, project_manager_name, project_manager_email, project_manager_phone,
+         contract_template_id, clauses,
          created_at, updated_at
        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW())
        RETURNING tender_id`,
       [
         body.branch_id,
@@ -194,6 +212,8 @@ export async function POST(request: NextRequest) {
         body.project_manager_name || null,
         body.project_manager_email || null,
         body.project_manager_phone || null,
+        activeTemplate?.template_id || null,
+        activeTemplate ? JSON.stringify(activeTemplate.content) : null,
       ]
     );
 
@@ -278,7 +298,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating tender:", error);
     
     return NextResponse.json(
-      { error: "Failed to create tender", details: error instanceof Error ? error.message : "Unknown error" },
+      { error: "Failed to create tender" },
       { status: 500, headers: corsHeaders }
     );
   }

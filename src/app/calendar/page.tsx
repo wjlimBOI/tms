@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { format, parseISO } from "date-fns";
+import { useNotify } from "@/components/ui/notification-provider";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { getBrandColor } from "@/lib/brandColors";
 import type { EventInput } from "@fullcalendar/core";
 
@@ -26,105 +28,9 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import multimonthPlugin from "@fullcalendar/multimonth";
 
-async function getCsrfHeader() {
-  const token = await fetch("/api/auth/csrf").then(res => res.json());
-  return { "x-csrf-token": token.csrfToken };
-}
-
 // ============================================================
 // 1. Reusable Modal Components
 // ============================================================
-
-// ---------- Custom Modal (confirm/success/error) ----------
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  message: string;
-  note?: string;
-  type: 'confirm' | 'success' | 'error';
-  onConfirm?: () => void;
-  confirmText?: string;
-  cancelText?: string;
-}
-
-const CustomModal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  message,
-  note,
-  type,
-  onConfirm,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-}) => {
-  if (!isOpen) return null;
-
-  const getIconColors = () => {
-    switch (type) {
-      case 'success':
-        return { bg: 'bg-emerald-100 dark:bg-emerald-500/20', icon: 'text-emerald-600 dark:text-emerald-400', button: 'from-emerald-600 to-teal-600' };
-      case 'error':
-        return { bg: 'bg-rose-100 dark:bg-rose-500/20', icon: 'text-rose-600 dark:text-rose-400', button: 'from-rose-600 to-pink-600' };
-      default:
-        return { bg: 'bg-blue-100 dark:bg-blue-500/20', icon: 'text-blue-600 dark:text-blue-400', button: 'from-blue-600 to-indigo-600' };
-    }
-  };
-
-  const colors = getIconColors();
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center`}>
-              {type === 'success' ? (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-              ) : type === 'error' ? (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              )}
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h3>
-          </div>
-          <p className="text-slate-600 dark:text-slate-300 mb-6">
-            {message}
-            {note && (
-              <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
-                {note}
-              </span>
-            )}
-          </p>
-          <div className="flex gap-3 justify-end">
-            {type === 'confirm' && (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition font-medium text-sm"
-              >
-                {cancelText}
-              </button>
-            )}
-            <button
-              onClick={type === 'confirm' ? onConfirm : onClose}
-              className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}
-            >
-              {type === 'confirm' ? confirmText : 'OK'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // ---------- Edit Event Modal ----------
 interface EditEventModalProps {
@@ -322,6 +228,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 export default function CalendarPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const toast = useNotify();
   const [projectEvents, setProjectEvents] = useState<EventInput[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<EventInput | null>(null);
@@ -345,14 +252,7 @@ export default function CalendarPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editEventData, setEditEventData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteEventId, setDeleteEventId] = useState<number | null>(null);
-  const [statusModal, setStatusModal] = useState<{
-    isOpen: boolean;
-    type: "success" | "error";
-    title: string;
-    message: string;
-  }>({ isOpen: false, type: "success", title: "", message: "" });
+  const confirm = useConfirm();
 
   // ---------- Permission check ----------
   useEffect(() => {
@@ -553,12 +453,7 @@ export default function CalendarPage() {
       setProjectEvents(formatted);
     } catch (err) {
       console.error(err);
-      setStatusModal({
-        isOpen: true,
-        type: "error",
-        title: "Load Failed",
-        message: "Could not load calendar events. Please refresh.",
-      });
+      toast.error("Could not load calendar events. Please refresh.");
     } finally {
       setLoading(false);
     }
@@ -580,7 +475,7 @@ export default function CalendarPage() {
   const openEditModal = () => {
     if (!selectedEvent) return;
     if (selectedEvent.extendedProps?.children) {
-      alert("This is a grouped event. Edit individual events via the tender.");
+      toast.error("This is a grouped event. Edit individual events via the tender.");
       return;
     }
     setEditEventData({
@@ -614,106 +509,70 @@ export default function CalendarPage() {
 
     setIsSaving(true);
     try {
-      const csrf = await getCsrfHeader();
       const res = await fetch(`/api/calendar/events/${eventId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", ...csrf },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (res.ok) {
         setShowEditModal(false);
         setShowModal(false);
-        setStatusModal({
-          isOpen: true,
-          type: "success",
-          title: "Event Updated",
-          message: "The event has been updated successfully.",
-        });
+        toast.success("The event has been updated successfully.");
         fetchData();
       } else {
         const err = await res.json();
         console.error("Update failed:", err);
-        setStatusModal({
-          isOpen: true,
-          type: "error",
-          title: "Update Failed",
-          message: err.error || "Could not update the event.",
-        });
+        toast.error(err.error || "Could not update the event.");
       }
     } catch (err) {
       console.error(err);
-      setStatusModal({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: "An unexpected error occurred.",
-      });
+      toast.error("An unexpected error occurred.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const openDeleteConfirm = () => {
+  const openDeleteConfirm = async () => {
     if (!selectedEvent) return;
     if (selectedEvent.extendedProps?.children) {
-      alert("This is a grouped event. Delete individual events via the tender.");
+      toast.error("This is a grouped event. Delete individual events via the tender.");
       return;
     }
-    setDeleteEventId(selectedEvent.extendedProps?.event_id);
-    setShowDeleteConfirm(true);
-  };
+    const eventId = selectedEvent.extendedProps?.event_id;
+    if (!eventId) return;
 
-  const handleDeleteConfirmed = async () => {
-    if (!deleteEventId) return;
+    const proceed = await confirm({
+      title: "Delete Event",
+      description: "Are you sure you want to delete this event? This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "destructive",
+    });
+    if (!proceed) return;
+
     try {
-      const csrf = await getCsrfHeader();
-      const res = await fetch(`/api/calendar/events/${deleteEventId}`, { method: "DELETE", headers: csrf });
+      const res = await fetch(`/api/calendar/events/${eventId}`, { method: "DELETE" });
       if (res.ok) {
-        setShowDeleteConfirm(false);
         setShowModal(false);
-        setStatusModal({
-          isOpen: true,
-          type: "success",
-          title: "Event Deleted",
-          message: "The event has been deleted successfully.",
-        });
+        toast.success("The event has been deleted successfully.");
         fetchData();
       } else {
         const err = await res.json();
-        setStatusModal({
-          isOpen: true,
-          type: "error",
-          title: "Delete Failed",
-          message: err.error || "Could not delete the event.",
-        });
+        toast.error(err.error || "Could not delete the event.");
       }
     } catch (err) {
-      setStatusModal({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: "An unexpected error occurred.",
-      });
-    } finally {
-      setDeleteEventId(null);
+      toast.error("An unexpected error occurred.");
     }
   };
 
   const handleAddEvent = async () => {
     if (!newEvent.title || !newEvent.start_date) {
-      setStatusModal({
-        isOpen: true,
-        type: "error",
-        title: "Missing Information",
-        message: "Title and start date are required.",
-      });
+      toast.error("Title and start date are required.");
       return;
     }
     try {
-      const csrf = await getCsrfHeader();
       const res = await fetch("/api/calendar/events", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...csrf },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: newEvent.title,
           start_date: newEvent.start_date,
@@ -737,29 +596,14 @@ export default function CalendarPage() {
           branch_id: "",
           tender_id: "",
         });
-        setStatusModal({
-          isOpen: true,
-          type: "success",
-          title: "Event Created",
-          message: "Your new event has been added to the calendar.",
-        });
+        toast.success("Your new event has been added to the calendar.");
         fetchData();
       } else {
         const err = await res.json();
-        setStatusModal({
-          isOpen: true,
-          type: "error",
-          title: "Create Failed",
-          message: err.error || "Could not create the event.",
-        });
+        toast.error(err.error || "Could not create the event.");
       }
     } catch (err) {
-      setStatusModal({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: "An unexpected error occurred.",
-      });
+      toast.error("An unexpected error occurred.");
     }
   };
 
@@ -954,26 +798,6 @@ export default function CalendarPage() {
           tenders={tenders}
           onSave={handleSaveEdit}
           isSaving={isSaving}
-        />
-
-        <CustomModal
-          isOpen={showDeleteConfirm}
-          onClose={() => setShowDeleteConfirm(false)}
-          title="Delete Event"
-          message="Are you sure you want to delete this event?"
-          note="This action cannot be undone."
-          type="confirm"
-          onConfirm={handleDeleteConfirmed}
-          confirmText="Delete"
-          cancelText="Cancel"
-        />
-
-        <CustomModal
-          isOpen={statusModal.isOpen}
-          onClose={() => setStatusModal({ ...statusModal, isOpen: false })}
-          title={statusModal.title}
-          message={statusModal.message}
-          type={statusModal.type}
         />
 
         {/* Add Event Modal */}

@@ -4,6 +4,8 @@
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useRef, useMemo } from "react";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useNotify } from "@/components/ui/notification-provider";
 
 interface WorkCategory {
   category_id: number;
@@ -130,97 +132,6 @@ function ReadOnlyItemRow({
   );
 }
 
-// ---------- Reusable Modal Component ----------
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  message: string;
-  note?: string;
-  type: 'confirm' | 'success' | 'error';
-  onConfirm?: () => void;
-  confirmText?: string;
-  cancelText?: string;
-}
-
-function CustomModal({
-  isOpen,
-  onClose,
-  title,
-  message,
-  note,
-  type,
-  onConfirm,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-}: ModalProps) {
-  if (!isOpen) return null;
-
-  const getIconColors = () => {
-    switch (type) {
-      case 'success':
-        return { bg: 'bg-emerald-100 dark:bg-emerald-500/20', icon: 'text-emerald-600 dark:text-emerald-400', button: 'from-emerald-600 to-teal-600' };
-      case 'error':
-        return { bg: 'bg-rose-100 dark:bg-rose-500/20', icon: 'text-rose-600 dark:text-rose-400', button: 'from-rose-600 to-pink-600' };
-      default:
-        return { bg: 'bg-blue-100 dark:bg-blue-500/20', icon: 'text-blue-600 dark:text-blue-400', button: 'from-blue-600 to-indigo-600' };
-    }
-  };
-
-  const colors = getIconColors();
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center`}>
-              {type === 'success' ? (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-              ) : type === 'error' ? (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className={`w-5 h-5 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              )}
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            {message}
-            {note && (
-              <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
-                {note}
-              </span>
-            )}
-          </p>
-          <div className="flex gap-3 justify-end">
-            {type === 'confirm' && (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-medium text-sm"
-              >
-                {cancelText}
-              </button>
-            )}
-            <button
-              onClick={type === 'confirm' ? onConfirm : onClose}
-              className={`px-4 py-2 rounded-lg bg-gradient-to-r ${colors.button} hover:brightness-105 text-white font-medium text-sm shadow-sm transition`}
-            >
-              {type === 'confirm' ? confirmText : 'OK'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ----------------------------------------------
 // Main component (read‑only with upload & clear)
 // ----------------------------------------------
@@ -228,6 +139,8 @@ export default function BQTemplateViewPage() {
   const { tenderId } = useParams();
   const { data: session, status } = useSession();
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useNotify();
   const [items, setItems] = useState<BQTemplateItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -238,30 +151,13 @@ export default function BQTemplateViewPage() {
   const fetchedRef = useRef(false);
 
   // Modal states
-  const [modalState, setModalState] = useState<{
-    isOpen: boolean;
-    type: 'confirm' | 'success' | 'error';
-    title: string;
-    message: string;
-    note?: string;
-    onConfirm?: () => void;
-  }>({
-    isOpen: false,
-    type: 'confirm',
-    title: '',
-    message: '',
-  });
-
-  const closeModal = () => setModalState(prev => ({ ...prev, isOpen: false }));
-
   // Fetch tender name
   const fetchTenderName = async () => {
     try {
-      const res = await fetch(`/api/tenders?tenderId=${tenderId}&limit=1`);
+      const res = await fetch(`/api/tenders/${tenderId}`);
       const data = await res.json();
-      const tendersArray = data.data || [];
-      if (tendersArray.length > 0) {
-        setTenderName(tendersArray[0].tender_name);
+      if (res.ok && data.tender_name) {
+        setTenderName(data.tender_name);
       } else {
         setTenderName(`#${tenderId}`);
       }
@@ -361,80 +257,45 @@ export default function BQTemplateViewPage() {
       const res = await fetch("/api/admin/bq-template/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok) {
-        setModalState({
-          isOpen: true,
-          type: 'success',
-          title: 'Upload Successful',
-          message: `Imported ${data.imported} items successfully.`,
-          note: 'The BQ template has been updated.',
-        });
+        toast.success(`Imported ${data.imported} items successfully. The BQ template has been updated.`);
         await loadData();
       } else {
-        setModalState({
-          isOpen: true,
-          type: 'error',
-          title: 'Upload Failed',
-          message: data.error || 'An error occurred during upload.',
-          note: 'Please check the file format and try again.',
-        });
+        toast.error(data.error || "An error occurred during upload. Please check the file format and try again.");
       }
     } catch (err) {
-      setModalState({
-        isOpen: true,
-        type: 'error',
-        title: 'Network Error',
-        message: 'Could not connect to the server.',
-        note: 'Please check your internet connection and try again.',
-      });
+      toast.error("Could not connect to the server. Please check your internet connection and try again.");
     } finally {
       setUploading(false);
       e.target.value = "";
     }
   };
 
-  // ---------- CLEAR TEMPLATE (with confirmation modal) ----------
+  // ---------- CLEAR TEMPLATE (with confirmation) ----------
   const handleClearTemplate = async () => {
-    setModalState({
-      isOpen: true,
-      type: 'confirm',
-      title: 'Clear Entire Template?',
-      message: 'This will delete ALL BQ template items for this tender.',
-      note: 'This action cannot be undone and will affect all contractor submissions referencing these items.',
-      onConfirm: async () => {
-        closeModal();
-        setClearing(true);
-        try {
-          const res = await fetch(`/api/admin/bq-template/clear?tenderId=${tenderId}`, { method: "DELETE" });
-          if (res.ok) {
-            setModalState({
-              isOpen: true,
-              type: 'success',
-              title: 'Template Cleared',
-              message: 'All BQ template items have been deleted.',
-              note: 'You can now upload a new template or add items manually.',
-            });
-            await loadData();
-          } else {
-            const err = await res.json();
-            setModalState({
-              isOpen: true,
-              type: 'error',
-              title: 'Clear Failed',
-              message: err.error || 'Failed to clear template.',
-            });
-          }
-        } catch (err) {
-          setModalState({
-            isOpen: true,
-            type: 'error',
-            title: 'Network Error',
-            message: 'Could not connect to the server.',
-          });
-        } finally {
-          setClearing(false);
-        }
-      },
+    const proceed = await confirm({
+      title: "Clear Entire Template?",
+      description:
+        "This will delete ALL BQ template items for this tender. This action cannot be undone and will affect all contractor submissions referencing these items.",
+      confirmText: "Clear Template",
+      variant: "destructive",
     });
+    if (!proceed) return;
+
+    setClearing(true);
+    try {
+      const res = await fetch(`/api/admin/bq-template/clear?tenderId=${tenderId}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("All BQ template items have been deleted. You can now upload a new template or add items manually.");
+        await loadData();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to clear template.");
+      }
+    } catch (err) {
+      toast.error("Could not connect to the server.");
+    } finally {
+      setClearing(false);
+    }
   };
 
   if (loading) {
@@ -540,18 +401,6 @@ export default function BQTemplateViewPage() {
         )}
       </div>
 
-      {/* Custom Modal */}
-      <CustomModal
-        isOpen={modalState.isOpen}
-        onClose={closeModal}
-        type={modalState.type}
-        title={modalState.title}
-        message={modalState.message}
-        note={modalState.note}
-        onConfirm={modalState.onConfirm}
-        confirmText="Yes, Clear"
-        cancelText="Cancel"
-      />
     </div>
   );
 }

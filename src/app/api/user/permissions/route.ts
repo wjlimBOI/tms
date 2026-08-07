@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const permissions = await prisma.$queryRaw`
-      SELECT DISTINCT p.permission_code
+      SELECT DISTINCT p.action AS permission_code
       FROM user_roles ur
-      JOIN role_permission rp ON ur.role_id = rp.role_id
-      JOIN permission p ON rp.permission_id = p.permission_id
+      JOIN role_permissions rp ON ur.role_id = rp.role_id
+      JOIN permissions p ON rp.permission_id = p.permission_id
       WHERE ur.user_id = ${session.user.id}
     ` as { permission_code: string }[];
 

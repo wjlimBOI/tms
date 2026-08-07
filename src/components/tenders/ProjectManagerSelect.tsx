@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useNotify } from "@/components/ui/notification-provider";
 
 interface ProjectManager {
   id: number;
@@ -43,6 +44,7 @@ export default function ProjectManagerSelect({
   required = false,
   hideLabel = false,
 }: Props) {
+  const toast = useNotify();
   const [pmList, setPmList] = useState<ProjectManager[]>([]);
   const [searchTerm, setSearchTerm] = useState(initialName);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -123,7 +125,7 @@ export default function ProjectManagerSelect({
 
   const handleCreate = async () => {
     if (!newPM.name || !newPM.email) {
-      alert("Name and email are required.");
+      toast.error("Name and email are required.");
       return;
     }
     let phoneValue = newPM.phone;
@@ -148,7 +150,7 @@ export default function ProjectManagerSelect({
       setIsModalOpen(false);
       setNewPM({ name: "", email: "", phone: "" });
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setIsCreating(false);
     }

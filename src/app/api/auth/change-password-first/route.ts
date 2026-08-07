@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       data: {
         password_hash: hashed,
         must_change_password: false,
+        password_changed_at: new Date(),
         updated_at: new Date(),
       },
     });

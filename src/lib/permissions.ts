@@ -1,5 +1,6 @@
 // lib/permissions.ts
 import pool from "./db";
+import { ROLE_IDS } from "./roles";
 
 // Helper to ensure roleIds is an array (for when a single number is passed)
 function normalizeRoleIds(roleIds: number | number[] | undefined): number[] {
@@ -21,14 +22,11 @@ export async function canEditSubmission(
   roleIds: number | number[]
 ): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
-  console.log(`[canEditSubmission] Called with submissionId=${submissionId}, userId=${userId}, roleIds=${roles}`);
 
-  if (hasRole(roles, 1)) { // Admin role
-    console.log(`[canEditSubmission] Admin → granting edit`);
+  if (hasRole(roles, ROLE_IDS.ADMIN)) {
     return true;
   }
-  if (!hasRole(roles, 13)) { // Contractor role
-    console.log(`[canEditSubmission] Not contractor → denying edit`);
+  if (!hasRole(roles, ROLE_IDS.CONTRACTOR)) {
     return false;
   }
 
@@ -50,10 +48,7 @@ export async function canEditSubmission(
   const isDraft = sub.status === 'Draft';
   const isLatest = sub.round_no === sub.max_round;
 
-  console.log(`[canEditSubmission] owns=${ownsSubmission}, isDraft=${isDraft}, isLatest=${isLatest}`);
-  const canEdit = ownsSubmission && isDraft && isLatest;
-  console.log(`[canEditSubmission] Final = ${canEdit}`);
-  return canEdit;
+  return ownsSubmission && isDraft && isLatest;
 }
 
 export async function canEditLineItem(
@@ -83,7 +78,7 @@ export async function canViewTender(
   roleIds: number | number[]
 ): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
-  if (hasRole(roles, 1)) return true; // Admin
+  if (hasRole(roles, ROLE_IDS.ADMIN)) return true;
 
   const result = await pool.query(
     `SELECT created_by, branch_id FROM tender WHERE tender_id = $1 AND is_deleted = false`,
@@ -92,8 +87,8 @@ export async function canViewTender(
   if (result.rows.length === 0) return false;
   const tender = result.rows[0];
 
-  // If user is contractor (role 13) and created the tender
-  if (hasRole(roles, 13) && tender.created_by === userId) return true;
+  // If user is contractor and created the tender
+  if (hasRole(roles, ROLE_IDS.CONTRACTOR) && tender.created_by === userId) return true;
   return false;
 }
 
@@ -103,8 +98,8 @@ export async function canEditTender(
   roleIds: number | number[]
 ): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
-  if (hasRole(roles, 1)) return true;
-  if (hasRole(roles, 13)) {
+  if (hasRole(roles, ROLE_IDS.ADMIN)) return true;
+  if (hasRole(roles, ROLE_IDS.CONTRACTOR)) {
     const result = await pool.query(
       `SELECT created_by FROM tender WHERE tender_id = $1 AND is_deleted = false`,
       [tenderId]
@@ -119,7 +114,7 @@ export async function canDeleteTender(
   userId: number,
   roleIds: number | number[]
 ): Promise<boolean> {
-  return hasRole(roleIds, 1); // only admin
+  return hasRole(roleIds, ROLE_IDS.ADMIN);
 }
 
 // ========== CONTRACTOR CLOSED TENDER PARTICIPATION CHECK ==========
@@ -130,7 +125,7 @@ export async function canViewTenderWithParticipation(
 ): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
   // Admin and any non-contractor roles can view any tender
-  if (!hasRole(roles, 13)) return true; // only contractors need further checks
+  if (!hasRole(roles, ROLE_IDS.CONTRACTOR)) return true; // only contractors need further checks
 
   // Contractor: first check if tender is open
   const tenderRes = await pool.query(
@@ -142,7 +137,7 @@ export async function canViewTenderWithParticipation(
   if (tenderRes.rows.length === 0) return false;
   const statusCode = tenderRes.rows[0].status_code;
 
-  if (statusCode !== 'Closed') return true;
+  if (statusCode !== 'closed') return true;
 
   // Tender is closed – check if contractor has any submission for this tender
   const submissionRes = await pool.query(
@@ -157,6 +152,6 @@ export async function canViewTenderWithParticipation(
 // ========== DRAFT TENDER VISIBILITY ==========
 export async function canViewDraftTender(roleIds: number | number[]): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
-  const allowedRoles = [1]; // Admin only by default – add more role IDs here
+  const allowedRoles: number[] = [ROLE_IDS.ADMIN]; // Admin only by default – add more role IDs here
   return allowedRoles.some(allowed => roles.includes(allowed));
 }

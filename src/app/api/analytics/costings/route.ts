@@ -3,18 +3,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { query } from '@/lib/db';
+import { parsePagination, paginationMeta } from '@/lib/pagination';
 
 // ------------------------------------------------------------------
 // Permission helper
 // ------------------------------------------------------------------
 async function hasPermission(userId: number, permissionCode: string): Promise<boolean> {
+  const [resource, action] = permissionCode.includes(':')
+    ? permissionCode.split(':')
+    : [permissionCode, permissionCode];
   const res = await query(
     `SELECT 1
      FROM user_roles ur
-     JOIN role_permission rp ON rp.role_id = ur.role_id
-     JOIN permission p ON p.permission_id = rp.permission_id
-     WHERE ur.user_id = $1 AND p.permission_code = $2`,
-    [userId, permissionCode]
+     JOIN role_permissions rp ON rp.role_id = ur.role_id
+     JOIN permissions p ON p.permission_id = rp.permission_id
+     WHERE ur.user_id = $1 AND p.resource = $2 AND p.action = $3`,
+    [userId, resource, action]
   );
   return (res.rowCount ?? 0) > 0;
 }
@@ -75,6 +79,10 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId');
     const tenderId = searchParams.get('tenderId');
     const limit = parseInt(searchParams.get('limit') || '50', 10);
+    // Only the `tender` groupBy branch is an unbounded, per-tender list (see
+    // docs/api-conventions.md) — pagination there is opt-in, same convention
+    // as the other list endpoints.
+    const tenderPagination = parsePagination(searchParams);
 
     // Build WHERE clause dynamically
     const conditions: string[] = [];
@@ -101,6 +109,7 @@ export async function GET(request: NextRequest) {
 
     let sql: string;
     let dataRows: any[];
+    let tenderPaginationInfo: ReturnType<typeof paginationMeta> | undefined;
 
     switch (groupBy) {
       case 'monthly':
@@ -177,9 +186,9 @@ export async function GET(request: NextRequest) {
         }));
         break;
 
-      case 'tender':
-        sql = `
-          SELECT 
+      case 'tender': {
+        const tenderBaseQuery = `
+          SELECT
             t.tender_id,
             t.tender_name,
             t.estimated_budget,
@@ -190,18 +199,40 @@ export async function GET(request: NextRequest) {
           JOIN tender t ON t.tender_id = sf.tender_id
           ${whereClause}
           GROUP BY t.tender_id, t.tender_name, t.estimated_budget
-          ORDER BY percent_used DESC
         `;
-        const tenderRes = await query(sql, params);
-        dataRows = tenderRes.rows.map(row => ({
-          tender_id: row.tender_id,
-          tender_name: row.tender_name,
-          estimated_budget: parseFloat(row.estimated_budget || 0),
-          actual_spent: parseFloat(row.actual_spent || 0),
-          variance: parseFloat(row.variance || 0),
-          percent_used: parseFloat(row.percent_used || 0),
-        }));
+
+        if (tenderPagination) {
+          const countRes = await query(
+            `SELECT COUNT(*) AS total FROM (${tenderBaseQuery}) AS subquery`,
+            params
+          );
+          const total = parseInt(countRes.rows[0]?.total || '0', 10);
+          tenderPaginationInfo = paginationMeta(tenderPagination, total);
+
+          sql = `${tenderBaseQuery} ORDER BY percent_used DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+          const tenderRes = await query(sql, [...params, tenderPagination.limit, tenderPagination.offset]);
+          dataRows = tenderRes.rows.map(row => ({
+            tender_id: row.tender_id,
+            tender_name: row.tender_name,
+            estimated_budget: parseFloat(row.estimated_budget || 0),
+            actual_spent: parseFloat(row.actual_spent || 0),
+            variance: parseFloat(row.variance || 0),
+            percent_used: parseFloat(row.percent_used || 0),
+          }));
+        } else {
+          sql = `${tenderBaseQuery} ORDER BY percent_used DESC`;
+          const tenderRes = await query(sql, params);
+          dataRows = tenderRes.rows.map(row => ({
+            tender_id: row.tender_id,
+            tender_name: row.tender_name,
+            estimated_budget: parseFloat(row.estimated_budget || 0),
+            actual_spent: parseFloat(row.actual_spent || 0),
+            variance: parseFloat(row.variance || 0),
+            percent_used: parseFloat(row.percent_used || 0),
+          }));
+        }
         break;
+      }
 
       default:
         return NextResponse.json(
@@ -215,6 +246,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data: dataRows,
       summary,
+      ...(tenderPaginationInfo ?? {}),
     });
   } catch (error) {
     console.error('Costings API error:', error);

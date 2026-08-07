@@ -13,8 +13,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing submission_id or category_id" }, { status: 400 });
   }
 
-  // ✅ Use role_ids (array) instead of role_id (number)
-  const canEdit = await canEditSubmission(submission_id, session.user.id, session.user.role_ids);
+  const canEdit = await canEditSubmission(submission_id, session.user.id, session.user.roleIds || []);
   if (!canEdit) {
     return NextResponse.json({ error: "Forbidden – you cannot modify this BQ" }, { status: 403 });
   }
@@ -51,8 +50,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Missing submission_id or category_id" }, { status: 400 });
   }
 
-  // ✅ Use role_ids (array) instead of role_id (number)
-  const canEdit = await canEditSubmission(submission_id, session.user.id, session.user.role_ids);
+  const canEdit = await canEditSubmission(submission_id, session.user.id, session.user.roleIds || []);
   if (!canEdit) {
     return NextResponse.json({ error: "Forbidden – you cannot modify this BQ" }, { status: 403 });
   }

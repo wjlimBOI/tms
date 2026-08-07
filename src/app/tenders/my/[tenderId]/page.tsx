@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
+import { ROLE_IDS } from "@/lib/roles";
 
 // ---- Alert Modal State ----
 interface AlertState {
@@ -55,7 +56,7 @@ export default function MyTenderDetailPage() {
   useEffect(() => {
     if (sessionStatus === "authenticated") {
       const roleId = (session?.user as any)?.role_id;
-      if (roleId !== 13) {
+      if (roleId !== ROLE_IDS.CONTRACTOR) {
         router.push("/tenders");
       }
     }
@@ -66,7 +67,7 @@ export default function MyTenderDetailPage() {
       router.push("/login");
       return;
     }
-    if (session?.user && (session.user as any)?.role_id === 13) {
+    if (session?.user && (session.user as any)?.role_id === ROLE_IDS.CONTRACTOR) {
       fetchData();
     }
   }, [session, sessionStatus, router, tenderId]);

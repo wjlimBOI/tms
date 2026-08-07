@@ -20,7 +20,7 @@ export async function GET() {
   const result = await query(
     `SELECT s.*, r.role_name
      FROM tender_extension_settings s
-     JOIN role r ON s.role_id = r.role_id
+     JOIN roles r ON s.role_id = r.role_id
      ORDER BY r.role_name`
   );
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Check if role exists
-    const roleCheck = await query("SELECT role_id FROM role WHERE role_id = $1", [role_id]);
+    const roleCheck = await query("SELECT role_id FROM roles WHERE role_id = $1", [role_id]);
     if (roleCheck.rows.length === 0) {
       return NextResponse.json({ error: "Role not found" }, { status: 404 });
     }

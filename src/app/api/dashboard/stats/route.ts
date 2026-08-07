@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
+import { ROLE_IDS } from "@/lib/roles";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');
@@ -21,8 +22,8 @@ export async function GET(request: NextRequest) {
   }
 
   const userId = session.user.id;
-  const userRole = (session.user as any).role_id;
-  const isContractor = userRole === 13;
+  const userRoleIds = (session.user as any).roleIds || [];
+  const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
   const userDisplayName = session.user.name || session.user.email || "User";
 
   // ========== CONTRACTOR: real DB ==========
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
          WHERE t.is_deleted = false
            AND t.submission_end > NOW()
            AND t.status_id NOT IN (
-             SELECT status_id FROM tender_status WHERE status_code IN ('Cancelled', 'Awarded')
+             SELECT status_id FROM tender_status WHERE status_code IN ('cancelled', 'awarded')
            )
          ORDER BY t.submission_end ASC`,
         []
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
        WHERE t.is_deleted = false
          AND t.submission_end > NOW()
          AND t.status_id NOT IN (
-           SELECT status_id FROM tender_status WHERE status_code IN ('Cancelled', 'Awarded')
+           SELECT status_id FROM tender_status WHERE status_code IN ('cancelled', 'awarded')
          )`
     );
     realActiveTendersCount = parseInt(activeTendersQuery.rows[0].count);
@@ -92,34 +93,38 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch active tenders count:", err);
   }
 
-  // Awarded projects – mock data
-  const awardedProjects = [
-    { outlet: "YN - JP", nature: "Refurbishment", completionEnd: "2026-04-20", contractor: "Novelty Project Services PL", contractValue: 875000, documentUrl: "/documents/YN-Hair-Care-JP.pdf" },
-    { outlet: "NYSS - JN", nature: "Refurbishment", completionEnd: "2026-04-20", contractor: "TECK GUANG INTERIOR DESIGN PL", contractValue: 398131, documentUrl: "/documents/NYSS-JN-Renovation.pdf" },
-    { outlet: "LWM - LX", nature: "Refurbishment", completionEnd: "2026-05-04", contractor: "D'CO Solutions", contractValue: 60000, documentUrl: "/documents/LX-Renovation-2026.pdf" },
-    { outlet: "LWM - NC", nature: "Refurbishment + Conversion", completionEnd: "2025-03-14", contractor: "KD2 Interior Pte Ltd", contractValue: 1250000, documentUrl: null },
-    { outlet: "LWM - TP", nature: "Refurbishment", completionEnd: "2025-05-26", contractor: "Novelty Project Services PL", contractValue: 875000, documentUrl: null },
-    { outlet: "LWM - WM", nature: "Refurbishment + Conversion", completionEnd: "2025-04-30", contractor: "TECK GUANG INTERIOR DESIGN PL", contractValue: 624000, documentUrl: null },
-    { outlet: "SKR - AJ", nature: "Refurbishment", completionEnd: "2025-07-30", contractor: "D'CO Solutions", contractValue: 60000, documentUrl: null },
-    { outlet: "Dorra - J8", nature: "New Reno", completionEnd: "2025-08-16", contractor: "KD2 Interior Pte Ltd", contractValue: 450000, documentUrl: null },
-    { outlet: "VP - J8", nature: "New Reno", completionEnd: "2025-08-16", contractor: "Novelty Project Services PL", contractValue: 520000, documentUrl: null },
-    { outlet: "YN - PS", nature: "Refurbishment", completionEnd: "2025-08-11", contractor: "TECK GUANG INTERIOR DESIGN PL", contractValue: 380000, documentUrl: null },
-    { outlet: "SKR - AB", nature: "New Reno", completionEnd: "2025-09-26", contractor: "D'CO Solutions", contractValue: 290000, documentUrl: null },
-    { outlet: "VP - Sun Plaza", nature: "Reinstatement", completionEnd: "2025-09-21", contractor: "KD2 Interior Pte Ltd", contractValue: 215000, documentUrl: null },
-    { outlet: "JS - JA", nature: "Refurbishment", completionEnd: "2025-09-15", contractor: "Novelty Project Services PL", contractValue: 164000, documentUrl: null },
-  ];
+  // ========== Awarded tenders – real data (tender_award) ==========
+  let realAwardedTenders: any[] = [];
+  let awarded2026Count = 0;
+  try {
+    const awardedRes = await query(
+      `SELECT ta.tender_id, t.tender_name,
+              COALESCE(up.company_name, u.username) AS contractor_name,
+              ta.contract_value, ta.awarded_date
+       FROM tender_award ta
+       JOIN tender t ON ta.tender_id = t.tender_id
+       JOIN users u ON ta.winning_contractor_id = u.user_id
+       LEFT JOIN user_profile up ON up.user_id = u.user_id
+       WHERE t.is_deleted = false
+       ORDER BY ta.awarded_date DESC
+       LIMIT 15`
+    );
+    realAwardedTenders = awardedRes.rows.map((r) => ({
+      tender_id: r.tender_id,
+      tender_name: r.tender_name,
+      contractor_name: r.contractor_name,
+      contract_value: r.contract_value ? parseFloat(r.contract_value) : 0,
+      awarded_date: r.awarded_date,
+      document_url: null,
+    }));
 
-  const completed2026Count = awardedProjects.filter(p => p.completionEnd.startsWith("2026")).length;
-  const sortedAwarded = [...awardedProjects].sort((a, b) => new Date(b.completionEnd).getTime() - new Date(a.completionEnd).getTime());
-
-  const mockAwardedTenders = sortedAwarded.map((p, idx) => ({
-    tender_id: 200 + idx,
-    tender_name: `${p.outlet} – ${p.nature}`,
-    contractor_name: p.contractor,
-    contract_value: p.contractValue,
-    awarded_date: p.completionEnd,
-    document_url: p.documentUrl || null,
-  }));
+    const countRes = await query(
+      `SELECT COUNT(*) FROM tender_award WHERE EXTRACT(YEAR FROM awarded_date) = 2026`
+    );
+    awarded2026Count = parseInt(countRes.rows[0].count);
+  } catch (err) {
+    console.error("Failed to fetch awarded tenders:", err);
+  }
 
   // Notifications mock
   const mockNotifications = [
@@ -168,32 +173,44 @@ export async function GET(request: NextRequest) {
     },
   ];
 
-  // DLP summary
-  const upcomingDlpList = awardedProjects
-    .map(p => {
-      const dueDate = new Date(p.completionEnd);
-      dueDate.setFullYear(dueDate.getFullYear() + 1);
-      const dueDateStr = dueDate.toISOString().split('T')[0];
-      const daysLeft = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      return { outlet: p.outlet, dueDate: dueDateStr, daysLeft: Math.max(0, daysLeft) };
-    })
-    .filter(item => item.daysLeft > 0)
-    .sort((a, b) => a.daysLeft - b.daysLeft)
-    .slice(0, 15);
+  // ========== DLP summary – real data (tender.handover_date) ==========
+  // Empty until projects have a recorded handover_date — there's no "mark
+  // project handed over" feature yet, tracked separately from awarding.
+  let realDlpSummary = { activeCases: 0, nextDueDate: null as string | null, upcomingList: [] as any[] };
+  try {
+    const dlpRes = await query(
+      `SELECT t.tender_id, b.branch_name AS outlet,
+              (t.handover_date + (COALESCE(t.defect_liability_months, 12) || ' months')::interval)::date AS due_date
+       FROM tender t
+       JOIN branch b ON t.branch_id = b.branch_id
+       WHERE t.is_deleted = false AND t.handover_date IS NOT NULL`
+    );
+    const upcomingDlpList = dlpRes.rows
+      .map((r) => {
+        const dueDate = new Date(r.due_date);
+        const daysLeft = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        return { outlet: r.outlet, dueDate: r.due_date, daysLeft };
+      })
+      .filter((item) => item.daysLeft > 0)
+      .sort((a, b) => a.daysLeft - b.daysLeft)
+      .slice(0, 15);
 
-  const mockDlpSummary = {
-    activeCases: upcomingDlpList.length,
-    nextDueDate: upcomingDlpList[0]?.dueDate || null,
-    upcomingList: upcomingDlpList,
-  };
+    realDlpSummary = {
+      activeCases: upcomingDlpList.length,
+      nextDueDate: upcomingDlpList[0]?.dueDate || null,
+      upcomingList: upcomingDlpList,
+    };
+  } catch (err) {
+    console.error("Failed to fetch DLP summary:", err);
+  }
 
   return NextResponse.json(
     {
       userDisplayName,
-      totalCompletedProjects2026: completed2026Count,
+      totalCompletedProjects2026: awarded2026Count,
       activeTenders: realActiveTendersCount,
-      dlpSummary: mockDlpSummary,
-      awardedTenders: mockAwardedTenders,
+      dlpSummary: realDlpSummary,
+      awardedTenders: realAwardedTenders,
       notifications: mockNotifications,
     },
     { headers: corsHeaders }

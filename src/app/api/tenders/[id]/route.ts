@@ -8,6 +8,7 @@ import { canViewTenderWithParticipation, canViewDraftTender } from "@/lib/permis
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
 import { syncTenderToCalendar } from "@/lib/syncTenderToCalendar";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
+import { ROLE_IDS } from "@/lib/roles";
 import { z } from "zod";
 
 // ---------- OPTIONS (CORS preflight) ----------
@@ -54,17 +55,17 @@ export async function GET(
     return NextResponse.json({ error: "Tender not found" }, { status: 404, headers: corsHeaders });
   }
   const tender = basicResult.rows[0];
-  const userRole = (session.user as any).role_id;
+  const userRoleIds = (session.user as any).roleIds || [];
   const userId = (session.user as any).id;
 
   // Draft visibility
-  const canViewDraft = await canViewDraftTender(userRole);
-  if (tender.status_code === 'Draft' && !canViewDraft) {
+  const canViewDraft = await canViewDraftTender(userRoleIds);
+  if (tender.status_code === 'draft' && !canViewDraft) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }
 
   // Participation check
-  const allowed = await canViewTenderWithParticipation(tenderId, userId, userRole);
+  const allowed = await canViewTenderWithParticipation(tenderId, userId, userRoleIds);
   if (!allowed) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }
@@ -106,10 +107,32 @@ export async function GET(
     [tenderId]
   );
 
-  return NextResponse.json(fullResult.rows[0], { headers: corsHeaders });
+  const briefingRes = await query(
+    `SELECT id, briefing_date, description
+     FROM tender_briefing_dates
+     WHERE tender_id = $1
+     ORDER BY briefing_date ASC`,
+    [tenderId]
+  );
+
+  return NextResponse.json(
+    { ...fullResult.rows[0], briefing_dates: briefingRes.rows },
+    { headers: corsHeaders }
+  );
 }
 
-// ---------- PUT – update a tender (admin or content editor) ----------
+// Fields the admin tender-edit page treats as "metadata" (branch, dates, PM,
+// etc.) — gated to Admins only. Everything else in tenderUpdateSchema is
+// "content" (clauses) — gated to Admins or Legal Team. Kept in sync with the
+// `metadataFields` list in src/app/admin/tenders/[id]/page.tsx.
+const TENDER_METADATA_FIELDS = [
+  'tender_name', 'tender_description', 'status_id', 'branch_id', 'renovation_type_id',
+  'project_manager_id', 'project_manager_name', 'project_manager_email', 'project_manager_phone',
+  'tender_date', 'closing_date', 'renovation_start_date', 'renovation_end_date',
+  'briefing_dates',
+];
+
+// ---------- PUT – update a tender (admin: metadata + content; legal: content only) ----------
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -122,8 +145,10 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
   }
 
-  const userRole = (session.user as any).role_id;
-  if (userRole !== 1 && userRole !== 3) {
+  const userRoleIds = ((session.user as any).roleIds as number[]) || [];
+  const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+  const isLegal = userRoleIds.includes(ROLE_IDS.LEGAL_TEAM);
+  if (!isAdmin && !isLegal) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, request, "Non-authorized user attempted to update tender");
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }
@@ -138,6 +163,29 @@ export async function PUT(
     );
   }
   const tenderId = idResult.data.id;
+
+  // Peek at the raw body (before Zod defaults fill anything in) to know:
+  // (a) whether the client actually intended to touch briefing_dates —
+  //     tenderUpdateSchema defaults it to [] when the key is absent, which
+  //     would otherwise be indistinguishable from "clear all briefing dates".
+  // (b) whether this request touches any metadata field — non-admins (Legal)
+  //     may only ever submit content (clauses).
+  let briefingDatesProvided = false;
+  let touchesMetadata = false;
+  try {
+    const rawBody = await request.clone().json();
+    briefingDatesProvided = Object.prototype.hasOwnProperty.call(rawBody, 'briefing_dates');
+    touchesMetadata = TENDER_METADATA_FIELDS.some((field) =>
+      Object.prototype.hasOwnProperty.call(rawBody, field)
+    );
+  } catch {
+    // ignore - validateBody below will surface the JSON parse error properly
+  }
+
+  if (touchesMetadata && !isAdmin) {
+    await logAuthEvent("PERMISSION_DENIED", session.user.id, request, "Non-admin attempted to edit tender metadata");
+    return NextResponse.json({ error: "Only admins can edit tender metadata" }, { status: 403, headers: corsHeaders });
+  }
 
   // Validate request body (this includes sanitisation)
   const validation = await validateBody(request, tenderUpdateSchema);
@@ -173,8 +221,13 @@ export async function PUT(
     'technical_opening_time', 'commercial_opening_time'
   ];
 
+  // briefing_dates lives in a separate table (tender_briefing_dates), not a
+  // column on tender — handle it separately from the generic column loop below.
+  const briefingDates = briefingDatesProvided ? updates.briefing_dates : undefined;
+
   for (const [key, value] of Object.entries(updates)) {
     if (value === undefined) continue;
+    if (key === 'briefing_dates') continue;
     if (datetimeFields.includes(key)) {
       updateData[key] = toIsoOrNull(value);
     } else {
@@ -182,7 +235,7 @@ export async function PUT(
     }
   }
 
-  if (Object.keys(updateData).length === 0) {
+  if (Object.keys(updateData).length === 0 && briefingDates === undefined) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400, headers: corsHeaders });
   }
 
@@ -205,6 +258,27 @@ export async function PUT(
   values.push(tenderId);
 
   await query(`UPDATE tender SET ${setClauses.join(", ")} WHERE tender_id = $${idx}`, values);
+
+  // briefing_dates: replace the full set for this tender when provided.
+  if (briefingDates !== undefined) {
+    await query(`DELETE FROM tender_briefing_dates WHERE tender_id = $1`, [tenderId]);
+
+    if (briefingDates.length > 0) {
+      const briefingValues: any[] = [];
+      const placeholders: string[] = [];
+      let paramIndex = 1;
+      for (const briefing of briefingDates) {
+        briefingValues.push(tenderId, briefing.date, briefing.description || null);
+        placeholders.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2})`);
+        paramIndex += 3;
+      }
+      await query(
+        `INSERT INTO tender_briefing_dates (tender_id, briefing_date, description)
+         VALUES ${placeholders.join(', ')}`,
+        briefingValues
+      );
+    }
+  }
 
   const newDataRes = await query(`SELECT * FROM tender WHERE tender_id = $1`, [tenderId]);
   const newData = newDataRes.rows[0];
@@ -260,8 +334,8 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
   }
 
-  const userRole = (session.user as any).role_id;
-  if (userRole !== 1) {
+  const userRoleIds = ((session.user as any).roleIds as number[]) || [];
+  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, request, "Non-admin attempted to delete tender");
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }

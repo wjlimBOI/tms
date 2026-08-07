@@ -16,6 +16,7 @@ const createSchema = z.object({
   description: z.string().min(1).max(500),
   quantity: z.number().nonnegative().nullable().optional(),
   unit: z.string().min(1).max(20),
+  rate: z.number().nonnegative().nullable().optional(),
   sort_order: z.number().int().min(0).default(0),
 });
 
@@ -24,6 +25,7 @@ const updateSchema = z.object({
   description: z.string().min(1).max(500).optional(),
   quantity: z.number().nonnegative().nullable().optional(),
   unit: z.string().min(1).max(20).optional(),
+  rate: z.number().nonnegative().nullable().optional(),
   sort_order: z.number().int().min(0).optional(),
   parent_item_id: z.number().int().positive().nullable().optional(),
 });
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { tender_id, category_id, parent_item_id, description, quantity, unit, sort_order } = validation.data;
+  const { tender_id, category_id, parent_item_id, description, quantity, unit, rate, sort_order } = validation.data;
 
   const sanitisedDescription = sanitize(description);
   const sanitisedUnit = sanitize(unit);
@@ -107,6 +109,7 @@ export async function POST(request: NextRequest) {
         description: sanitisedDescription,
         quantity: quantity ?? null,
         unit: sanitisedUnit,
+        rate: rate ?? null,
         sort_order: sort_order ?? 0,
       },
     });
@@ -177,7 +180,7 @@ export async function PUT(request: NextRequest) {
     );
   }
 
-  const { item_id, description, quantity, unit, sort_order, parent_item_id } = validation.data;
+  const { item_id, description, quantity, unit, rate, sort_order, parent_item_id } = validation.data;
 
   // Fetch old data for audit
   const oldItem = await prisma.bq_template_items.findUnique({
@@ -204,6 +207,10 @@ export async function PUT(request: NextRequest) {
   if (unit !== undefined && unit !== oldItem.unit) {
     updateData.unit = sanitize(unit);
     changedFields.push('unit');
+  }
+  if (rate !== undefined && Number(rate) !== Number(oldItem.rate)) {
+    updateData.rate = rate === null ? null : rate;
+    changedFields.push('rate');
   }
   if (sort_order !== undefined && sort_order !== oldItem.sort_order) {
     updateData.sort_order = sort_order;
@@ -425,7 +432,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error: any) {
     console.error("Error reordering items:", error);
     return NextResponse.json(
-      { error: error.message || "Database error" },
+      { error: "Database error" },
       { status: 500, headers: corsHeaders }
     );
   }

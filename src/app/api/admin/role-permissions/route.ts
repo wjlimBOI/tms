@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Fetch all role-permission mappings grouped by role_id
-    const rolePermissions = await prisma.role_permission.findMany({
+    const rolePermissions = await prisma.role_permissions.findMany({
       select: {
         role_id: true,
         permission_id: true,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Fetch the old permissions before deletion (for audit)
-    const oldPermissions = await prisma.role_permission.findMany({
+    const oldPermissions = await prisma.role_permissions.findMany({
       where: { role_id },
       select: { permission_id: true },
     });
@@ -122,12 +122,12 @@ export async function POST(request: NextRequest) {
 
     // 2. Replace permissions in a transaction
     await prisma.$transaction(async (tx) => {
-      await tx.role_permission.deleteMany({
+      await tx.role_permissions.deleteMany({
         where: { role_id },
       });
 
       for (const permId of validPermissionIds) {
-        await tx.role_permission.create({
+        await tx.role_permissions.create({
           data: {
             role_id,
             permission_id: permId,

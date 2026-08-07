@@ -26,7 +26,8 @@ export async function POST(req: Request) {
     );
     if (reqRes.rows.length === 0) throw new Error("Request or chain not found");
     const reqData = reqRes.rows[0];
-    if (reqData.role_id !== (session.user as any).role_id) {
+    const userRoleIds = (session.user as any).roleIds || [];
+    if (!userRoleIds.includes(reqData.role_id)) {
       throw new Error("You are not authorized to approve this step");
     }
     if (decision === 'approve' && !reqData.can_approve) throw new Error("Approval not allowed at this step");
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     await client.query("ROLLBACK");
     console.error(error);
-    return NextResponse.json({ error: error.message || "Internal error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   } finally {
     client.release();
   }

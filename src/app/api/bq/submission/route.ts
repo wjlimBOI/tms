@@ -6,6 +6,8 @@ import { query, getClient } from "@/lib/db";
 import { bqSubmissionCreateSchema, bqSubmissionUpdateSchema } from "@/lib/validation";
 import { logInsert, logUpdate, logAuthEvent } from "@/lib/audit";
 import { canEditSubmission } from "@/lib/permissions";
+import { ROLE_IDS } from "@/lib/roles";
+import { parsePagination, paginationMeta } from "@/lib/pagination";
 
 // GET – fetch BQ submissions for current user
 export async function GET(req: Request) {
@@ -15,38 +17,52 @@ export async function GET(req: Request) {
   }
 
   const userId = (session.user as any).id;
-  const userRole = (session.user as any).role_id;
+  const userRoleIds = (session.user as any).roleIds || [];
+  const pagination = parsePagination(new URL(req.url).searchParams);
 
-  let sql = `
-    SELECT 
-      ts.submission_id,
-      ts.tender_id,
-      ts.round_no,
-      ts.status,
-      ts.bq_name,
-      ts.updated_at,
-      t.tender_name,
-      b.branch_name,
-      br.brand_name
+  let whereClause = `WHERE ts.is_deleted = false`;
+  const params: any[] = [];
+
+  if (userRoleIds.includes(ROLE_IDS.CONTRACTOR)) {
+    // Contractors see only their own submissions
+    whereClause += ` AND ts.contractor_id = $1`;
+    params.push(userId);
+  }
+  // Admins see all — this is the unbounded case pagination targets.
+
+  const baseFrom = `
     FROM tender_submission ts
     JOIN tender t ON ts.tender_id = t.tender_id
     JOIN branch b ON t.branch_id = b.branch_id
     JOIN brand br ON b.brand_id = br.brand_id
-    WHERE ts.is_deleted = false
+    ${whereClause}
   `;
-  const params: any[] = [];
 
-  if (userRole === 13) {
-    // Contractors see only their own submissions
-    sql += ` AND ts.contractor_id = $1`;
-    params.push(userId);
+  if (!pagination) {
+    const result = await query(
+      `SELECT ts.submission_id, ts.tender_id, ts.round_no, ts.status, ts.bq_name,
+              ts.updated_at, t.tender_name, b.branch_name, br.brand_name
+       ${baseFrom}
+       ORDER BY ts.updated_at DESC`,
+      params
+    );
+    return NextResponse.json(result.rows);
   }
-  // Admins see all
 
-  sql += ` ORDER BY ts.updated_at DESC`;
+  const countRes = await query(`SELECT COUNT(*) AS total ${baseFrom}`, params);
+  const total = parseInt(countRes.rows[0].total, 10);
 
-  const result = await query(sql, params);
-  return NextResponse.json(result.rows);
+  const dataParams = [...params, pagination.limit, pagination.offset];
+  const result = await query(
+    `SELECT ts.submission_id, ts.tender_id, ts.round_no, ts.status, ts.bq_name,
+            ts.updated_at, t.tender_name, b.branch_name, br.brand_name
+     ${baseFrom}
+     ORDER BY ts.updated_at DESC
+     LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+    dataParams
+  );
+
+  return NextResponse.json({ data: result.rows, ...paginationMeta(pagination, total) });
 }
 
 // POST – create a new BQ submission (auto‑generates title)
@@ -54,8 +70,8 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const userRole = (session.user as any).role_id;
-  if (userRole !== 13 && userRole !== 1) {
+  const userRoleIds = (session.user as any).roleIds || [];
+  if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR) && !userRoleIds.includes(ROLE_IDS.ADMIN)) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, req, `User ${session.user.id} attempted to create BQ without permission`);
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -126,7 +142,8 @@ export async function POST(req: Request) {
     // ------------------------------
     if (copy_from_template) {
       const templateItems = await client.query(
-        `SELECT * FROM bq_template_item WHERE tender_id = $1 AND is_deleted = false`,
+        `SELECT item_id, category_id, description, unit, sort_order, parent_item_id, quantity, rate
+         FROM bq_template_items WHERE tender_id = $1`,
         [tender_id]
       );
 
@@ -138,48 +155,52 @@ export async function POST(req: Request) {
         );
       }
 
-      // Insert categories (deduplicated) – skip sort_order
+      // Insert enabled categories (deduplicated), preserving the tender's configured order
       const uniqueCategories = [...new Set(templateItems.rows.map(item => item.category_id))];
+      const catOrderRes = await client.query(
+        `SELECT category_id, sort_order FROM tender_work_category WHERE tender_id = $1`,
+        [tender_id]
+      );
+      const catOrder = new Map(catOrderRes.rows.map((r: any) => [r.category_id, r.sort_order]));
       for (const catId of uniqueCategories) {
         await client.query(
-          `INSERT INTO bq_submission_categories (submission_id, category_id)
-           VALUES ($1, $2)
+          `INSERT INTO submission_category (submission_id, category_id, sort_order)
+           VALUES ($1, $2, $3)
            ON CONFLICT (submission_id, category_id) DO NOTHING`,
-          [submission_id, catId]
+          [submission_id, catId, catOrder.get(catId) ?? 0]
         );
       }
 
-      // Clone line items into bq_line_item (for manual editing)
-      for (const item of templateItems.rows) {
-        await client.query(
+      // Clone line items into bq_line_item, preserving parent/child hierarchy.
+      // Top-level items first so child items can reference the new cloned IDs.
+      const oldToNewId = new Map<number, number>();
+      const topLevel = templateItems.rows.filter((i: any) => !i.parent_item_id);
+      const children = templateItems.rows.filter((i: any) => i.parent_item_id);
+
+      const insertClonedItem = async (item: any, newParentId: number | null) => {
+        const quantity = item.quantity ?? 0;
+        const unit_price = item.rate ?? 0;
+        const amount = quantity * unit_price;
+        const res = await client.query(
           `INSERT INTO bq_line_item
              (submission_id, category_id, parent_item_id, location, description, specifications,
               brand, quantity, unit, unit_price, discount, amount, sort_order)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-                   (SELECT COALESCE(MAX(sort_order),0)+1 FROM bq_line_item WHERE submission_id=$1 AND category_id=$2))`,
-          [
-            submission_id,
-            item.category_id,
-            null,
-            item.location,
-            item.description,
-            item.specifications,
-            item.brand,
-            item.quantity,
-            item.unit,
-            item.unit_price,
-            item.discount,
-            item.amount,
-          ]
+           VALUES ($1, $2, $3, '', $4, '', '', $5, $6, $7, 0, $8, $9)
+           RETURNING line_item_id`,
+          [submission_id, item.category_id, newParentId, item.description, quantity, item.unit, unit_price, amount, item.sort_order || 0]
         );
-      }
+        oldToNewId.set(item.item_id, res.rows[0].line_item_id);
+      };
+
+      for (const item of topLevel) await insertClonedItem(item, null);
+      for (const item of children) await insertClonedItem(item, oldToNewId.get(item.parent_item_id) ?? null);
     } else {
-      // Manual category selection – skip sort_order
+      // Manual category selection
       if (category_ids && category_ids.length > 0) {
         for (const cat_id of category_ids) {
           await client.query(
-            `INSERT INTO bq_submission_categories (submission_id, category_id)
-             VALUES ($1, $2)
+            `INSERT INTO submission_category (submission_id, category_id, sort_order)
+             VALUES ($1, $2, 0)
              ON CONFLICT (submission_id, category_id) DO NOTHING`,
             [submission_id, cat_id]
           );
@@ -225,7 +246,7 @@ export async function PUT(req: Request) {
   const { submission_id, ...fields } = validation.data;
   const { bq_name, ...allowedFields } = fields; // bq_name is not allowed to update
 
-  const canEdit = await canEditSubmission(submission_id, session.user.id, (session.user as any).role_id);
+  const canEdit = await canEditSubmission(submission_id, session.user.id, (session.user as any).roleIds || []);
   if (!canEdit) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, req, `User ${session.user.id} attempted to update BQ header ${submission_id}`);
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -42,16 +42,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const permissions = await prisma.permission.findMany({
-      orderBy: [{ module: 'asc' }, { permission_name: 'asc' }],
+    const permissions = await prisma.permissions.findMany({
+      orderBy: [{ resource: 'asc' }, { description: 'asc' }],
       select: {
         permission_id: true,
-        permission_code: true,
-        permission_name: true,
-        module: true,
+        resource: true,
+        action: true,
+        description: true,
       },
     });
-    return NextResponse.json(permissions, { headers: corsHeaders });
+    // Preserve the API's original response shape (permission_code/permission_name/module)
+    // so the frontend (admin/security/page.tsx) needs no changes.
+    const shaped = permissions.map((p) => ({
+      permission_id: p.permission_id,
+      permission_code: p.action,
+      permission_name: p.description,
+      module: p.resource,
+    }));
+    return NextResponse.json(shaped, { headers: corsHeaders });
   } catch (error) {
     console.error("Failed to fetch permissions:", error);
     return NextResponse.json(
@@ -100,9 +108,9 @@ export async function POST(request: NextRequest) {
   const { permission_code, permission_name, module } = validation.data;
 
   try {
-    // Check for duplicate permission_code
-    const existing = await prisma.permission.findUnique({
-      where: { permission_code },
+    // Check for duplicate permission_code (globally unique, matching the old contract)
+    const existing = await prisma.permissions.findFirst({
+      where: { action: permission_code },
     });
     if (existing) {
       return NextResponse.json(
@@ -111,19 +119,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newPermission = await prisma.permission.create({
+    const newPermission = await prisma.permissions.create({
       data: {
-        permission_code,
-        permission_name,
-        module,
+        resource: module,
+        action: permission_code,
+        description: permission_name,
       },
     });
+    const shaped = {
+      permission_id: newPermission.permission_id,
+      permission_code: newPermission.action,
+      permission_name: newPermission.description,
+      module: newPermission.resource,
+    };
 
     // Audit log
     await logInsert(
-      "permission",
+      "permissions",
       newPermission.permission_id,
-      newPermission,
+      shaped,
       session.user.id,
       request,
       {
@@ -135,7 +149,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    return NextResponse.json(newPermission, { status: 201, headers: corsHeaders });
+    return NextResponse.json(shaped, { status: 201, headers: corsHeaders });
   } catch (error) {
     console.error("Error creating permission:", error);
     return NextResponse.json(

@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tender Management System (TMS)
 
-## Getting Started
+Internal system for managing renovation/fit-out tenders: publishing tenders,
+contractor bid submissions (BQ line items), stage-based review workflow,
+awards, and extensions.
 
-First, run the development server:
+**Stack:** Next.js 16 (App Router) · NextAuth v4 (credentials/JWT) · Prisma 5
++ raw `pg` (see note below) · PostgreSQL
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Getting started
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. **Set up environment variables** — copy `.env.example` if present, or
+   create `.env` with at least:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   | Variable | Required | Purpose |
+   |---|---|---|
+   | `DATABASE_URL` | Yes | Postgres connection string |
+   | `NEXTAUTH_SECRET` | Yes | NextAuth JWT signing secret |
+   | `NEXTAUTH_URL` | Yes | Base URL used in emailed links (password reset, notifications) |
+   | `LOCAL_ENCRYPTION_KEY` | Yes | Symmetric key for `src/lib/encryption.ts` |
+   | `ALLOWED_ORIGINS` | No | Comma-separated CORS allowlist (defaults to localhost) |
+   | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | For email features | Outbound mail (stage notifications, tender requests, password reset) |
+   | `TEAM_EMAIL` | For tender-requests | Notification recipient |
+   | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | No | Enables rate limiting (login, password reset, AI description generation); without these, rate limiting is a no-op |
+   | `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_REQUESTS` | No | Rate limit tuning (defaults: 60000ms / 100 requests) |
+   | `ANTHROPIC_API_KEY` | For AI description generation | Powers "Generate with AI" on the tender description field (`src/app/api/tenders/generate-description`) |
 
-## Learn More
+3. **Set up the database**
+   ```bash
+   npx prisma generate
+   npx prisma db push   # or apply migrations if you have a migration history
+   ```
+   `prisma/schema.prisma` is hand-maintained against the real DB — if you
+   suspect drift, `npx prisma db pull` against a real environment and diff
+   before trusting the file blindly.
 
-To learn more about Next.js, take a look at the following resources:
+4. **Run the dev server**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. **Run tests**
+   ```bash
+   npm test
+   ```
+   Vitest-based; still early (see `src/lib/roles.test.ts`,
+   `src/lib/permissions.test.ts`). Most coverage still needs to be written —
+   don't take a green test run as proof the app works end-to-end.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Auth & authorization model
 
-## Deploy on Vercel
+See **[`docs/rbac.md`](docs/rbac.md)** — this is required reading before
+touching any authorization code. Short version: role IDs are canonical via
+the `roles` / `user_roles` / `permissions` / `role_permissions` tables;
+named constants live in `src/lib/roles.ts` (`ROLE_IDS`). Do not hardcode
+numeric role IDs in new code.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Data access
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Two data-access layers coexist: Prisma Client (`src/lib/prisma.ts`) and a
+raw `pg.Pool` (`src/lib/db.ts`, exposed as `query`/`getClient`). There's no
+firm rule yet for which to use where — check how the surrounding route
+already does it before picking one for a new endpoint. Don't assume
+`prisma/schema.prisma` is a complete picture of the live database; verify
+against the real DB when in doubt.
+
+## API conventions
+
+See **[`docs/api-conventions.md`](docs/api-conventions.md)** for the
+versioning strategy and the pagination convention (`src/lib/pagination.ts`)
+new list endpoints should use.
+
+## Known architectural notes
+
+- `TMS-Architecture-Security-Audit.md` (repo root) has the full findings
+  history and rationale behind decisions like the RBAC consolidation.
+- `docs/rbac.md` tracks the RBAC migration state and what's still open.
+- Contract clause text (`tender.clauses`) is now sourced from a versioned
+  `contract_template` table at tender-creation time, not a schema default —
+  see `contract_template` in `prisma/schema.prisma` and the `POST` handler
+  in `src/app/api/tenders/route.ts`.
