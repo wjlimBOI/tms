@@ -9,7 +9,7 @@ import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
 import { syncTenderToCalendar } from "@/lib/syncTenderToCalendar";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
-import { autoCloseExpiredTenders } from "@/lib/tenderLifecycle";
+import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 import { z } from "zod";
 
 // ---------- OPTIONS (CORS preflight) ----------
@@ -44,7 +44,7 @@ export async function GET(
   }
   const tenderId = idResult.data.id;
 
-  await autoCloseExpiredTenders();
+  await applyScheduledTenderTransitions();
 
   // Check existence and status
   const basicResult = await query(

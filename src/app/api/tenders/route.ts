@@ -13,7 +13,7 @@ import { logInsert, logAuthEvent } from "@/lib/audit";
 import { syncTenderToCalendar } from "@/lib/syncTenderToCalendar";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
-import { autoCloseExpiredTenders } from "@/lib/tenderLifecycle";
+import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 
 // ---------- OPTIONS (CORS preflight) ----------
 export async function OPTIONS(request: NextRequest) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
   }
 
-  await autoCloseExpiredTenders();
+  await applyScheduledTenderTransitions();
 
   const searchParams = request.nextUrl.searchParams;
   const queryResult = tenderListQuerySchema.safeParse({

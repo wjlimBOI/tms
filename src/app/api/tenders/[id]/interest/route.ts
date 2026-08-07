@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
 import { logInsert } from "@/lib/audit";
-import { autoCloseExpiredTenders } from "@/lib/tenderLifecycle";
+import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 import { z } from "zod";
 
 const interestBodySchema = z.object({
@@ -93,7 +93,7 @@ export async function POST(
       // no body / invalid JSON — interest_note is optional, proceed without it
     }
 
-    await autoCloseExpiredTenders();
+    await applyScheduledTenderTransitions();
     const tenderRes = await query(
       `SELECT ts.status_code FROM tender t
        JOIN tender_status ts ON t.status_id = ts.status_id

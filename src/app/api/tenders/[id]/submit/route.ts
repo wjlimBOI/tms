@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
-import { autoCloseExpiredTenders } from "@/lib/tenderLifecycle";
+import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 import { z } from "zod";
 
 const mainTendererSchema = z.object({
@@ -125,7 +125,7 @@ export async function POST(
     } = parsed.data;
 
     // 4. Check tender exists and is open
-    await autoCloseExpiredTenders();
+    await applyScheduledTenderTransitions();
     const tenderCheck = await query(
       `SELECT ts.status_code, t.closing_date
        FROM tender t

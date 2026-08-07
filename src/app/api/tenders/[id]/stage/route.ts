@@ -6,7 +6,7 @@ import { query, getClient } from "@/lib/db";
 import { sendStageNotificationEmail } from "@/lib/email";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
-import { autoCloseExpiredTenders } from "@/lib/tenderLifecycle";
+import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 
 // Map current stage -> allowed roles to advance (role_id)
 // Stage 2 (Closed) has no entry: Closed → Awarded is handled exclusively by
@@ -80,11 +80,11 @@ export async function PUT(
       );
     }
 
-    // Apply any pending closing-date auto-close before reading the current
-    // stage, so a manual advance/revert never races against a stale
-    // pre-expiry snapshot (no cron exists — this app-wide check is the only
-    // place that transition happens; see src/lib/tenderLifecycle.ts).
-    await autoCloseExpiredTenders();
+    // Apply any pending tender_date/closing_date auto-transitions before
+    // reading the current stage, so a manual advance/revert never races
+    // against a stale snapshot (no cron exists — this app-wide check is the
+    // only place these transitions happen; see src/lib/tenderLifecycle.ts).
+    await applyScheduledTenderTransitions();
 
     // 3, 5-7. Fetch (with row lock), validate, and update the stage inside a
     // transaction so the award-revert check below can't race a concurrent
