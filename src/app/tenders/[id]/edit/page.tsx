@@ -109,8 +109,8 @@ const SingleLineInput = memo(
     readOnly?: boolean;
   }) => {
     const inputClass =
-      "w-full min-w-0 border-b border-gray-300 dark:border-gray-600 pt-1 pb-3 text-black dark:text-white bg-transparent focus:outline-none focus:border-cyan-500 dark:focus:border-cyan-400 transition-colors";
-    const labelClass = "font-bold block mb-1 text-slate-800 dark:text-white text-sm sm:text-base";
+      "w-full min-w-0 border-b border-gray-300 pt-1 pb-3 text-black bg-transparent focus:outline-none focus:border-cyan-500 transition-colors";
+    const labelClass = "font-bold block mb-1 text-slate-800 text-sm sm:text-base";
     return (
       <div className="print-field-row flex flex-col space-y-1 w-full">
         <label className={labelClass}>{label}</label>
@@ -143,10 +143,10 @@ const FillableAddress = memo(
     readOnly?: boolean;
   }) => {
     const textareaClass =
-      "w-full border-b border-gray-300 dark:border-gray-600 min-h-[80px] pt-1 pb-3 resize-y print:hidden text-black dark:text-white bg-transparent focus:outline-none focus:border-cyan-500 dark:focus:border-cyan-400 transition-colors";
+      "w-full border-b border-gray-300 min-h-[80px] pt-1 pb-3 resize-y print:hidden text-black bg-transparent focus:outline-none focus:border-cyan-500 transition-colors";
     return (
       <div className="print-field-row flex flex-col space-y-1 w-full mt-4 print:mt-6">
-        <label className="text-xs font-bold text-slate-800 dark:text-white uppercase print:text-black print:text-xs">{label}</label>
+        <label className="text-xs font-bold text-slate-800 uppercase print:text-black print:text-xs">{label}</label>
         <textarea
           className={textareaClass}
           value={value}
@@ -532,23 +532,23 @@ export default function TenderEditPage() {
     let bgColor, borderColor, icon;
     switch (type) {
       case "success":
-        bgColor = "bg-emerald-50 dark:bg-emerald-900/20";
+        bgColor = "bg-emerald-50";
         borderColor = "border-emerald-500";
         icon = "✅";
         break;
       case "error":
-        bgColor = "bg-red-50 dark:bg-red-900/20";
+        bgColor = "bg-red-50";
         borderColor = "border-red-500";
         icon = "⚠️";
         break;
       case "warning":
-        bgColor = "bg-amber-50 dark:bg-amber-900/20";
+        bgColor = "bg-amber-50";
         borderColor = "border-amber-500";
         icon = "⚠️";
         break;
       case "info":
       default:
-        bgColor = "bg-blue-50 dark:bg-blue-900/20";
+        bgColor = "bg-blue-50";
         borderColor = "border-blue-500";
         icon = "ℹ️";
         break;
@@ -559,13 +559,13 @@ export default function TenderEditPage() {
           <div className="flex items-start gap-4">
             <span className="text-3xl">{icon}</span>
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{message}</p>
-              {details && <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{details}</p>}
+              <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+              <p className="text-sm text-gray-700 mt-1">{message}</p>
+              {details && <p className="text-xs text-gray-600 mt-2">{details}</p>}
             </div>
             <button
               onClick={() => setAlert(null)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-gray-500 hover:text-gray-700"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -575,7 +575,7 @@ export default function TenderEditPage() {
           <div className="mt-4 flex justify-end">
             <button
               onClick={() => setAlert(null)}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition"
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition"
             >
               Got it
             </button>
@@ -588,10 +588,10 @@ export default function TenderEditPage() {
   // ===== Loading & error states =====
   if (sessionStatus === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">Loading tender…</p>
+          <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-500">Loading tender…</p>
         </div>
       </div>
     );
@@ -599,9 +599,9 @@ export default function TenderEditPage() {
   // If error and no tender, show fallback (modal is rendered separately)
   if (error || !tender) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
         {renderAlertModal()}
-        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 p-6 rounded-xl max-w-md w-full">
+        <div className="bg-red-50 border border-red-200 text-red-800 p-6 rounded-xl max-w-md w-full">
           <p className="font-bold mb-1">Error</p>
           <p className="text-sm">{error || "Tender not found"}</p>
           <button onClick={() => router.back()} className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors">
@@ -660,18 +660,18 @@ export default function TenderEditPage() {
     lines.push(`<div><span class='font-semibold'>• Anticipated Award of Contract:</span> To be confirmed</div>`);
 
     EXTRA_DATE_NOTES.forEach((note) => {
-      const className = note.includes("*") ? "text-amber-700 dark:text-amber-500 mt-2" : "text-slate-700 dark:text-gray-300 mt-2";
+      const className = note.includes("*") ? "text-amber-700 mt-2" : "text-slate-700 mt-2";
       lines.push(`<div class='${className}'>${note}</div>`);
     });
 
-    return `<div class='grid grid-cols-1 gap-2 mt-2 text-slate-800 dark:text-gray-200'>${lines.join("")}</div>`;
+    return `<div class='grid grid-cols-1 gap-2 mt-2 text-slate-800'>${lines.join("")}</div>`;
   };
 
   // ========== TENDER ENQUIRIES (clause 4) ==========
   const renderTenderEnquiries = () => (
     <div className="critical-clause mb-3 break-inside-avoid-page">
-      <div className="font-bold text-slate-800 dark:text-white">4) TENDER ENQUIRIES</div>
-      <div className="ml-4 text-slate-700 dark:text-gray-300 space-y-1">
+      <div className="font-bold text-slate-800">4) TENDER ENQUIRIES</div>
+      <div className="ml-4 text-slate-700 space-y-1">
         <p>Any enquiries regarding the Tender Documents should be referred to in writing to:</p>
         <p>
           <strong>{pmName}</strong>
@@ -699,13 +699,13 @@ export default function TenderEditPage() {
 
   const renderTerminologies = () => (
     <div className="mb-2 break-inside-avoid-page">
-      <div className="font-bold text-slate-800 dark:text-white">2) TERMINOLOGIES</div>
-      <div className="ml-4 text-slate-700 dark:text-gray-300">The Terms “Company” in the contract shall mean {clientName}.</div>
+      <div className="font-bold text-slate-800">2) TERMINOLOGIES</div>
+      <div className="ml-4 text-slate-700">The Terms “Company” in the contract shall mean {clientName}.</div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white print:bg-white">
+    <div className="min-h-screen bg-white text-slate-900 print:bg-white">
       {renderAlertModal()}
       <PrintDateCleanup />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 print:py-0">
@@ -744,11 +744,11 @@ export default function TenderEditPage() {
         </div>
 
         {/* --- TOP ACTION BAR --- */}
-        <div className="print:hidden flex flex-wrap items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="print:hidden flex flex-wrap items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+              className="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-medium uppercase tracking-wide">Back</span>
@@ -756,7 +756,7 @@ export default function TenderEditPage() {
           </div>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-slate-300 rounded hover:bg-slate-100 transition-colors"
           >
             <Printer className="w-4 h-4" />
             Print
@@ -767,8 +767,8 @@ export default function TenderEditPage() {
         <div className="flex flex-col md:flex-row gap-8 print:block">
           {/* Sidebar */}
           <aside className="hidden md:block w-64 flex-shrink-0 sticky top-24 self-start print:hidden">
-            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-2xl border border-slate-200/50 dark:border-slate-800/50 p-4 shadow-lg">
-              <h3 className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-3">Contents</h3>
+            <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200/50 p-4 shadow-lg">
+              <h3 className="text-xs font-semibold uppercase text-slate-500 mb-3">Contents</h3>
               <nav className="space-y-1">
                 {[
                   { id: "project-team", label: "Project Team" },
@@ -783,8 +783,8 @@ export default function TenderEditPage() {
                     onClick={() => scrollTo(item.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
                       activeSection === item.id
-                        ? "bg-cyan-50 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 font-medium"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        ? "bg-cyan-50 text-cyan-700 font-medium"
+                        : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
                     {item.label}
@@ -798,16 +798,16 @@ export default function TenderEditPage() {
             {/* ========== SCREEN HEADER ========== */}
             <div className="print:hidden mb-8">
               <div className="text-center">
-                <p className="text-5xl sm:text-6xl font-extrabold uppercase tracking-wider text-slate-800 dark:text-white">
+                <p className="text-5xl sm:text-6xl font-extrabold uppercase tracking-wider text-slate-800">
                   TENDER DOCUMENT
                 </p>
-                <p className="text-lg font-medium text-slate-600 dark:text-slate-400 mt-1">Tender Reference: {tenderRef}</p>
+                <p className="text-lg font-medium text-slate-600 mt-1">Tender Reference: {tenderRef}</p>
                 <hr className="border-t-2 border-amber-600 w-24 mx-auto my-4" />
-                <div className="text-2xl sm:text-3xl font-light text-slate-800 dark:text-white">
+                <div className="text-2xl sm:text-3xl font-light text-slate-800">
                   <p>Project: {renovationType}</p>
                   <p>For {clientName}</p>
                 </div>
-                <div className="text-base sm:text-lg font-medium text-slate-600 dark:text-slate-300 mt-2">
+                <div className="text-base sm:text-lg font-medium text-slate-600 mt-2">
                   <p>Location:</p>
                   <p className="whitespace-pre-line">{branchAddress}</p>
                 </div>
@@ -817,64 +817,64 @@ export default function TenderEditPage() {
             {/* PROJECT TEAM */}
             <div
               id="project-team-card"
-              className="border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/30 rounded-xl p-4 sm:p-6 lg:p-8 shadow-sm print:border-none print:bg-white print:shadow-none"
+              className="border border-slate-200/80 bg-slate-50/30 rounded-xl p-4 sm:p-6 lg:p-8 shadow-sm print:border-none print:bg-white print:shadow-none"
             >
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-6 print:text-xl print:mb-6">PROJECT TEAM</h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-6 print:text-xl print:mb-6">PROJECT TEAM</h2>
               <div className="project-team-grid-wrapper grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 print:grid-cols-2 print:gap-4">
                 <div className="space-y-4 print:space-y-2">
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Company
                     </label>
-                    <span className="text-sm sm:text-base font-semibold text-slate-800 dark:text-white print:text-[10.5pt] print:font-normal">
+                    <span className="text-sm sm:text-base font-semibold text-slate-800 print:text-[10.5pt] print:font-normal">
                       {clientName}
                     </span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Address
                     </label>
-                    <span className="text-sm sm:text-base text-slate-800 dark:text-white print:text-[10.5pt]">{companyAddress}</span>
+                    <span className="text-sm sm:text-base text-slate-800 print:text-[10.5pt]">{companyAddress}</span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Attention
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black break-words">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black break-words">
                       {pmName}
                     </span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Email
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black break-words">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black break-words">
                       {pmEmail}
                     </span>
                   </div>
                 </div>
                 <div className="space-y-4 print:space-y-2">
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Mobile
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black">
                       {pmPhone}
                     </span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Telephone
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black">
                       {companyTel}
                     </span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Fax
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black">
                       {companyFax}
                     </span>
                   </div>
@@ -888,11 +888,11 @@ export default function TenderEditPage() {
               ref={(el) => {
                 sectionsRef.current["critical-considerations"] = el;
               }}
-              className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden print:border-none print:bg-white print:shadow-none bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl overflow-hidden print:border-none print:bg-white print:shadow-none bg-white/60 backdrop-blur-sm"
             >
               <button
                 onClick={() => setAccordionOpen(!accordionOpen)}
-                className="w-full flex justify-between items-center p-4 font-bold text-lg text-slate-800 dark:text-white print:hidden"
+                className="w-full flex justify-between items-center p-4 font-bold text-lg text-slate-800 print:hidden"
               >
                 <span>SCHEDULE OF CRITICAL PROJECT CONSIDERATIONS</span>
                 <span className="ml-4">{accordionOpen ? "▲" : "▼"}</span>
@@ -906,7 +906,7 @@ export default function TenderEditPage() {
                     if (clause.title === "2) CRITICAL DATES") {
                       return (
                         <div key={idx} className="critical-clause mb-3 break-inside-avoid-page">
-                          <div className="font-bold text-slate-800 dark:text-white">2) CRITICAL DATES</div>
+                          <div className="font-bold text-slate-800">2) CRITICAL DATES</div>
                           <div className="ml-4" dangerouslySetInnerHTML={{ __html: generateCriticalDatesHtml(tender) }} />
                         </div>
                       );
@@ -917,8 +917,8 @@ export default function TenderEditPage() {
                       const description = clause.description.replace(/<tender title>/g, tenderName).replace(/<date>/g, closingDate);
                       return (
                         <div key={idx} className="critical-clause mb-3 break-inside-avoid-page">
-                          <div className="font-bold text-slate-800 dark:text-white">3) SUBMISSION OF TENDER</div>
-                          <div className="ml-4 text-slate-700 dark:text-gray-300" style={{ whiteSpace: "pre-wrap" }}>
+                          <div className="font-bold text-slate-800">3) SUBMISSION OF TENDER</div>
+                          <div className="ml-4 text-slate-700" style={{ whiteSpace: "pre-wrap" }}>
                             {description}
                           </div>
                         </div>
@@ -929,8 +929,8 @@ export default function TenderEditPage() {
                     }
                     return (
                       <div key={idx} className="critical-clause mb-3 break-inside-avoid-page">
-                        <div className="font-bold text-slate-800 dark:text-white">{clause.title}</div>
-                        <div className="ml-4 text-slate-700 dark:text-gray-300 whitespace-pre-wrap">{clause.description}</div>
+                        <div className="font-bold text-slate-800">{clause.title}</div>
+                        <div className="ml-4 text-slate-700 whitespace-pre-wrap">{clause.description}</div>
                       </div>
                     );
                   })}
@@ -944,13 +944,13 @@ export default function TenderEditPage() {
               ref={(el) => {
                 sectionsRef.current["scope-terms"] = el;
               }}
-              className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
             >
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-xl">SCOPE OF CONTRACT</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-xl">SCOPE OF CONTRACT</h2>
               {scopeClauses.map((clause, i) => (
                 <div key={i} className="mb-3 break-inside-avoid-page">
-                  <div className="font-bold text-slate-800 dark:text-white">{clause.title}</div>
-                  <div className="ml-4 text-slate-700 dark:text-gray-300">{clause.description}</div>
+                  <div className="font-bold text-slate-800">{clause.title}</div>
+                  <div className="ml-4 text-slate-700">{clause.description}</div>
                 </div>
               ))}
             </div>
@@ -958,9 +958,9 @@ export default function TenderEditPage() {
             {/* Agreed and Confirmed By */}
             <div
               id="agreed-confirmed-by-section"
-              className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
             >
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-xl">Agreed and Confirmed By</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-xl">Agreed and Confirmed By</h2>
               <div className="space-y-4">
                 <SingleLineInput label="Name of Contractor / Tenderer" value={agreedName} onChange={setAgreedName} readOnly={readOnly} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -979,9 +979,9 @@ export default function TenderEditPage() {
             {/* TERMS AND CONDITIONS */}
             <div
               id="terms-conditions-tender"
-              className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
             >
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-xl print-section-heading">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-xl print-section-heading">
                 TERMS AND CONDITIONS OF TENDER
               </h2>
               <div className="space-y-3 text-sm">
@@ -991,8 +991,8 @@ export default function TenderEditPage() {
                   }
                   return (
                     <div key={i} className="mb-2 break-inside-avoid-page">
-                      <div className="font-bold text-slate-800 dark:text-white">{term.header}</div>
-                      <div className="ml-4 text-slate-700 dark:text-gray-300">{term.text}</div>
+                      <div className="font-bold text-slate-800">{term.header}</div>
+                      <div className="ml-4 text-slate-700">{term.text}</div>
                     </div>
                   );
                 })}
@@ -1005,40 +1005,40 @@ export default function TenderEditPage() {
               ref={(el) => {
                 sectionsRef.current["form-of-tender"] = el;
               }}
-              className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
             >
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-2xl">FORM OF TENDER</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-2xl">FORM OF TENDER</h2>
               <div className="space-y-3 text-sm">
-                <p className="font-medium text-slate-700 dark:text-gray-300">
+                <p className="font-medium text-slate-700">
                   <strong>To:</strong> {clientName}
                   <br />
                   <strong style={{ whiteSpace: "pre-line" }}>{fixedAddress}</strong>
                 </p>
-                <p className="text-slate-700 dark:text-gray-300">Dear Sir / Madam</p>
-                <p className="text-slate-700 dark:text-gray-300">
+                <p className="text-slate-700">Dear Sir / Madam</p>
+                <p className="text-slate-700">
                   1. Having inspected the site, and examined the Tender Documents, we submit a total sum quoted for Singapore Dollars:
                 </p>
-                <div className="my-3 p-3 bg-slate-50 dark:bg-slate-800 rounded print:bg-transparent print:p-0">
-                  <p className="font-semibold text-slate-800 dark:text-white flex flex-wrap items-center gap-2">
+                <div className="my-3 p-3 bg-slate-50 rounded print:bg-transparent print:p-0">
+                  <p className="font-semibold text-slate-800 flex flex-wrap items-center gap-2">
                     <span>TOTAL LUMP SUM</span>
                     <input
                       type="text"
                       value={lumpSumRaw}
                       onChange={handleLumpSumChange}
-                      className="w-36 sm:w-44 border-b border-gray-400 dark:border-gray-500 bg-transparent text-right px-1 focus:outline-none focus:border-cyan-500 text-sm sm:text-base text-black dark:text-white print:inline-block print:w-[110pt] print:border-b print:border-black print:text-right"
+                      className="w-36 sm:w-44 border-b border-gray-400 bg-transparent text-right px-1 focus:outline-none focus:border-cyan-500 text-sm sm:text-base text-black print:inline-block print:w-[110pt] print:border-b print:border-black print:text-right"
                       readOnly={readOnly}
                       placeholder="0.00"
                     />
                     <span>SGD</span>
                   </p>
-                  {amountInWords && <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 italic">{amountInWords} Singapore Dollars</p>}
+                  {amountInWords && <p className="mt-2 text-sm text-slate-600 italic">{amountInWords} Singapore Dollars</p>}
                   <div className="hidden print:block mt-4">
                     <div className="print-address-line" style={{ height: "18pt", marginBottom: "2pt" }} />
                     <div className="print-address-line" style={{ height: "18pt" }} />
                   </div>
                 </div>
                 {FORM_OF_TENDER_ITEMS.map((text, i) => (
-                  <p key={i} className="text-slate-700 dark:text-gray-300">
+                  <p key={i} className="text-slate-700">
                     {text}
                   </p>
                 ))}
@@ -1055,9 +1055,9 @@ export default function TenderEditPage() {
             >
               <div
                 id="main-tenderer-sign-off"
-                className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+                className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
               >
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 print:text-lg">Main Tenderer Sign‑Off</h3>
+                <h3 className="text-xl font-bold text-slate-800 mb-4 print:text-lg">Main Tenderer Sign‑Off</h3>
                 <div className="space-y-4 mt-4">
                   <SingleLineInput
                     label="Full Name"
@@ -1099,9 +1099,9 @@ export default function TenderEditPage() {
 
               <div
                 id="witness-sign-off-panel"
-                className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+                className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
               >
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 print:text-lg">Independent Witness Sign‑Off</h3>
+                <h3 className="text-xl font-bold text-slate-800 mb-4 print:text-lg">Independent Witness Sign‑Off</h3>
                 <div className="space-y-4 mt-4">
                   <SingleLineInput
                     label="Full Name of Witness"
@@ -1132,11 +1132,11 @@ export default function TenderEditPage() {
             >
               <div
                 id="contractors-declaration-section"
-                className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+                className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
               >
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-xl">CONTRACTOR'S DECLARATION</h2>
-                <p className="text-sm text-slate-600 dark:text-gray-400 mt-1">Tenderer’s Confirmation of Comprehension of Tender Document</p>
-                <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-xl">CONTRACTOR'S DECLARATION</h2>
+                <p className="text-sm text-slate-600 mt-1">Tenderer’s Confirmation of Comprehension of Tender Document</p>
+                <p className="text-sm text-slate-600 mb-4">
                   This page confirms understanding and irrevocable acceptance of the Tender Documents and Drawings.
                 </p>
                 <div className="space-y-4">
@@ -1152,7 +1152,7 @@ export default function TenderEditPage() {
                     onChange={(val) => setDeclaration((p) => ({ ...p, onBehalfOf: val }))}
                     readOnly={readOnly}
                   />
-                  <p className="italic text-slate-700 dark:text-gray-300">have fully examined the Tender Documents and irrevocably agree.</p>
+                  <p className="italic text-slate-700">have fully examined the Tender Documents and irrevocably agree.</p>
                   <div className="space-y-4">
                     <SingleLineInput
                       label="Name of Tenderer"
@@ -1193,24 +1193,24 @@ export default function TenderEditPage() {
 
               {/* RELEVANT PROJECT EXPERIENCE */}
               <div id="relevant-experience-table-section" className="mt-6 print:mt-4">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white tracking-wide mb-2 uppercase print:text-base">
+                <h3 className="text-xl font-bold text-slate-800 tracking-wide mb-2 uppercase print:text-base">
                   RELEVANT PROJECT EXPERIENCE
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 print:hidden">Provide at least 5 projects of similar nature.</p>
+                <p className="text-xs text-slate-500 mb-4 print:hidden">Provide at least 5 projects of similar nature.</p>
                 <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full text-left border-collapse print:border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 print:bg-transparent print:border-b">
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                      <tr className="bg-slate-50 border-b border-slate-200 print:bg-transparent print:border-b">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase print:border print:border-slate-300 print:bg-gray-50">
                           Project Name
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase print:border print:border-slate-300 print:bg-gray-50">
                           Value (SGD)
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase print:border print:border-slate-300 print:bg-gray-50">
                           Date
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase print:border print:border-slate-300 print:bg-gray-50">
                           Designer
                         </th>
                         <th className="p-3 print:hidden"></th>
@@ -1218,13 +1218,13 @@ export default function TenderEditPage() {
                     </thead>
                     <tbody>
                       {projectRows.map((row) => (
-                        <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800 print:border-none">
+                        <tr key={row.id} className="border-b border-slate-100 print:border-none">
                           <td className="p-3 print:border print:border-slate-300">
                             <input
                               type="text"
                               value={row.projectName}
                               onChange={(e) => updateProjectRow(row.id, "projectName", e.target.value)}
-                              className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-black dark:text-white bg-transparent"
+                              className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-black bg-transparent"
                               readOnly={readOnly}
                             />
                           </td>
@@ -1233,7 +1233,7 @@ export default function TenderEditPage() {
                               type="text"
                               value={row.value}
                               onChange={(e) => updateProjectRow(row.id, "value", e.target.value)}
-                              className="w-32 border-0 focus:ring-0 focus:outline-none print:border-0 text-black dark:text-white bg-transparent"
+                              className="w-32 border-0 focus:ring-0 focus:outline-none print:border-0 text-black bg-transparent"
                               readOnly={readOnly}
                             />
                           </td>
@@ -1243,7 +1243,7 @@ export default function TenderEditPage() {
                               placeholder="YYYY-MM-DD"
                               value={row.date}
                               onChange={(e) => updateProjectRow(row.id, "date", e.target.value)}
-                              className="w-36 border-0 focus:ring-0 focus:outline-none print:border-0 text-black dark:text-white bg-transparent"
+                              className="w-36 border-0 focus:ring-0 focus:outline-none print:border-0 text-black bg-transparent"
                               readOnly={readOnly}
                             />
                           </td>
@@ -1252,12 +1252,12 @@ export default function TenderEditPage() {
                               type="text"
                               value={row.designer}
                               onChange={(e) => updateProjectRow(row.id, "designer", e.target.value)}
-                              className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-black dark:text-white bg-transparent"
+                              className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-black bg-transparent"
                               readOnly={readOnly}
                             />
                           </td>
                           <td className="p-3 print:hidden">
-                            <button onClick={() => deleteProjectRow(row.id)} className="text-red-500 dark:text-red-400 text-xs" disabled={readOnly}>
+                            <button onClick={() => deleteProjectRow(row.id)} className="text-red-500 text-xs" disabled={readOnly}>
                               Delete
                             </button>
                           </td>
@@ -1266,33 +1266,33 @@ export default function TenderEditPage() {
                     </tbody>
                   </table>
                 </div>
-                <button onClick={addProjectRow} className="mt-2 text-sm text-blue-600 dark:text-blue-400 print:hidden" disabled={readOnly}>
+                <button onClick={addProjectRow} className="mt-2 text-sm text-blue-600 print:hidden" disabled={readOnly}>
                   + Add Row
                 </button>
               </div>
 
               {/* CURRENT PROJECT COMMITMENT */}
               <div id="current-commitment-table-section" className="mt-6 print:mt-4">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white tracking-wide mb-2 uppercase print:text-base">
+                <h3 className="text-xl font-bold text-slate-800 tracking-wide mb-2 uppercase print:text-base">
                   CURRENT PROJECT COMMITMENT
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 print:hidden">
+                <p className="text-xs text-slate-500 mb-4 print:hidden">
                   Provide particulars of projects presently engaged in.
                 </p>
                 <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full text-left border-collapse print:border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 print:bg-transparent print:border-b">
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                      <tr className="bg-slate-50 border-b border-slate-200 print:bg-transparent print:border-b">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase print:border print:border-slate-300 print:bg-gray-50">
                           Project Name
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase print:border print:border-slate-300 print:bg-gray-50">
                           Value (SGD)
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase print:border print:border-slate-300 print:bg-gray-50">
                           Percentage Completed
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase print:border print:border-slate-300 print:bg-gray-50">
                           Designer
                         </th>
                         <th className="p-3 print:hidden"></th>
@@ -1300,13 +1300,13 @@ export default function TenderEditPage() {
                     </thead>
                     <tbody>
                       {commitmentRows.map((row) => (
-                        <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800 print:border-none">
+                        <tr key={row.id} className="border-b border-slate-100 print:border-none">
                           <td className="p-3 print:border print:border-slate-300">
                             <input
                               type="text"
                               value={row.projectName}
                               onChange={(e) => updateCommitmentRow(row.id, "projectName", e.target.value)}
-                              className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-black dark:text-white bg-transparent"
+                              className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-black bg-transparent"
                               readOnly={readOnly}
                             />
                           </td>
@@ -1315,7 +1315,7 @@ export default function TenderEditPage() {
                               type="text"
                               value={row.value}
                               onChange={(e) => updateCommitmentRow(row.id, "value", e.target.value)}
-                              className="w-32 border-0 focus:ring-0 focus:outline-none print:border-0 text-black dark:text-white bg-transparent"
+                              className="w-32 border-0 focus:ring-0 focus:outline-none print:border-0 text-black bg-transparent"
                               readOnly={readOnly}
                             />
                           </td>
@@ -1324,7 +1324,7 @@ export default function TenderEditPage() {
                               type="text"
                               value={row.percentage}
                               onChange={(e) => updateCommitmentRow(row.id, "percentage", e.target.value)}
-                              className="w-20 border-0 focus:ring-0 focus:outline-none print:border-0 text-black dark:text-white bg-transparent"
+                              className="w-20 border-0 focus:ring-0 focus:outline-none print:border-0 text-black bg-transparent"
                               placeholder="0-100"
                               readOnly={readOnly}
                             />
@@ -1334,12 +1334,12 @@ export default function TenderEditPage() {
                               type="text"
                               value={row.designer}
                               onChange={(e) => updateCommitmentRow(row.id, "designer", e.target.value)}
-                              className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-black dark:text-white bg-transparent"
+                              className="w-full border-0 focus:ring-0 focus:outline-none print:border-0 text-black bg-transparent"
                               readOnly={readOnly}
                             />
                           </td>
                           <td className="p-3 print:hidden">
-                            <button onClick={() => deleteCommitmentRow(row.id)} className="text-red-500 dark:text-red-400 text-xs" disabled={readOnly}>
+                            <button onClick={() => deleteCommitmentRow(row.id)} className="text-red-500 text-xs" disabled={readOnly}>
                               Delete
                             </button>
                           </td>
@@ -1348,7 +1348,7 @@ export default function TenderEditPage() {
                     </tbody>
                   </table>
                 </div>
-                <button onClick={addCommitmentRow} className="mt-2 text-sm text-blue-600 dark:text-blue-400 print:hidden" disabled={readOnly}>
+                <button onClick={addCommitmentRow} className="mt-2 text-sm text-blue-600 print:hidden" disabled={readOnly}>
                   + Add Row
                 </button>
               </div>
@@ -1359,7 +1359,7 @@ export default function TenderEditPage() {
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-8 py-3 rounded bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white font-medium shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-8 py-3 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <FileSignature className="w-4 h-4" />
                 {isSubmitting ? "Submitting..." : "Submit Tender"}
@@ -1370,7 +1370,7 @@ export default function TenderEditPage() {
 
         {/* Floating print button */}
         <div className="fixed bottom-6 right-6 z-50 md:hidden print:hidden">
-          <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-3 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-full shadow-lg transition-all duration-300">
+          <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-full shadow-lg transition-all duration-300">
             <Printer className="w-5 h-5" />
             <span className="text-sm font-medium">Print / PDF</span>
           </button>
@@ -1380,20 +1380,20 @@ export default function TenderEditPage() {
       {/* ===== ERROR MODAL (missing fields) ===== */}
       {showErrorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm print:hidden">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
             <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Missing Required Fields</h2>
+              <AlertCircle className="w-8 h-8 text-red-600" />
+              <h2 className="text-xl font-bold text-slate-900">Missing Required Fields</h2>
             </div>
-            <p className="text-slate-600 dark:text-slate-300 mb-4">Please complete the following before submitting:</p>
-            <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700 dark:text-slate-300">
+            <p className="text-slate-600 mb-4">Please complete the following before submitting:</p>
+            <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
               {errorMessages.map((msg, idx) => (
                 <li key={idx}>{msg}</li>
               ))}
             </ul>
             <button
               onClick={() => setShowErrorModal(false)}
-              className="mt-6 w-full px-6 py-2.5 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white font-medium rounded-lg transition-colors"
+              className="mt-6 w-full px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
             >
               OK, I'll fix that
             </button>
@@ -1404,17 +1404,17 @@ export default function TenderEditPage() {
       {/* ===== DISCLAIMER MODAL ===== */}
       {showDisclaimerModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm print:hidden p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
             <div className="flex items-center gap-3 mb-6">
-              <ShieldCheck className="w-8 h-8 text-amber-600 dark:text-amber-400" />
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">CONTRACTOR'S DECLARATION</h2>
+              <ShieldCheck className="w-8 h-8 text-amber-600" />
+              <h2 className="text-2xl font-bold text-slate-900">CONTRACTOR'S DECLARATION</h2>
             </div>
 
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <p className="text-slate-700 dark:text-slate-300 font-medium">
+            <div className="prose prose-sm max-w-none">
+              <p className="text-slate-700 font-medium">
                 By submitting this tender, I/we, the undersigned, hereby confirm and declare the following:
               </p>
-              <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
+              <ul className="list-disc pl-5 space-y-2 text-slate-600">
                 <li>
                   We have thoroughly read, understood, and accepted all the terms, conditions, and requirements stated in the
                   Tender Documents, Drawings, and all accompanying appendices.
@@ -1428,26 +1428,26 @@ export default function TenderEditPage() {
                 </li>
                 <li>We agree to the validity period of the tender as stipulated in the Tender Documents.</li>
               </ul>
-              <p className="text-slate-700 dark:text-slate-300 mt-4 font-semibold">
+              <p className="text-slate-700 mt-4 font-semibold">
                 We understand that this declaration forms a material part of the tender and that any false statement may result in
                 disqualification or legal action.
               </p>
             </div>
 
             {/* Submission details */}
-            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+            <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <span className="font-semibold text-slate-700 dark:text-slate-300">Tender:</span>
-                <span className="text-slate-800 dark:text-white">{tender?.tender_name}</span>
-                <span className="font-semibold text-slate-700 dark:text-slate-300">Contractor:</span>
-                <span className="text-slate-800 dark:text-white">{agreedName}</span>
-                <span className="font-semibold text-slate-700 dark:text-slate-300">Total Lump Sum:</span>
-                <span className="text-slate-800 dark:text-white font-medium">SGD {lumpSumRaw}</span>
+                <span className="font-semibold text-slate-700">Tender:</span>
+                <span className="text-slate-800">{tender?.tender_name}</span>
+                <span className="font-semibold text-slate-700">Contractor:</span>
+                <span className="text-slate-800">{agreedName}</span>
+                <span className="font-semibold text-slate-700">Total Lump Sum:</span>
+                <span className="text-slate-800 font-medium">SGD {lumpSumRaw}</span>
               </div>
             </div>
 
             {/* Agreement checkbox */}
-            <div className="mt-6 flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="mt-6 flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <input
                 type="checkbox"
                 id="disclaimerAgreed"
@@ -1455,19 +1455,19 @@ export default function TenderEditPage() {
                 onChange={(e) => setDisclaimerAgreed(e.target.checked)}
                 className="mt-1 w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
               />
-              <label htmlFor="disclaimerAgreed" className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+              <label htmlFor="disclaimerAgreed" className="text-sm text-amber-800 font-medium">
                 I/we agree to the above declaration and confirm that all information provided is true and accurate.
               </label>
             </div>
 
             {/* Buttons */}
-            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
               <button
                 onClick={() => {
                   setShowDisclaimerModal(false);
                   setDisclaimerAgreed(false);
                 }}
-                className="px-6 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                className="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
@@ -1476,8 +1476,8 @@ export default function TenderEditPage() {
                 disabled={!disclaimerAgreed || isSubmitting}
                 className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors ${
                   !disclaimerAgreed || isSubmitting
-                    ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-emerald-600 hover:bg-emerald-700"
                 }`}
               >
                 {isSubmitting ? "Submitting..." : "Confirm & Submit Tender"}
@@ -1490,39 +1490,39 @@ export default function TenderEditPage() {
       {/* ===== SUCCESS MODAL ===== */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm print:hidden">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 text-center relative">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 text-center relative">
             <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
+              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-12 h-12 text-emerald-600" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Tender Submitted Successfully</h2>
-            <p className="text-slate-600 dark:text-slate-300 mb-6">Your submission has been received.</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Tender Submitted Successfully</h2>
+            <p className="text-slate-600 mb-6">Your submission has been received.</p>
 
-            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 mb-6 text-left">
+            <div className="bg-slate-50 rounded-lg p-4 mb-6 text-left">
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm border-b border-slate-200 dark:border-slate-600 pb-2">
-                  <span className="font-semibold text-slate-600 dark:text-slate-300">Tender</span>
-                  <span className="text-slate-800 dark:text-white font-medium">{submittedTenderName}</span>
+                <div className="flex items-center justify-between text-sm border-b border-slate-200 pb-2">
+                  <span className="font-semibold text-slate-600">Tender</span>
+                  <span className="text-slate-800 font-medium">{submittedTenderName}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm border-b border-slate-200 dark:border-slate-600 pb-2">
-                  <span className="font-semibold text-slate-600 dark:text-slate-300">Contractor</span>
-                  <span className="text-slate-800 dark:text-white font-medium">{submittedContractor}</span>
+                <div className="flex items-center justify-between text-sm border-b border-slate-200 pb-2">
+                  <span className="font-semibold text-slate-600">Contractor</span>
+                  <span className="text-slate-800 font-medium">{submittedContractor}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-300">Total Lump Sum</span>
-                  <span className="text-slate-800 dark:text-white font-medium">SGD {submittedAmount}</span>
+                  <span className="font-semibold text-slate-600">Total Lump Sum</span>
+                  <span className="text-slate-800 font-medium">SGD {submittedAmount}</span>
                 </div>
               </div>
             </div>
 
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">A confirmation email will be sent to you shortly.</p>
+            <p className="text-sm text-slate-500 mb-6">A confirmation email will be sent to you shortly.</p>
             <button
               onClick={() => {
                 setShowSuccessModal(false);
                 router.push(`/tenders/${id}`);
               }}
-              className="w-full px-6 py-3 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors"
+              className="w-full px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors"
             >
               View Tender
             </button>
