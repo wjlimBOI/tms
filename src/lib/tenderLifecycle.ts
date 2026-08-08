@@ -2,6 +2,7 @@ import { query } from "@/lib/db";
 import { sendStageNotificationEmail, sendDlpReminderEmail, sendSubmissionDeadlineReminderEmail } from "@/lib/email";
 import { notifyUsers, createNotification, sendTrackedEmail } from "@/lib/notifications";
 import { ROLE_IDS } from "@/lib/roles";
+import { toDateOnly } from "@/lib/dateUtils";
 
 const STAGE_NOTIFY_ROLES = [ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER];
 const STAGE_NAMES = ["Upcoming", "Open", "Closed", "Awarded"];
@@ -12,8 +13,19 @@ async function notifyAutoTransition(
   performedBy: string
 ): Promise<void> {
   try {
+    // `users` has no `name`/`display_name` column - the real name lives on
+    // user_profile.full_name (matches the pattern already used by
+    // admin/users/route.ts). Falls back to username when no profile name is
+    // set. Selecting a nonexistent `users.name` column throws a Postgres
+    // error, which the outer try/catch here swallowed silently - meaning
+    // this entire function (both the email AND the in-app notification loop
+    // below, since they're computed after this query) has never actually
+    // run for any real auto stage-transition until this fix.
     const usersRes = await query(
-      `SELECT user_id, email, name FROM users WHERE role_id = ANY($1) AND is_active = true`,
+      `SELECT u.user_id, u.email, COALESCE(up.full_name, u.username) AS name
+       FROM users u
+       LEFT JOIN user_profile up ON up.user_id = u.user_id
+       WHERE u.role_id = ANY($1) AND u.is_active = true`,
       [STAGE_NOTIFY_ROLES]
     );
     const recipientIds = usersRes.rows.map((r) => r.user_id);
@@ -125,23 +137,36 @@ export async function sendDueDlpReminders(): Promise<void> {
   );
   if (dueRes.rows.length === 0) return;
 
+  // Same users.name-doesn't-exist issue as notifyAutoTransition above.
   const adminRes = await query(
-    `SELECT user_id, email, name FROM users WHERE role_id = $1 AND is_active = true`,
+    `SELECT u.user_id, u.email, COALESCE(up.full_name, u.username) AS name
+     FROM users u
+     LEFT JOIN user_profile up ON up.user_id = u.user_id
+     WHERE u.role_id = $1 AND u.is_active = true`,
     [ROLE_IDS.ADMIN]
   );
   const adminIds = adminRes.rows.map((r) => r.user_id);
 
   for (const t of dueRes.rows) {
+    // `due_date` comes back from pg as a native Date object (no custom type
+    // parser is registered - see src/lib/db.ts), not a string, even though
+    // it's typed `string` downstream. Interpolating a Date directly gives
+    // "Sat Sep 12 2026 00:00:00 GMT+0000 (...)" in the notification text, and
+    // escapeHtml() in email.ts calls .replace() on it, which throws (caught
+    // and swallowed by sendTrackedEmail, so the reminder email silently
+    // never sends) - must convert to a plain date string first.
+    const dueDateStr = toDateOnly(t.due_date);
+
     await notifyUsers(
       adminIds,
       `DLP expiring soon: ${t.tender_name}`,
-      `${t.branch_name} — Defect Liability Period expires on ${t.due_date}.`,
+      `${t.branch_name} — Defect Liability Period expires on ${dueDateStr}.`,
       `/tenders/${t.tender_id}`
     ).catch((err) => console.error(`DLP reminder notify failed for tender ${t.tender_id}:`, err));
 
     for (const admin of adminRes.rows) {
       await sendTrackedEmail("dlp_reminder", { userId: admin.user_id, email: admin.email }, t.tender_id, () =>
-        sendDlpReminderEmail({ to: admin.email, recipientName: admin.name, tenderName: t.tender_name, tenderId: t.tender_id, dueDate: t.due_date })
+        sendDlpReminderEmail({ to: admin.email, recipientName: admin.name, tenderName: t.tender_name, tenderId: t.tender_id, dueDate: dueDateStr })
       );
     }
 
@@ -183,15 +208,19 @@ export async function sendUpcomingSubmissionDeadlineReminders(): Promise<void> {
   });
 
   for (const c of candidates.rows) {
+    // Same pg Date-object issue as sendDueDlpReminders above - c.closing_date
+    // is a native Date, not a string, so it must be converted before use.
+    const closingDateStr = toDateOnly(c.closing_date);
+
     await createNotification(
       c.contractor_id,
       "Submission deadline approaching",
-      `"${c.tender_name}" closes on ${c.closing_date}. Submit your bid before then.`,
+      `"${c.tender_name}" closes on ${closingDateStr}. Submit your bid before then.`,
       `/tenders/${c.tender_id}`
     ).catch((err) => console.error(`Submission-deadline in-app notify failed for tender ${c.tender_id}:`, err));
 
     await sendTrackedEmail("submission_deadline_reminder", { userId: c.contractor_id, email: c.email }, c.tender_id, () =>
-      sendSubmissionDeadlineReminderEmail({ to: c.email, recipientName: c.username, tenderName: c.tender_name, tenderId: c.tender_id, closingDate: c.closing_date })
+      sendSubmissionDeadlineReminderEmail({ to: c.email, recipientName: c.username, tenderName: c.tender_name, tenderId: c.tender_id, closingDate: closingDateStr })
     );
   }
 }

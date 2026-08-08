@@ -235,36 +235,50 @@ export async function PUT(
       else if (nextStage === 2) notifyRoleIds = [ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER];
 
       if (notifyRoleIds.length > 0) {
-        const placeholders = notifyRoleIds.map((_, i) => `$${i + 1}`).join(',');
-        const usersRes = await query(
-          `SELECT user_id, email, name FROM users WHERE role_id IN (${placeholders}) AND is_active = true`,
-          notifyRoleIds
-        );
+        // The stage change above already committed in its own transaction -
+        // nothing from here on must be able to turn a successful stage
+        // change into a reported failure, so the whole block is wrapped.
+        // (It previously wasn't: `users.name` doesn't exist - see the query
+        // below - so this always threw, propagated to the outer catch, and
+        // returned a false "Unable to update stage" 500 to the caller even
+        // though the stage change had already succeeded.)
+        try {
+          const placeholders = notifyRoleIds.map((_, i) => `$${i + 1}`).join(',');
+          const usersRes = await query(
+            `SELECT u.user_id, u.email, COALESCE(up.full_name, u.username) AS name
+             FROM users u
+             LEFT JOIN user_profile up ON up.user_id = u.user_id
+             WHERE u.role_id IN (${placeholders}) AND u.is_active = true`,
+            notifyRoleIds
+          );
 
-        const performedBy = user.name || user.email || 'System Administrator';
+          const performedBy = user.name || user.email || 'System Administrator';
 
-        for (const recipient of usersRes.rows) {
-          await sendStageNotificationEmail({
-            to: recipient.email,
-            recipientName: recipient.name,
-            tenderId: tenderId,
-            tenderName: tender.tender_name,
-            newStage: nextStage,
-            performedBy,
-          }).catch((err: any) => {
-            console.error(`Failed to send stage email to ${recipient.email}:`, err);
+          for (const recipient of usersRes.rows) {
+            await sendStageNotificationEmail({
+              to: recipient.email,
+              recipientName: recipient.name,
+              tenderId: tenderId,
+              tenderName: tender.tender_name,
+              newStage: nextStage,
+              performedBy,
+            }).catch((err: any) => {
+              console.error(`Failed to send stage email to ${recipient.email}:`, err);
+            });
+          }
+
+          const stageName = ['Upcoming', 'Open', 'Closed', 'Awarded'][nextStage] || `Stage ${nextStage}`;
+          await notifyUsers(
+            usersRes.rows.map((r) => r.user_id),
+            `Tender moved to ${stageName}`,
+            `"${tender.tender_name}" has been moved to ${stageName} by ${performedBy}.`,
+            `/tenders/${tenderId}`
+          ).catch((err: any) => {
+            console.error(`Failed to create in-app notification for tender ${tenderId}:`, err);
           });
+        } catch (err) {
+          console.error(`Stage-advance notification lookup failed for tender ${tenderId}:`, err);
         }
-
-        const stageName = ['Upcoming', 'Open', 'Closed', 'Awarded'][nextStage] || `Stage ${nextStage}`;
-        await notifyUsers(
-          usersRes.rows.map((r) => r.user_id),
-          `Tender moved to ${stageName}`,
-          `"${tender.tender_name}" has been moved to ${stageName} by ${performedBy}.`,
-          `/tenders/${tenderId}`
-        ).catch((err: any) => {
-          console.error(`Failed to create in-app notification for tender ${tenderId}:`, err);
-        });
       }
     }
 
