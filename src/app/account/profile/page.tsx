@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { ROLE_IDS } from "@/lib/roles";
 
 interface UserProfile {
   user_id: number;
@@ -248,7 +249,7 @@ export default function ProfilePage() {
 
   if (!profile) return null;
 
-  const isContractor = profile.role_id === 4;
+  const isContractor = profile.role_id === ROLE_IDS.CONTRACTOR;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 py-8 px-4 sm:px-6 lg:px-8">
