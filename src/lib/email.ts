@@ -94,7 +94,7 @@ function renderEmail({
       <title>${escapeHtml(title)}</title>
       <style>
         @media only screen and (max-width: 600px) {
-          .container { width: 100% !important; border-radius: 0 !important; }
+          .container { width: 100% !important; }
           .content { padding-left: 20px !important; padding-right: 20px !important; }
           .button { display: block !important; width: 100% !important; text-align: center !important; box-sizing: border-box; }
         }
@@ -102,12 +102,12 @@ function renderEmail({
     </head>
     <body style="margin:0;padding:0;background-color:#eef1f6;font-family:Arial,Helvetica,sans-serif;">
       <center style="width:100%;table-layout:fixed;">
-        <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" class="container" style="max-width:600px;width:100%;background-color:#ffffff;margin:0 auto;border:1px solid #e0e7ef;border-radius:14px;overflow:hidden;">
+        <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" class="container" style="max-width:600px;width:100%;background-color:#ffffff;margin:0 auto;border:1px solid #e0e7ef;">
 
           <!-- Header -->
           <tr>
-            <td bgcolor="#0f2b3d" style="background-color:#0f2b3d;padding:32px 24px 26px;text-align:center;">
-              <img src="${logoSrc}" alt="Beauty One International" width="210" style="display:block;max-width:210px;width:100%;height:auto;margin:0 auto 16px auto;border:0;" />
+            <td bgcolor="#0f2b3d" style="background-color:#0f2b3d;padding:24px 24px 20px;text-align:center;">
+              <img src="${logoSrc}" alt="Beauty One International" width="180" style="display:block;max-width:180px;width:100%;height:auto;margin:0 auto 14px auto;border:0;" />
               <span style="display:inline-block;color:#f1f5f9;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;border-bottom:1px solid rgba(241,245,249,0.35);padding-bottom:7px;">Tender Management System</span>
             </td>
           </tr>
