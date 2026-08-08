@@ -99,10 +99,10 @@ export default function TenderTemplateView() {
 
   if (checkingAck || loading || sessionStatus === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-gray-600 dark:text-cyan-300/70">Loading…</p>
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-600">Loading…</p>
         </div>
       </div>
     );
@@ -110,10 +110,10 @@ export default function TenderTemplateView() {
 
   if (error || !template) {
     return (
-      <div className="min-h-screen p-8 bg-gray-50 dark:bg-[#0a1228]">
+      <div className="min-h-screen p-8 bg-gray-50">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-8">
-            <p className="text-amber-800 dark:text-amber-200">{error || "No BQ template has been set up for this tender yet."}</p>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-8">
+            <p className="text-amber-800">{error || "No BQ template has been set up for this tender yet."}</p>
             <Link
               href={`/tenders/${id}`}
               className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -134,50 +134,50 @@ export default function TenderTemplateView() {
   const grandTotal = template.items.reduce((sum, i) => sum + i.amount, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a1228] py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bill of Quantities Template</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900">Bill of Quantities Template</h1>
+            <p className="text-sm text-gray-600 mt-1">
               {template.tender_name} – {template.brand_name} / {template.branch_name}
             </p>
           </div>
           <Link
             href={`/tenders/${id}`}
-            className="px-4 py-2 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+            className="px-4 py-2 text-sm rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
           >
             ← Back to Tender
           </Link>
         </div>
 
-        <div className="bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-cyan-500/30 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-sm">
-              <thead className="bg-gray-100 dark:bg-gray-800/50">
+              <thead className="bg-gray-100">
                 <tr>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-left">Item No.</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-left">Location</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-left">Description</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-left">Specifications</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-left">Brand</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-right">Qty</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-left">Unit</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-right">Unit Rate ($)</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-right">Discount ($)</th>
-                  <th className="border border-gray-200 dark:border-gray-700 p-2 text-right">Amount ($)</th>
+                  <th className="border border-gray-200 p-2 text-left">Item No.</th>
+                  <th className="border border-gray-200 p-2 text-left">Location</th>
+                  <th className="border border-gray-200 p-2 text-left">Description</th>
+                  <th className="border border-gray-200 p-2 text-left">Specifications</th>
+                  <th className="border border-gray-200 p-2 text-left">Brand</th>
+                  <th className="border border-gray-200 p-2 text-right">Qty</th>
+                  <th className="border border-gray-200 p-2 text-left">Unit</th>
+                  <th className="border border-gray-200 p-2 text-right">Unit Rate ($)</th>
+                  <th className="border border-gray-200 p-2 text-right">Discount ($)</th>
+                  <th className="border border-gray-200 p-2 text-right">Amount ($)</th>
                 </tr>
               </thead>
               <tbody>
                 {groupedItems.map(cat => (
                   <>
-                    <tr key={`cat-${cat.category_id}`} className="bg-gray-200 dark:bg-gray-800">
-                      <td colSpan={10} className="border border-gray-200 dark:border-gray-700 p-2 font-semibold">
+                    <tr key={`cat-${cat.category_id}`} className="bg-gray-200">
+                      <td colSpan={10} className="border border-gray-200 p-2 font-semibold">
                         {cat.category_name}
                        </td>
                     </tr>
                     {cat.items.map(item => (
-                      <tr key={item.line_item_id} className="border-b border-gray-200 dark:border-gray-700">
+                      <tr key={item.line_item_id} className="border-b border-gray-200">
                         <td className="border p-2 text-center font-mono">{item.item_no}</td>
                         <td className="border p-2">{item.location || "—"}</td>
                         <td className="border p-2">{item.description}</td>
@@ -192,7 +192,7 @@ export default function TenderTemplateView() {
                     ))}
                   </>
                 ))}
-                <tr className="bg-gray-100 dark:bg-gray-800/50 font-bold">
+                <tr className="bg-gray-100 font-bold">
                   <td colSpan={9} className="border p-2 text-right text-base">GRAND TOTAL:</td>
                   <td className="border p-2 text-right font-mono text-base">{formatCurrency(grandTotal)}</td>
                 </tr>
