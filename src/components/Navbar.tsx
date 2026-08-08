@@ -106,7 +106,10 @@ export default function Navbar() {
   const isContractor = userRole === ROLE_IDS.CONTRACTOR;
   const isAdmin = userRole === ROLE_IDS.ADMIN;
   const isManagement = userRole === 2 || userRole === 3 || userRole === 4;
-  const isFinance = userRole === 8;
+  const isFinance =
+    userRole === ROLE_IDS.FINANCE_MANAGER ||
+    userRole === ROLE_IDS.FINANCE_GENERAL_MANAGER ||
+    userRole === ROLE_IDS.FINANCE_TEAM;
   const canSeeProjectTools = !isContractor;
   const isLoggedIn = !!session;
   const isHomepage = pathname === "/";
