@@ -166,17 +166,17 @@ function BriefingDatesEditor({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <label className="block font-semibold text-slate-700 dark:text-slate-300">
+          <label className="block font-semibold text-slate-700">
             Briefing Dates
           </label>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-xs text-slate-400">
             Add multiple briefing dates with optional descriptions
           </p>
         </div>
         <button
           type="button"
           onClick={addBriefingDate}
-          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Date
@@ -184,8 +184,8 @@ function BriefingDatesEditor({
       </div>
 
       {briefingDates.length === 0 && (
-        <div className="text-center py-4 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
-          <p className="text-sm text-slate-400 dark:text-slate-500">
+        <div className="text-center py-4 border-2 border-dashed border-slate-200 rounded-lg">
+          <p className="text-sm text-slate-400">
             No briefing dates added yet.
           </p>
         </div>
@@ -194,30 +194,30 @@ function BriefingDatesEditor({
       {briefingDates.map((briefing, index) => (
         <div 
           key={briefing.id} 
-          className="relative p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700"
+          className="relative p-3 bg-slate-50 rounded-lg border border-slate-200"
         >
           <button
             type="button"
             onClick={() => removeBriefingDate(briefing.id!)}
-            className="absolute top-2 right-2 p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="absolute top-2 right-2 p-1 rounded-md hover:bg-slate-200 transition"
           >
-            <X className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" />
+            <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
           </button>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-slate-600 mb-1">
                 Briefing Date & Time {index === 0 && <span className="text-rose-500">*</span>}
               </label>
               <input
                 type="datetime-local"
                 value={briefing.briefing_date}
                 onChange={(e) => updateBriefingDate(briefing.id!, "briefing_date", e.target.value)}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+                className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-slate-600 mb-1">
                 Description (Optional)
               </label>
               <input
@@ -225,7 +225,7 @@ function BriefingDatesEditor({
                 value={briefing.description || ""}
                 onChange={(e) => updateBriefingDate(briefing.id!, "description", e.target.value)}
                 placeholder="e.g., Site walkthrough, Q&A session, etc."
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+                className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
               />
             </div>
           </div>
@@ -677,15 +677,15 @@ export default function AdminEditTenderPage() {
   // ===== Loading & error =====
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="text-slate-600 dark:text-slate-400">Loading tender data...</div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-slate-600">Loading tender data...</div>
       </div>
     );
   }
   if (error || !formData) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
-        <div className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-6 rounded-xl max-w-md">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+        <div className="bg-red-100 text-red-800 p-6 rounded-xl max-w-md">
           <p className="font-bold">Error</p>
           <p>{error || "Tender not found"}</p>
           <button onClick={() => router.back()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded">
@@ -698,22 +698,22 @@ export default function AdminEditTenderPage() {
 
   // ========== RENDER ==========
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3">
+      <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-slate-200 px-4 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href={`/tenders/${id}`}
-              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+              className="text-slate-500 hover:text-slate-700 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-lg font-semibold text-slate-800 dark:text-white">
+            <h1 className="text-lg font-semibold text-slate-800">
               Edit Tender #{formData.tender_id}
             </h1>
             {lastSaved && (
-              <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:inline">
+              <span className="text-xs text-slate-400 hidden sm:inline">
                 Last saved: {lastSaved}
               </span>
             )}
@@ -722,7 +722,7 @@ export default function AdminEditTenderPage() {
             <button
               type="button"
               onClick={() => window.open(`/tenders/${id}`, "_blank")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-100 transition-colors"
             >
               <Eye className="w-4 h-4" />
               Preview
@@ -742,14 +742,14 @@ export default function AdminEditTenderPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Tabs */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6">
+        <div className="flex border-b border-slate-200 mb-6">
           {canEditMetadata && (
             <button
               onClick={() => setActiveTab("metadata")}
               className={`px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === "metadata"
-                  ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
-                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               Metadata
@@ -760,8 +760,8 @@ export default function AdminEditTenderPage() {
               onClick={() => setActiveTab("content")}
               className={`px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === "content"
-                  ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
-                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               Document Content
@@ -770,9 +770,9 @@ export default function AdminEditTenderPage() {
         </div>
 
         {validationErrors && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
-            <p className="text-red-800 dark:text-red-200 font-semibold">Validation Errors:</p>
-            <ul className="list-disc list-inside text-sm text-red-700 dark:text-red-300">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800 font-semibold">Validation Errors:</p>
+            <ul className="list-disc list-inside text-sm text-red-700">
               {validationErrors.map((err: any, idx: number) => (
                 <li key={idx}>
                   <span className="font-mono">{err.path}</span>: {err.message}
@@ -785,15 +785,15 @@ export default function AdminEditTenderPage() {
         <form id="tender-form" onSubmit={handleSubmit}>
           {/* ===== METADATA TAB ===== */}
           {activeTab === "metadata" && canEditMetadata && (
-            <div className="space-y-5 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm">
+            <div className="space-y-5 bg-white p-6 rounded-xl shadow-sm">
               {/* Tender Name */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="tender_name" className="block font-semibold text-slate-700 dark:text-slate-300">
+                  <label htmlFor="tender_name" className="block font-semibold text-slate-700">
                     Tender Name *
                   </label>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                    <span className="text-xs text-slate-400">
                       {isNameManuallyEdited ? "✏️ Manually edited" : "🔄 Auto-generated"}
                     </span>
                     {isNameManuallyEdited && (
@@ -806,7 +806,7 @@ export default function AdminEditTenderPage() {
                             setFormData((prev) => prev ? { ...prev, tender_name: autoName } : null);
                           }
                         }}
-                        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                        className="text-xs text-blue-600 hover:text-blue-800"
                       >
                         Reset to auto
                       </button>
@@ -821,18 +821,18 @@ export default function AdminEditTenderPage() {
                     value={formData.tender_name || ""}
                     onChange={handleChange}
                     required
-                    className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                   {!isNameManuallyEdited && branches.length > 0 && renovationTypes.length > 0 && (
-                    <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                      Auto-generated: <span className="font-medium text-slate-600 dark:text-slate-300">{generateAutoTenderName(formData, renovationTypes, branches)}</span>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Auto-generated: <span className="font-medium text-slate-600">{generateAutoTenderName(formData, renovationTypes, branches)}</span>
                     </div>
                   )}
                 </div>
               </div>
 
               <div>
-                <label htmlFor="tender_description" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                <label htmlFor="tender_description" className="block font-semibold mb-1 text-slate-700">
                   Description
                 </label>
                 <textarea
@@ -841,13 +841,13 @@ export default function AdminEditTenderPage() {
                   value={formData.tender_description || ""}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label htmlFor="status_id" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  <label htmlFor="status_id" className="block font-semibold mb-1 text-slate-700">
                     Status
                   </label>
                   <select
@@ -855,7 +855,7 @@ export default function AdminEditTenderPage() {
                     name="status_id"
                     value={formData.status_id || ""}
                     onChange={handleChange}
-                    className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                   >
                     <option value="">Select status</option>
                     {statuses.map((s) => (
@@ -866,7 +866,7 @@ export default function AdminEditTenderPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="branch_id" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  <label htmlFor="branch_id" className="block font-semibold mb-1 text-slate-700">
                     Branch
                   </label>
                   <select
@@ -874,7 +874,7 @@ export default function AdminEditTenderPage() {
                     name="branch_id"
                     value={formData.branch_id || ""}
                     onChange={handleChange}
-                    className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                   >
                     <option value="">Select branch</option>
                     {branches.map((b) => (
@@ -885,7 +885,7 @@ export default function AdminEditTenderPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="renovation_type_id" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  <label htmlFor="renovation_type_id" className="block font-semibold mb-1 text-slate-700">
                     Renovation Type
                   </label>
                   <select
@@ -893,7 +893,7 @@ export default function AdminEditTenderPage() {
                     name="renovation_type_id"
                     value={formData.renovation_type_id || ""}
                     onChange={handleChange}
-                    className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                   >
                     <option value="">Select type</option>
                     {renovationTypes.map((rt) => (
@@ -906,11 +906,11 @@ export default function AdminEditTenderPage() {
               </div>
 
               {/* Project Manager */}
-              <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
-                <h3 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-3">Project Manager</h3>
+              <div className="border-t border-slate-200 pt-4 mt-2">
+                <h3 className="text-md font-semibold text-slate-700 mb-3">Project Manager</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="project_manager_id" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="project_manager_id" className="block font-semibold mb-1 text-slate-700">
                       Select Manager
                     </label>
                     <select
@@ -922,7 +922,7 @@ export default function AdminEditTenderPage() {
                         const pmId = val ? parseInt(val, 10) : null;
                         handlePMChange(pmId);
                       }}
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                     >
                       <option value="">None</option>
                       {projectManagerOptions.map((pm) => (
@@ -931,12 +931,12 @@ export default function AdminEditTenderPage() {
                         </option>
                       ))}
                     </select>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                    <p className="text-xs text-slate-400 mt-1">
                       Select a manager to pre‑fill the fields below, or type manually.
                     </p>
                   </div>
                   <div>
-                    <label htmlFor="project_manager_name" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="project_manager_name" className="block font-semibold mb-1 text-slate-700">
                       Full Name
                     </label>
                     <input
@@ -946,11 +946,11 @@ export default function AdminEditTenderPage() {
                       value={formData.project_manager_name || ""}
                       onChange={handleChange}
                       placeholder="e.g. Mr. Jack Puan"
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                   </div>
                   <div>
-                    <label htmlFor="project_manager_email" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="project_manager_email" className="block font-semibold mb-1 text-slate-700">
                       Email
                     </label>
                     <input
@@ -960,11 +960,11 @@ export default function AdminEditTenderPage() {
                       value={formData.project_manager_email || ""}
                       onChange={handleChange}
                       placeholder="e.g. jack@company.com"
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                   </div>
                   <div>
-                    <label htmlFor="project_manager_phone" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="project_manager_phone" className="block font-semibold mb-1 text-slate-700">
                       Phone / Mobile
                     </label>
                     <input
@@ -974,7 +974,7 @@ export default function AdminEditTenderPage() {
                       value={formData.project_manager_phone || ""}
                       onChange={handleChange}
                       placeholder="e.g. 8139 0348"
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                   </div>
                 </div>
@@ -984,7 +984,7 @@ export default function AdminEditTenderPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {formData.tender_date !== undefined && (
                   <div>
-                    <label htmlFor="tender_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="tender_date" className="block font-semibold mb-1 text-slate-700">
                       Tender Start
                     </label>
                     <input
@@ -993,13 +993,13 @@ export default function AdminEditTenderPage() {
                       name="tender_date"
                       value={isoToLocalDateTime(formData.tender_date)}
                       onChange={handleChange}
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
                     />
                   </div>
                 )}
                 {formData.closing_date !== undefined && (
                   <div>
-                    <label htmlFor="closing_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="closing_date" className="block font-semibold mb-1 text-slate-700">
                       Closing Date
                     </label>
                     <input
@@ -1008,13 +1008,13 @@ export default function AdminEditTenderPage() {
                       name="closing_date"
                       value={isoToLocalDateTime(formData.closing_date)}
                       onChange={handleChange}
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
                     />
                   </div>
                 )}
                 {formData.renovation_start_date !== undefined && (
                   <div>
-                    <label htmlFor="renovation_start_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="renovation_start_date" className="block font-semibold mb-1 text-slate-700">
                       Renovation Start
                     </label>
                     <input
@@ -1023,13 +1023,13 @@ export default function AdminEditTenderPage() {
                       name="renovation_start_date"
                       value={isoToLocalDateTime(formData.renovation_start_date)}
                       onChange={handleChange}
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
                     />
                   </div>
                 )}
                 {formData.renovation_end_date !== undefined && (
                   <div>
-                    <label htmlFor="renovation_end_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="renovation_end_date" className="block font-semibold mb-1 text-slate-700">
                       Renovation End
                     </label>
                     <input
@@ -1038,14 +1038,14 @@ export default function AdminEditTenderPage() {
                       name="renovation_end_date"
                       value={isoToLocalDateTime(formData.renovation_end_date)}
                       onChange={handleChange}
-                      className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
                     />
                   </div>
                 )}
               </div>
 
               {/* Briefing Dates Editor */}
-              <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+              <div className="border-t border-slate-200 pt-4">
                 <BriefingDatesEditor
                   briefingDates={formData.briefing_dates || []}
                   onChange={(dates) => setFormData({ ...formData, briefing_dates: dates })}
@@ -1064,29 +1064,29 @@ export default function AdminEditTenderPage() {
                     <button
                       type="button"
                       onClick={() => setSidebarOpen(!sidebarOpen)}
-                      className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                      className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
                     >
                       {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                       {sidebarOpen ? "Close" : "Navigation"}
                     </button>
                   </div>
-                  <nav className={`${sidebarOpen ? "block" : "hidden"} md:block bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-3`}>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3 px-2">Sections</p>
+                  <nav className={`${sidebarOpen ? "block" : "hidden"} md:block bg-white rounded-xl shadow-sm border border-slate-200 p-3`}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 px-2">Sections</p>
                     <ul className="space-y-1">
                       {CONTENT_SECTIONS.map((section) => (
                         <li key={section.id}>
                           <button
                             type="button"
                             onClick={() => scrollToSection(section.id)}
-                            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100 transition-colors"
                           >
                             {section.label}
                           </button>
                         </li>
                       ))}
                     </ul>
-                    <hr className="my-3 border-slate-200 dark:border-slate-800" />
-                    <div className="px-2 text-xs text-slate-400 dark:text-slate-500">
+                    <hr className="my-3 border-slate-200" />
+                    <div className="px-2 text-xs text-slate-400">
                       <p>💡 Empty descriptions show as <span className="font-mono">—</span></p>
                     </div>
                   </nav>
@@ -1095,39 +1095,39 @@ export default function AdminEditTenderPage() {
 
               {/* Content */}
               <div className="flex-1 space-y-8">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-blue-800 dark:text-blue-200 text-sm">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800 text-sm">
                   <p className="flex items-start gap-2">
                     <span className="text-lg">ℹ️</span>
                     <span>
-                      <strong>Note:</strong> Any field left empty will display a dash <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">—</span> in the final tender document.
+                      <strong>Note:</strong> Any field left empty will display a dash <span className="font-mono bg-blue-100 px-1 rounded">—</span> in the final tender document.
                     </span>
                   </p>
                 </div>
 
                 {/* CRITICAL CONSIDERATIONS */}
-                <div ref={criticalRef} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-                  <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">SCHEDULE OF CRITICAL PROJECT CONSIDERATIONS</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">Edit the critical clauses. Dynamic clauses (2 & 4) are auto‑filled from metadata – you can edit or reset them.</p>
+                <div ref={criticalRef} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">SCHEDULE OF CRITICAL PROJECT CONSIDERATIONS</h2>
+                  <p className="text-sm text-slate-500 mt-1 mb-4">Edit the critical clauses. Dynamic clauses (2 & 4) are auto‑filled from metadata – you can edit or reset them.</p>
                   <div className="space-y-4">
                     {criticalClauses.map((clause, idx) => {
                       const isDynamic = clause.title === "2) CRITICAL DATES" || clause.title === "4) TENDER ENQUIRIES";
                       const canEditThisClause = !isDynamic || canEditDynamicClauses;
 
                       return (
-                        <div key={idx} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div key={idx} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                           <div className="flex gap-2 mb-2 items-center">
                             <input
                               value={clause.title || ""}
                               onChange={(e) => updateCriticalClause(idx, "title", e.target.value)}
                               placeholder="Title (e.g. 1) TENDER DOCUMENTS)"
-                              className="flex-1 border border-slate-300 dark:border-slate-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                              className="flex-1 border border-slate-300 rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                               readOnly={!canEditThisClause}
                             />
                             {isDynamic && canEditDynamicClauses && (
                               <button
                                 type="button"
                                 onClick={() => resetDynamicClause(clause.title)}
-                                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 whitespace-nowrap"
+                                className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 whitespace-nowrap"
                                 title="Reset to auto-filled content from metadata"
                               >
                                 <RotateCw className="w-3 h-3" />
@@ -1150,11 +1150,11 @@ export default function AdminEditTenderPage() {
                             placeholder="Type the description here..."
                             rows={6}
                             style={{ minHeight: "120px" }}
-                            className="w-full border border-slate-300 dark:border-slate-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full border border-slate-300 rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                             readOnly={!canEditThisClause}
                           />
                           {isDynamic && (
-                            <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                            <div className="text-xs text-slate-400 mt-1">
                               {canEditDynamicClauses
                                 ? "Auto‑filled from metadata – you can edit or reset."
                                 : "Auto‑filled from metadata – only Administrators can modify this clause."}
@@ -1167,12 +1167,12 @@ export default function AdminEditTenderPage() {
                   <button
                     type="button"
                     onClick={addCriticalClause}
-                    className="mt-4 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                    className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
                   >
                     + Add Clause
                   </button>
                   <div className="mt-4">
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700">
                       <input
                         type="checkbox"
                         checked={criticalClauses.some((c) => c.title === "Refurbishment period")}
@@ -1184,18 +1184,18 @@ export default function AdminEditTenderPage() {
                 </div>
 
                 {/* SCOPE OF CONTRACT */}
-                <div ref={scopeRef} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-                  <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">SCOPE OF CONTRACT</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">Edit the scope clauses.</p>
+                <div ref={scopeRef} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">SCOPE OF CONTRACT</h2>
+                  <p className="text-sm text-slate-500 mt-1 mb-4">Edit the scope clauses.</p>
                   <div className="space-y-4">
                     {scopeClauses.map((clause, idx) => (
-                      <div key={idx} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div key={idx} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                         <div className="flex gap-2 mb-2">
                           <input
                             value={clause.title || ""}
                             onChange={(e) => updateScopeClause(idx, "title", e.target.value)}
                             placeholder="Title (e.g. 1) SCOPE OF WORKS)"
-                            className="flex-1 border border-slate-300 dark:border-slate-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="flex-1 border border-slate-300 rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                           />
                           <button
                             type="button"
@@ -1211,7 +1211,7 @@ export default function AdminEditTenderPage() {
                           placeholder="Type the description here..."
                           rows={6}
                           style={{ minHeight: "120px" }}
-                          className="w-full border border-slate-300 dark:border-slate-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                          className="w-full border border-slate-300 rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                       </div>
                     ))}
@@ -1219,25 +1219,25 @@ export default function AdminEditTenderPage() {
                   <button
                     type="button"
                     onClick={addScopeClause}
-                    className="mt-4 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                    className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
                   >
                     + Add Clause
                   </button>
                 </div>
 
                 {/* TERMS AND CONDITIONS */}
-                <div ref={termsRef} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-                  <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">TERMS AND CONDITIONS OF TENDER</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">Edit the terms and conditions.</p>
+                <div ref={termsRef} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">TERMS AND CONDITIONS OF TENDER</h2>
+                  <p className="text-sm text-slate-500 mt-1 mb-4">Edit the terms and conditions.</p>
                   <div className="space-y-4">
                     {termsClauses.map((clause, idx) => (
-                      <div key={idx} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div key={idx} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                         <div className="flex gap-2 mb-2">
                           <input
                             value={clause.header || ""}
                             onChange={(e) => updateTermsClause(idx, "header", e.target.value)}
                             placeholder="Header (e.g. 1) General)"
-                            className="flex-1 border border-slate-300 dark:border-slate-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="flex-1 border border-slate-300 rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                           />
                           <button
                             type="button"
@@ -1253,7 +1253,7 @@ export default function AdminEditTenderPage() {
                           placeholder="Type the text here..."
                           rows={6}
                           style={{ minHeight: "120px" }}
-                          className="w-full border border-slate-300 dark:border-slate-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                          className="w-full border border-slate-300 rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                       </div>
                     ))}
@@ -1261,7 +1261,7 @@ export default function AdminEditTenderPage() {
                   <button
                     type="button"
                     onClick={addTermsClause}
-                    className="mt-4 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                    className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
                   >
                     + Add Clause
                   </button>
