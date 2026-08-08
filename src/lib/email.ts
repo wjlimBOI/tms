@@ -89,7 +89,7 @@ export async function sendWelcomeEmail(
             <!-- Main content -->
             <tr>
               <td style="padding:30px 28px;">
-                <p style="font-size:20px;font-weight:600;color:#1a2c3e;margin:0 0 16px;">Hello ${username},</p>
+                <p style="font-size:20px;font-weight:600;color:#1a2c3e;margin:0 0 16px;">Hello ${escapeHtml(username)},</p>
                 <p style="font-size:16px;line-height:1.4;color:#334155;margin:0 0 24px;">
                   Welcome to the <strong>Beauty One International Tender Management System</strong>. Your account has been created successfully.
                 </p>
@@ -99,7 +99,7 @@ export async function sendWelcomeEmail(
                   <tr>
                     <td style="border-bottom:1px solid #e2e8f0;">
                       <span style="font-size:13px;font-weight:600;color:#0f3b5c;">🔐 USERNAME</span><br/>
-                      <span style="font-size:18px;font-weight:500;color:#0f172a;">${username}</span>
+                      <span style="font-size:18px;font-weight:500;color:#0f172a;">${escapeHtml(username)}</span>
                     </td>
                   </tr>
                   <tr>
@@ -202,11 +202,11 @@ export async function sendExtensionRequestEmail(data: {
     <body>
       <div class="container">
         <h2>⏱️ Tender Extension Request</h2>
-        <p><strong>Tender:</strong> ${data.tenderName} (ID: ${data.tenderId})</p>
-        <p><strong>Requested by:</strong> ${data.requestedBy}</p>
+        <p><strong>Tender:</strong> ${escapeHtml(data.tenderName)} (ID: ${data.tenderId})</p>
+        <p><strong>Requested by:</strong> ${escapeHtml(data.requestedBy)}</p>
         <p><strong>Additional Days:</strong> ${data.requestedDays}</p>
         <p><strong>Reason:</strong></p>
-        <div class="blockquote">${data.reason.replace(/\n/g, "<br>")}</div>
+        <div class="blockquote">${escapeHtml(data.reason).replace(/\n/g, "<br>")}</div>
         <p><span class="label">Original Closing:</span> ${new Date(data.originalClosing).toLocaleString()}</p>
         <p><span class="label">Proposed Closing:</span> ${new Date(data.proposedClosing).toLocaleString()}</p>
         <p style="margin-top: 24px;">
@@ -275,16 +275,16 @@ export async function sendExtensionDecisionEmail(data: {
     <body>
       <div class="container">
         <h2>Extension Request ${data.status}</h2>
-        <p><strong>Tender:</strong> ${data.tenderName}</p>
+        <p><strong>Tender:</strong> ${escapeHtml(data.tenderName)}</p>
         <p>
           <span class="status-badge ${data.status === "Approved" ? "approved" : "rejected"}">
             ${data.status}
           </span>
         </p>
-        <p><span class="label">Requested by:</span> ${data.requesterName}</p>
+        <p><span class="label">Requested by:</span> ${escapeHtml(data.requesterName)}</p>
         <p><span class="label">Original Closing:</span> ${new Date(data.originalClosing).toLocaleString()}</p>
         <p><span class="label">Proposed Closing:</span> ${new Date(data.proposedClosing).toLocaleString()}</p>
-        ${data.reason ? `<p><span class="label">Reason for ${data.status.toLowerCase()}:</span> ${data.reason}</p>` : ""}
+        ${data.reason ? `<p><span class="label">Reason for ${data.status.toLowerCase()}:</span> ${escapeHtml(data.reason)}</p>` : ""}
         <p style="margin-top: 24px;">
           <a href="${tenderUrl}" class="button">View Tender</a>
         </p>
@@ -348,10 +348,10 @@ export async function sendStageNotificationEmail({
     <body>
       <div class="container">
         <h2>📋 Tender Stage Updated</h2>
-        <p>Dear ${recipientName},</p>
+        <p>Dear ${escapeHtml(recipientName)},</p>
         <p>
-          The tender <strong>${tenderName}</strong> (ID: ${tenderId})
-          has been moved to <strong>${stageName}</strong> by <strong>${performedBy}</strong>.
+          The tender <strong>${escapeHtml(tenderName)}</strong> (ID: ${tenderId})
+          has been moved to <strong>${stageName}</strong> by <strong>${escapeHtml(performedBy)}</strong>.
         </p>
         <p>Please review the tender and take the necessary action.</p>
         <p style="margin-top: 24px;">
@@ -416,9 +416,9 @@ export async function sendTenderRequestEmail(data: {
     <body>
       <div class="container">
         <h2>New Request from Contractor</h2>
-        <p>Dear ${data.pmName},</p>
+        <p>Dear ${escapeHtml(data.pmName)},</p>
         <p><span class="label">Contractor:</span> ${escapeHtml(data.contractorName)} (${escapeHtml(data.contractorEmail)})</p>
-        <p><span class="label">Tender:</span> ${data.tenderName} (ID: ${data.tenderId})</p>
+        <p><span class="label">Tender:</span> ${escapeHtml(data.tenderName)} (ID: ${data.tenderId})</p>
         <p><span class="label">Request Type:</span> ${requestTypeLabel}</p>
         <p><span class="label">Message:</span></p>
         <div class="blockquote">${escapeHtml(data.message).replace(/\n/g, "<br>")}</div>
