@@ -116,15 +116,6 @@ export default function Navbar() {
 
   const unreadNoti = notiItems.filter((n) => !n.is_read).length;
 
-  // `/` renders its own complete nav (`.apple-nav` in `src/app/page.tsx`),
-  // fixed at the same position/z-index as this one. Rendering both stacked
-  // duplicate landmarks and left this Navbar's logo/theme-toggle/Login
-  // controls focusable-but-invisible underneath it. This one now defers to
-  // the homepage's own nav entirely rather than fixing the overlap with
-  // z-index tricks — the homepage nav already covers the same needs
-  // (branding + a primary CTA + a Login link).
-  if (isHomepage) return null;
-
   const fetchSearch = useCallback(async (q: string) => {
     if (q.length < 2) { setSearchResults({ tenders: [], bqs: [] }); setIsSearchOpen(false); return; }
     try {
@@ -289,6 +280,14 @@ export default function Navbar() {
               <Logo cls="h-8 sm:h-10 md:h-12 w-auto object-contain" />
             </Link>
             <div className="flex items-center gap-3">
+              {isHomepage && (
+                <button
+                  onClick={() => router.push("/contractor/expressInterest")}
+                  className="text-sm font-medium text-gray-600 hover:text-[#15406a] transition-colors"
+                >
+                  Submit Interest
+                </button>
+              )}
               <button
                 onClick={() => router.push("/login")}
                 className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow-md transition-all duration-200 hover:-translate-y-0.5"

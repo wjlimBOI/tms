@@ -2,7 +2,6 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -176,19 +175,6 @@ export default function PublicHomePage() {
         .apple-font {
           font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial,
             sans-serif;
-        }
-
-        .apple-nav {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 50;
-          height: 44px;
-          background: rgba(0, 0, 0, 0.72);
-          backdrop-filter: blur(20px) saturate(180%);
-          -webkit-backdrop-filter: blur(20px) saturate(180%);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .rainbow-text {
@@ -528,26 +514,8 @@ export default function PublicHomePage() {
         }
       `}</style>
 
-      {/* Nav */}
-      <nav className="apple-nav">
-        <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-5">
-          <span className="text-[13px] font-semibold tracking-tight text-white">Beauty One</span>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="rounded-md text-[13px] font-medium text-white/70 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-            >
-              Login
-            </Link>
-            <Button onClick={goApply} variant="heroNavLink" size="navPill">
-              Submit Interest
-            </Button>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero */}
-      <section className="hero-gradient relative flex min-h-screen flex-col items-center justify-center px-6 py-24 pt-24 text-center">
+      <section className="hero-gradient relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-6 py-24 text-center">
         <div className="animate-fade-up relative z-10 w-full max-w-3xl">
           <p className="rainbow-text text-2xl font-black uppercase tracking-tight sm:text-3xl md:text-4xl">
             Beauty One International
