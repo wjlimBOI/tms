@@ -521,6 +521,158 @@ function CCSettings() {
 }
 
 // ============================================================
+// Notification Email Settings
+// ============================================================
+const RECOMMENDED_ALWAYS_ON = new Set(["password_reset", "login_alert"]);
+
+interface NotificationEventSetting {
+  event_type: string;
+  label: string;
+  email_enabled: boolean;
+}
+
+function NotificationEmailSettings() {
+  const toast = useNotify();
+  const [settings, setSettings] = useState<NotificationEventSetting[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [savingType, setSavingType] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/notification-settings");
+      if (!res.ok) throw new Error("Failed to fetch notification settings");
+      const data = await res.json();
+      setSettings(data.settings || []);
+    } catch (err: any) {
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const toggle = async (eventType: string, nextEnabled: boolean) => {
+    const previous = settings;
+    setSettings((prev) =>
+      prev.map((s) => (s.event_type === eventType ? { ...s, email_enabled: nextEnabled } : s))
+    );
+    setSavingType(eventType);
+    try {
+      const res = await fetch("/api/admin/notification-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_type: eventType, email_enabled: nextEnabled }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update notification setting");
+      }
+      toast.success(`${nextEnabled ? "Enabled" : "Disabled"} email for this event`);
+    } catch (err: any) {
+      setSettings(previous);
+      toast.error(err.message);
+    } finally {
+      setSavingType(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <p className="text-slate-500">Loading notification settings...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600 mb-4">{error}</p>
+        <button
+          onClick={fetchData}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Email Notifications</h2>
+        <button
+          onClick={fetchData}
+          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh
+        </button>
+      </div>
+
+      <p className="text-sm text-gray-500 mb-6">
+        Turn individual event emails on or off. The in-app notification bell always stays on for every event —
+        this only controls whether an email is also sent. Changes take effect immediately.
+      </p>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr className="border-b border-slate-200">
+              <th className="py-2 px-3 font-semibold text-slate-600">Event</th>
+              <th className="py-2 px-3 font-semibold text-slate-600 text-center">Send Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            {settings.map((s) => (
+              <tr key={s.event_type} className="border-b border-slate-100">
+                <td className="py-2 px-3 font-medium text-slate-800">
+                  {s.label}
+                  {RECOMMENDED_ALWAYS_ON.has(s.event_type) && (
+                    <span className="ml-2 text-xs font-normal text-amber-600">(recommended: keep enabled)</span>
+                  )}
+                </td>
+                <td className="py-2 px-3 text-center">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={s.email_enabled}
+                      disabled={savingType === s.event_type}
+                      onChange={() => toggle(s.event_type, !s.email_enabled)}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                      aria-label={`Toggle email for ${s.label}`}
+                    />
+                  </label>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+        <Mail className="w-4 h-4 inline mr-2" />
+        <span>
+          <strong>Note:</strong> Disabling an event here only stops the email — recipients still see the
+          in-app notification bell alert.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // Main Security Dashboard
 // ============================================================
 export default function SecurityDashboard() {
@@ -529,7 +681,7 @@ export default function SecurityDashboard() {
   const [activeTab, setActiveTab] = useState<
     "notifications" | "config" | "permissions" | "timelock" | "audit" | "tender-settings"
   >("notifications");
-  const [activeSubTab, setActiveSubTab] = useState<"timings" | "cc">("timings");
+  const [activeSubTab, setActiveSubTab] = useState<"timings" | "cc" | "email">("timings");
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -637,10 +789,16 @@ export default function SecurityDashboard() {
                   onClick={() => setActiveSubTab("cc")}
                   label="CC Recipients"
                 />
+                <SubTabButton
+                  active={activeSubTab === "email"}
+                  onClick={() => setActiveSubTab("email")}
+                  label="Email Notifications"
+                />
               </div>
 
               {activeSubTab === "timings" && canViewTimings && <TenderTimings userPermissions={userPermissions} isAdmin={isAdmin} />}
               {activeSubTab === "cc" && <CCSettings />}
+              {activeSubTab === "email" && <NotificationEmailSettings />}
             </>
           )}
         </div>

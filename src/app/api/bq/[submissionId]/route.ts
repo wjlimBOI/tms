@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
 import { logUpdate } from "@/lib/audit";
-import { createNotification } from "@/lib/notifications";
+import { createNotification, sendTrackedEmail } from "@/lib/notifications";
+import { sendBqDecisionEmail } from "@/lib/email";
 
 async function getUserIdFromSession(session: any): Promise<number | null> {
   if (session.user?.id) return session.user.id;
@@ -189,9 +190,11 @@ export async function PATCH(
   try {
     // Get current status and user roles
     const subRes = await query(
-      `SELECT ts.status, ts.contractor_id, ts.tender_id, ts.bq_name, t.tender_name
+      `SELECT ts.status, ts.contractor_id, ts.tender_id, ts.bq_name, t.tender_name,
+              u.email AS contractor_email, u.username AS contractor_username
        FROM tender_submission ts
        JOIN tender t ON ts.tender_id = t.tender_id
+       JOIN users u ON u.user_id = ts.contractor_id
        WHERE ts.submission_id = $1`,
       [submissionId]
     );
@@ -253,19 +256,26 @@ export async function PATCH(
 
     const bqLabel = subRes.rows[0].bq_name || `BQ #${submissionId}`;
     const tenderName = subRes.rows[0].tender_name;
-    if (newStatus === "approved") {
+    const contractorId = subRes.rows[0].contractor_id;
+    const contractorEmail = subRes.rows[0].contractor_email;
+    const contractorUsername = subRes.rows[0].contractor_username;
+    if (newStatus === "approved" || newStatus === "rejected") {
+      const decisionLabel = newStatus === "approved" ? "approved" : "rejected";
       await createNotification(
-        subRes.rows[0].contractor_id,
-        "Your BQ has been approved",
-        `"${bqLabel}" for "${tenderName}" has been approved.`,
+        contractorId,
+        `Your BQ has been ${decisionLabel}`,
+        `"${bqLabel}" for "${tenderName}" has been ${decisionLabel}.`,
         `/bq/${submissionId}/view`
       );
-    } else if (newStatus === "rejected") {
-      await createNotification(
-        subRes.rows[0].contractor_id,
-        "Your BQ has been rejected",
-        `"${bqLabel}" for "${tenderName}" has been rejected.`,
-        `/bq/${submissionId}/view`
+      await sendTrackedEmail("bq_decision", { userId: contractorId, email: contractorEmail }, subRes.rows[0].tender_id, () =>
+        sendBqDecisionEmail({
+          to: contractorEmail,
+          recipientName: contractorUsername,
+          bqLabel,
+          tenderName,
+          status: decisionLabel,
+          submissionId,
+        })
       );
     }
 

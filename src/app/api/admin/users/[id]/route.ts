@@ -4,10 +4,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { z } from "zod";
 import { passwordValidation } from "@/lib/validation";
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
+import { sendTrackedEmail } from "@/lib/notifications";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 // Zod schemas
 const paramsSchema = z.object({
@@ -164,6 +167,7 @@ export async function PUT(
       changedFields.push('access_end_date');
     }
   }
+  let resetToken: string | null = null;
   if (password && password.trim() !== "") {
     const pwdValid = passwordValidation.safeParse(password);
     if (!pwdValid.success) {
@@ -176,6 +180,7 @@ export async function PUT(
     userUpdateData.must_change_password = true;
     userUpdateData.password_changed_at = new Date();
     changedFields.push('password_hash', 'must_change_password');
+    resetToken = crypto.randomBytes(32).toString("hex");
   }
 
   // Role change detection
@@ -245,6 +250,26 @@ export async function PUT(
         created_at: new Date(),
       },
     });
+  }
+
+  // 3b. Password reset: persist a real token and email the user, matching
+  // the welcome-flow POST handler's mechanism (admin/users/route.ts).
+  if (resetToken) {
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    await prisma.password_reset_tokens.create({
+      data: {
+        user_id: userId,
+        token: resetToken,
+        expires_at: expiresAt,
+      },
+    });
+
+    const notifyEmail = email ?? oldUser.email;
+    const notifyUsername = username ?? oldUser.username;
+    void sendTrackedEmail("password_reset", { userId, email: notifyEmail }, null, () =>
+      sendPasswordResetEmail(notifyEmail, notifyUsername, password as string, resetToken as string)
+    ).catch((err) => console.error(`Password reset email failed for user ${userId}:`, err));
   }
 
   // 4. Fetch updated user for audit

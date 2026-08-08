@@ -1,6 +1,6 @@
 import { query } from "@/lib/db";
-import { sendStageNotificationEmail } from "@/lib/email";
-import { notifyUsers } from "@/lib/notifications";
+import { sendStageNotificationEmail, sendDlpReminderEmail, sendSubmissionDeadlineReminderEmail } from "@/lib/email";
+import { notifyUsers, createNotification, sendTrackedEmail } from "@/lib/notifications";
 import { ROLE_IDS } from "@/lib/roles";
 
 const STAGE_NOTIFY_ROLES = [ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER];
@@ -126,7 +126,7 @@ export async function sendDueDlpReminders(): Promise<void> {
   if (dueRes.rows.length === 0) return;
 
   const adminRes = await query(
-    `SELECT user_id FROM users WHERE role_id = $1 AND is_active = true`,
+    `SELECT user_id, email, name FROM users WHERE role_id = $1 AND is_active = true`,
     [ROLE_IDS.ADMIN]
   );
   const adminIds = adminRes.rows.map((r) => r.user_id);
@@ -138,6 +138,60 @@ export async function sendDueDlpReminders(): Promise<void> {
       `${t.branch_name} — Defect Liability Period expires on ${t.due_date}.`,
       `/tenders/${t.tender_id}`
     ).catch((err) => console.error(`DLP reminder notify failed for tender ${t.tender_id}:`, err));
+
+    for (const admin of adminRes.rows) {
+      await sendTrackedEmail("dlp_reminder", { userId: admin.user_id, email: admin.email }, t.tender_id, () =>
+        sendDlpReminderEmail({ to: admin.email, recipientName: admin.name, tenderName: t.tender_name, tenderId: t.tender_id, dueDate: t.due_date })
+      );
+    }
+
     await query(`UPDATE tender SET dlp_reminder_sent_at = NOW() WHERE tender_id = $1`, [t.tender_id]);
+  }
+}
+
+// Submission-deadline reminder — reminds a contractor who has interest/access
+// on an Open tender but hasn't actually submitted yet, once, as the closing
+// date approaches. Dedup is the real email_notification_log table (not a
+// new column) — see docs/pending-migrations.md for the notification_event_settings
+// migration this also depends on for the admin-configurable email toggle.
+export async function sendUpcomingSubmissionDeadlineReminders(): Promise<void> {
+  const candidates = await query(
+    `SELECT DISTINCT c.contractor_id, u.username, u.email, t.tender_id, t.tender_name, t.closing_date
+     FROM tender t
+     JOIN (
+       SELECT contractor_id, tender_id FROM tender_interest WHERE is_approved = true
+       UNION
+       SELECT contractor_id, tender_id FROM tender_contractor WHERE can_submit = true
+     ) c ON c.tender_id = t.tender_id
+     JOIN users u ON u.user_id = c.contractor_id AND u.is_deleted = false
+     WHERE t.is_deleted = false AND t.stage = 1
+       AND t.closing_date IS NOT NULL
+       AND t.closing_date BETWEEN NOW() AND (NOW() + INTERVAL '3 days')
+       AND NOT EXISTS (
+         SELECT 1 FROM tender_submission ts
+         WHERE ts.tender_id = t.tender_id AND ts.contractor_id = c.contractor_id
+           AND ts.is_deleted = false AND ts.status != 'Draft'
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM email_notification_log el
+         WHERE el.event_type = 'submission_deadline_reminder'
+           AND el.tender_id = t.tender_id AND el.recipient_user_id = c.contractor_id
+       )`
+  ).catch((err) => {
+    console.error("Failed to query submission-deadline reminder candidates:", err);
+    return { rows: [] as any[] };
+  });
+
+  for (const c of candidates.rows) {
+    await createNotification(
+      c.contractor_id,
+      "Submission deadline approaching",
+      `"${c.tender_name}" closes on ${c.closing_date}. Submit your bid before then.`,
+      `/tenders/${c.tender_id}`
+    ).catch((err) => console.error(`Submission-deadline in-app notify failed for tender ${c.tender_id}:`, err));
+
+    await sendTrackedEmail("submission_deadline_reminder", { userId: c.contractor_id, email: c.email }, c.tender_id, () =>
+      sendSubmissionDeadlineReminderEmail({ to: c.email, recipientName: c.username, tenderName: c.tender_name, tenderId: c.tender_id, closingDate: c.closing_date })
+    );
   }
 }

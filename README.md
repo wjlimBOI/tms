@@ -29,6 +29,7 @@ awards, and extensions.
    | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | No | Enables rate limiting (login, password reset, AI description generation); without these, rate limiting is a no-op |
    | `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_REQUESTS` | No | Rate limit tuning (defaults: 60000ms / 100 requests) |
    | `ANTHROPIC_API_KEY` | For AI description generation | Powers "Generate with AI" on the tender description field (`src/app/api/tenders/generate-description`) |
+   | `CRON_SECRET` | For scheduled jobs | Bearer token required by `GET /api/cron/run` (tender stage transitions, DLP/submission-deadline reminders). Endpoint refuses all requests if unset. Trigger hourly (or per host cron limits) via `vercel.json` on Vercel, or an external `curl -H "Authorization: Bearer $CRON_SECRET" .../api/cron/run` cron line otherwise. |
 
 3. **Set up the database**
    ```bash

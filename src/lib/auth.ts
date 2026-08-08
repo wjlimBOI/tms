@@ -6,6 +6,8 @@ import prisma from "@/lib/prisma";
 import { loginSchema } from "./validation";
 import { logAuthEvent, extractAuditContext } from "./audit"; // ✅ added
 import { checkRateLimit } from "./rate-limit";
+import { sendTrackedEmail } from "./notifications";
+import { sendLoginAlertEmail } from "./email";
 
 // A fixed dummy hash to compare against when no user is found, so the
 // "unknown username" path takes roughly as long as the "wrong password"
@@ -230,6 +232,14 @@ export const authOptions: NextAuthOptions = {
           login_method: "password",
           source: "auth"
         });
+
+        // Security alert email - must never block or delay login.
+        if (user.email) {
+          const { ipAddress, userAgent } = extractAuditContext(req);
+          void sendTrackedEmail("login_alert", { userId: user.user_id, email: user.email }, null, () =>
+            sendLoginAlertEmail(user.email as string, username, ipAddress, userAgent)
+          ).catch((err) => console.error("Login alert email failed:", err));
+        }
 
         // 10. Return user object
         const displayName = (user as any).display_name || user.username;

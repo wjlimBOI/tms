@@ -104,3 +104,61 @@ running — but the Role Permissions matrix will show `costings:view` as
 ungranted to everyone (including Admin) until it does, and no other role
 can be granted it without this row existing. Remove this section once
 applied and verified.
+
+## NOT YET APPLIED — `notification_event_settings` table (added 2026-08-08)
+
+Part of the real-scheduler + full-notification-coverage pass. Backs the new
+admin-configurable "which events send email" toggles (Notification Settings
+tab in `admin/security`) and is read by `src/lib/notifications.ts`'s
+`sendTrackedEmail()` before every new email send in this pass (award result,
+BQ decision, DLP reminder, submission-deadline reminder, announcement,
+password reset, login alert). `sendTrackedEmail()` fails open if this table
+doesn't exist yet or the lookup errors (treats the event as enabled), so the
+new email features work immediately even before this migration runs — this
+migration only unlocks the ability to turn individual ones off.
+
+Run this against the production/staging Postgres database as soon as access
+is available, then re-pull the Prisma schema:
+
+```sql
+CREATE TABLE notification_event_settings (
+  event_type VARCHAR(50) PRIMARY KEY,
+  label VARCHAR(150) NOT NULL,
+  email_enabled BOOLEAN NOT NULL DEFAULT true,
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_by INTEGER REFERENCES users(user_id)
+);
+
+INSERT INTO notification_event_settings (event_type, label) VALUES
+  ('award_result', 'Tender award result (winner and other participants)'),
+  ('bq_decision', 'BQ submission approved/rejected'),
+  ('dlp_reminder', 'DLP expiry reminder (to Admins)'),
+  ('submission_deadline_reminder', 'Tender submission deadline approaching'),
+  ('announcement', 'Staff announcement to contractors'),
+  ('password_reset', 'Admin-triggered password reset'),
+  ('login_alert', 'Login IP/device alert');
+```
+
+```
+npx prisma db pull
+npx prisma generate
+npx prisma validate
+npx tsc --noEmit
+```
+
+Until this is run, the Notification Settings admin tab will show/save
+nothing (no rows to read) — email sending itself is unaffected (fails open,
+as above). Remove this section once applied and verified.
+
+## NOT YET APPLIED — also required: `CRON_SECRET` env var + hosting confirmation
+
+Not a database migration, but blocking for the scheduler half of this same
+pass. `src/app/api/cron/run/route.ts` refuses all requests (500) until
+`CRON_SECRET` is set in the deployment environment. `vercel.json` assumes
+Vercel Cron hits this endpoint hourly (`0 * * * *`) — confirm the actual
+Vercel plan tier before relying on that: **Hobby (free) only allows daily
+cron invocations**, Pro allows arbitrary frequency. If the deployment isn't
+Vercel at all, replace `vercel.json`'s cron with an external crontab line
+calling the same endpoint (documented in the route's own comments). Remove
+this note once `CRON_SECRET` is set and the schedule is confirmed correct
+for the actual hosting/plan.

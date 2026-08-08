@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { query, getClient } from "@/lib/db";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
+import { createNotification, notifyUsers, sendTrackedEmail } from "@/lib/notifications";
+import { sendAwardResultEmail } from "@/lib/email";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -107,7 +109,7 @@ export async function POST(
     await client.query("BEGIN");
 
     const tenderRes = await client.query(
-      `SELECT tender_id, stage FROM tender WHERE tender_id = $1 AND is_deleted = false FOR UPDATE`,
+      `SELECT tender_id, stage, tender_name, created_by FROM tender WHERE tender_id = $1 AND is_deleted = false FOR UPDATE`,
       [tenderId]
     );
     if (tenderRes.rows.length === 0) {
@@ -121,6 +123,8 @@ export async function POST(
         { status: 400, headers: corsHeaders }
       );
     }
+    const tenderName = tenderRes.rows[0].tender_name;
+    const tenderCreatedBy = tenderRes.rows[0].created_by;
 
     const existingAward = await client.query(
       `SELECT award_id FROM tender_award WHERE tender_id = $1`,
@@ -172,6 +176,64 @@ export async function POST(
     );
 
     await client.query("COMMIT");
+
+    // Notifications/emails must never affect the award response — the award
+    // itself already committed. Fire-and-forget, matching tenderLifecycle.ts's
+    // existing convention.
+    void (async () => {
+      try {
+        const participantsRes = await query(
+          `SELECT DISTINCT ts.contractor_id, u.email, u.username
+           FROM tender_submission ts
+           JOIN users u ON u.user_id = ts.contractor_id
+           WHERE ts.tender_id = $1 AND ts.is_deleted = false
+             AND ts.round_no = (
+               SELECT MAX(round_no) FROM tender_submission
+               WHERE tender_id = ts.tender_id AND contractor_id = ts.contractor_id AND is_deleted = false
+             )`,
+          [tenderId]
+        );
+
+        for (const p of participantsRes.rows) {
+          const won = p.contractor_id === winningContractorId;
+          await createNotification(
+            p.contractor_id,
+            won ? "Tender awarded to you" : "Tender awarded",
+            won
+              ? `Congratulations — you have been awarded "${tenderName}".`
+              : `"${tenderName}" has been awarded to another contractor.`,
+            `/tenders/${tenderId}`
+          ).catch((err) => console.error(`Award in-app notify failed for contractor ${p.contractor_id}:`, err));
+
+          await sendTrackedEmail("award_result", { userId: p.contractor_id, email: p.email }, tenderId, () =>
+            sendAwardResultEmail({
+              to: p.email,
+              recipientName: p.username,
+              tenderName,
+              tenderId,
+              won,
+              contractValue: won ? contractValue : undefined,
+            })
+          );
+        }
+
+        const adminRes = await query(
+          `SELECT user_id FROM users WHERE role_id = $1 AND is_active = true`,
+          [ROLE_IDS.ADMIN]
+        );
+        const staffIds = new Set<number>(adminRes.rows.map((r) => r.user_id));
+        if (tenderCreatedBy) staffIds.add(tenderCreatedBy);
+
+        await notifyUsers(
+          Array.from(staffIds),
+          "Tender awarded",
+          `"${tenderName}" has been awarded.`,
+          `/tenders/${tenderId}`
+        ).catch((err) => console.error(`Award staff notify failed for tender ${tenderId}:`, err));
+      } catch (err) {
+        console.error("Award notification dispatch failed:", err);
+      }
+    })();
 
     return NextResponse.json(
       { success: true, award_id: awardRes.rows[0].award_id },

@@ -439,3 +439,275 @@ export async function sendTenderRequestEmail(data: {
     html,
   });
 }
+
+// Shared, minimal wrapper for the 7 email functions below — all deliberately
+// simple/plain (no logo, no elaborate branding) since they're routed through
+// sendTrackedEmail() (src/lib/notifications.ts), which already owns
+// try/catch + delivery logging; these functions intentionally let send
+// failures propagate (bare `await transporter.sendMail`, matching
+// sendWelcomeEmail/sendExtensionRequestEmail's existing style) rather than
+// swallowing them, since sendTrackedEmail needs the rejection to record
+// is_delivered=false accurately.
+function wrapEmailBody(title: string, bodyHtml: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${escapeHtml(title)}</title>
+      <style>
+        body { font-family: Arial, Helvetica, sans-serif; background-color: #f4f7fc; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 24px 28px; border: 1px solid #e0e7ef; }
+        h2 { color: #1a2c3e; margin-top: 0; }
+        .label { font-weight: 600; color: #334155; }
+        .button { display: inline-block; background-color: #0d9488; color: #ffffff; padding: 10px 20px; border-radius: 40px; text-decoration: none; font-weight: 600; }
+        .footer { margin-top: 24px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        ${bodyHtml}
+        <div class="footer">
+          © ${new Date().getFullYear()} Beauty One International Pte Ltd<br>
+          This is an automated message — please do not reply.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// ==================== AWARD RESULT EMAIL ====================
+export async function sendAwardResultEmail({
+  to,
+  recipientName,
+  tenderName,
+  tenderId,
+  won,
+  contractValue,
+}: {
+  to: string;
+  recipientName: string;
+  tenderName: string;
+  tenderId: number;
+  won: boolean;
+  contractValue?: number;
+}): Promise<void> {
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
+  const tenderUrl = `${baseUrl}/tenders/${tenderId}`;
+  const subject = won ? `Congratulations — you won: ${tenderName}` : `Tender awarded: ${tenderName}`;
+
+  const body = won
+    ? `
+        <h2>🏆 You've been awarded the tender</h2>
+        <p>Dear ${escapeHtml(recipientName)},</p>
+        <p>Congratulations — you have been awarded <strong>${escapeHtml(tenderName)}</strong>.</p>
+        ${contractValue != null ? `<p><span class="label">Contract Value:</span> $${contractValue.toLocaleString()}</p>` : ""}
+        <p style="margin-top: 24px;"><a href="${tenderUrl}" class="button">View Tender</a></p>
+      `
+    : `
+        <h2>Tender Award Result</h2>
+        <p>Dear ${escapeHtml(recipientName)},</p>
+        <p><strong>${escapeHtml(tenderName)}</strong> has been awarded to another contractor.</p>
+        <p>Thank you for your submission — we encourage you to bid on future tenders.</p>
+        <p style="margin-top: 24px;"><a href="${tenderUrl}" class="button">View Tender</a></p>
+      `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to,
+    subject,
+    html: wrapEmailBody(subject, body),
+  });
+}
+
+// ==================== BQ DECISION EMAIL ====================
+export async function sendBqDecisionEmail({
+  to,
+  recipientName,
+  bqLabel,
+  tenderName,
+  status,
+  submissionId,
+}: {
+  to: string;
+  recipientName: string;
+  bqLabel: string;
+  tenderName: string;
+  status: "approved" | "rejected";
+  submissionId: number;
+}): Promise<void> {
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
+  const bqUrl = `${baseUrl}/bq/${submissionId}/view`;
+  const subject = `BQ ${status === "approved" ? "Approved" : "Rejected"}: ${bqLabel}`;
+
+  const body = `
+    <h2>${status === "approved" ? "✅ BQ Approved" : "⚠️ BQ Rejected"}</h2>
+    <p>Dear ${escapeHtml(recipientName)},</p>
+    <p>Your Bill of Quantities <strong>${escapeHtml(bqLabel)}</strong> for <strong>${escapeHtml(tenderName)}</strong> has been <strong>${status}</strong>.</p>
+    <p style="margin-top: 24px;"><a href="${bqUrl}" class="button">View BQ</a></p>
+  `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to,
+    subject,
+    html: wrapEmailBody(subject, body),
+  });
+}
+
+// ==================== DLP REMINDER EMAIL ====================
+export async function sendDlpReminderEmail({
+  to,
+  recipientName,
+  tenderName,
+  tenderId,
+  dueDate,
+}: {
+  to: string;
+  recipientName: string;
+  tenderName: string;
+  tenderId: number;
+  dueDate: string;
+}): Promise<void> {
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
+  const tenderUrl = `${baseUrl}/tenders/${tenderId}`;
+  const subject = `DLP expiring soon: ${tenderName}`;
+
+  const body = `
+    <h2>⏳ Defect Liability Period Expiring Soon</h2>
+    <p>Dear ${escapeHtml(recipientName)},</p>
+    <p>The Defect Liability Period for <strong>${escapeHtml(tenderName)}</strong> expires on <strong>${escapeHtml(dueDate)}</strong>.</p>
+    <p style="margin-top: 24px;"><a href="${tenderUrl}" class="button">View Tender</a></p>
+  `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to,
+    subject,
+    html: wrapEmailBody(subject, body),
+  });
+}
+
+// ==================== SUBMISSION DEADLINE REMINDER EMAIL ====================
+export async function sendSubmissionDeadlineReminderEmail({
+  to,
+  recipientName,
+  tenderName,
+  tenderId,
+  closingDate,
+}: {
+  to: string;
+  recipientName: string;
+  tenderName: string;
+  tenderId: number;
+  closingDate: string;
+}): Promise<void> {
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
+  const tenderUrl = `${baseUrl}/tenders/${tenderId}`;
+  const subject = `Submission deadline approaching: ${tenderName}`;
+
+  const body = `
+    <h2>⏰ Submission Deadline Approaching</h2>
+    <p>Dear ${escapeHtml(recipientName)},</p>
+    <p><strong>${escapeHtml(tenderName)}</strong> closes on <strong>${escapeHtml(closingDate)}</strong>. Submit your bid before then.</p>
+    <p style="margin-top: 24px;"><a href="${tenderUrl}" class="button">Submit Bid</a></p>
+  `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to,
+    subject,
+    html: wrapEmailBody(subject, body),
+  });
+}
+
+// ==================== ANNOUNCEMENT EMAIL ====================
+export async function sendAnnouncementEmail({
+  to,
+  recipientName,
+  tenderName,
+  tenderId,
+  body: announcementBody,
+}: {
+  to: string;
+  recipientName: string;
+  tenderName: string;
+  tenderId: number;
+  body: string;
+}): Promise<void> {
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
+  const tenderUrl = `${baseUrl}/tenders/${tenderId}#messages`;
+  const subject = `Announcement: ${tenderName}`;
+
+  const body = `
+    <h2>📢 Announcement</h2>
+    <p>Dear ${escapeHtml(recipientName)},</p>
+    <p><span class="label">Tender:</span> ${escapeHtml(tenderName)}</p>
+    <div style="background-color: #f8fafc; padding: 12px 16px; border-left: 4px solid #0d9488; margin: 12px 0;">${escapeHtml(announcementBody).replace(/\n/g, "<br>")}</div>
+    <p style="margin-top: 24px;"><a href="${tenderUrl}" class="button">View Discussion</a></p>
+  `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to,
+    subject,
+    html: wrapEmailBody(subject, body),
+  });
+}
+
+// ==================== PASSWORD RESET (ADMIN-TRIGGERED) EMAIL ====================
+export async function sendPasswordResetEmail(
+  email: string,
+  username: string,
+  tempPassword: string,
+  token: string
+): Promise<void> {
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
+  const setPasswordUrl = `${baseUrl}/set-password?token=${token}`;
+  const subject = "Your TMS password has been reset";
+
+  const body = `
+    <h2>🔐 Password Reset</h2>
+    <p>Dear ${escapeHtml(username)},</p>
+    <p>An administrator has reset your password for the Tender Management System.</p>
+    <p><span class="label">Temporary Password:</span> <span style="font-family:monospace;">${escapeHtml(tempPassword)}</span></p>
+    <p>Please set a new password using the link below.</p>
+    <p style="margin-top: 24px;"><a href="${setPasswordUrl}" class="button">Set New Password</a></p>
+    <p style="font-size: 12px; color: #64748b;">If you did not expect this, contact your administrator immediately.</p>
+  `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to: email,
+    subject,
+    html: wrapEmailBody(subject, body),
+  });
+}
+
+// ==================== LOGIN ALERT EMAIL ====================
+export async function sendLoginAlertEmail(
+  email: string,
+  username: string,
+  ipAddress: string,
+  userAgent: string
+): Promise<void> {
+  const subject = "New login to your TMS account";
+
+  const body = `
+    <h2>🔔 Login Alert</h2>
+    <p>Dear ${escapeHtml(username)},</p>
+    <p>A login to your TMS account was just recorded:</p>
+    <p><span class="label">IP Address:</span> ${escapeHtml(ipAddress)}</p>
+    <p><span class="label">Device/Browser:</span> ${escapeHtml(userAgent)}</p>
+    <p style="font-size: 12px; color: #64748b;">If this wasn't you, contact your administrator immediately.</p>
+  `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to: email,
+    subject,
+    html: wrapEmailBody(subject, body),
+  });
+}

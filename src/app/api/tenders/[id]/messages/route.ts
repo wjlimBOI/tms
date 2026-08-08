@@ -8,7 +8,8 @@ import { ROLE_IDS } from "@/lib/roles";
 import { canAccessTenderMessages } from "@/lib/permissions";
 import { validateBody, tenderMessageSchema } from "@/lib/validation";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
-import { notifyUsers } from "@/lib/notifications";
+import { notifyUsers, sendTrackedEmail } from "@/lib/notifications";
+import { sendAnnouncementEmail } from "@/lib/email";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -161,12 +162,14 @@ export async function POST(
 
   if (rest.is_announcement === true) {
     const contractorsRes = await query(
-      `SELECT DISTINCT contractor_id FROM (
+      `SELECT DISTINCT ac.contractor_id, u.email, u.username
+       FROM (
          SELECT contractor_id FROM tender_submission WHERE tender_id = $1 AND is_deleted = false
          UNION SELECT contractor_id FROM tender_interest WHERE tender_id = $1
          UNION SELECT contractor_id FROM tender_contractor WHERE tender_id = $1
          UNION SELECT winning_contractor_id AS contractor_id FROM tender_award WHERE tender_id = $1
-       ) AS all_contractors`,
+       ) AS ac
+       JOIN users u ON u.user_id = ac.contractor_id`,
       [tenderId]
     );
     const contractorIds: number[] = contractorsRes.rows.map((r: { contractor_id: number }) => r.contractor_id);
@@ -196,6 +199,14 @@ export async function POST(
         body.slice(0, 200),
         `/tenders/${tenderId}#messages`
       ).catch((err) => console.error(`Announcement notification failed for tender ${tenderId}:`, err));
+
+      void (async () => {
+        for (const c of contractorsRes.rows) {
+          await sendTrackedEmail("announcement", { userId: c.contractor_id, email: c.email }, tenderId, () =>
+            sendAnnouncementEmail({ to: c.email, recipientName: c.username, tenderName: tender.tender_name, tenderId, body })
+          );
+        }
+      })().catch((err) => console.error(`Announcement email dispatch failed for tender ${tenderId}:`, err));
 
       return NextResponse.json(
         { success: true, messages: inserted, notifiedCount: contractorIds.length },

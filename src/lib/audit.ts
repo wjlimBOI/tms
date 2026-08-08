@@ -167,14 +167,14 @@ export function logDelete(
   });
 }
 
-export function logAuthEvent(
+export async function logAuthEvent(
   action: "LOGIN" | "LOGOUT" | "LOGIN_FAILED" | "PERMISSION_DENIED",
   userId?: number,
   req?: any,
   extraDetails?: any
 ) {
   const ctx = extractAuditContext(req);
-  return logEvent({
+  const result = logEvent({
     tableName: "auth",
     recordId: userId || undefined,
     action,
@@ -185,4 +185,30 @@ export function logAuthEvent(
     requestId: ctx.requestId,
     details: { ...ctx.details, ...extraDetails },
   });
+
+  // Also persist to the dedicated login_history table (real columns, real
+  // indexes, previously unused by any application code) — a queryable login
+  // audit trail, independent of the generic audit_log write above so a
+  // failure here can never affect that write or block login itself.
+  // ip_address is NOT NULL @db.Inet — "unknown" isn't a valid inet literal,
+  // so fall back to a recognizable sentinel address rather than a value
+  // that would fail the insert (and silently drop the row) whenever IP
+  // extraction comes up empty.
+  if (action === "LOGIN" || action === "LOGIN_FAILED") {
+    const ip = ctx.ipAddress && ctx.ipAddress !== "unknown" ? ctx.ipAddress : "0.0.0.0";
+    query(
+      `INSERT INTO login_history (user_id, username_attempted, ip_address, user_agent, login_status, failure_reason, auth_method)
+       VALUES ($1, $2, $3, $4, $5, $6, 'PASSWORD')`,
+      [
+        userId || null,
+        extraDetails?.username || null,
+        ip,
+        ctx.userAgent && ctx.userAgent !== "unknown" ? ctx.userAgent : null,
+        action === "LOGIN" ? "SUCCESS" : "FAILED",
+        action === "LOGIN_FAILED" ? extraDetails?.reason || null : null,
+      ]
+    ).catch((err: unknown) => console.error("Failed to write login_history:", err));
+  }
+
+  return result;
 }
