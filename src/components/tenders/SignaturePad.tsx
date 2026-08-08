@@ -122,10 +122,10 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
 
   return (
     <div className={className}>
-      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{label}</label>
+      <label className="block text-sm font-bold text-slate-700 mb-1">{label}</label>
       <div className="print:hidden">
         <div
-          className="border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 p-1"
+          className="border border-slate-300 rounded-md bg-white p-1"
           style={{ width: "100%", maxWidth: "300px" }}
         >
           <canvas
@@ -153,12 +153,12 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
             <button
               type="button"
               onClick={clearSignature}
-              className="text-xs text-red-600 dark:text-red-400 hover:underline"
+              className="text-xs text-red-600 hover:underline"
             >
               Clear
             </button>
             {hasSignature && (
-              <span className="text-xs text-green-600 dark:text-green-400">✓ Signature saved</span>
+              <span className="text-xs text-green-600">✓ Signature saved</span>
             )}
           </div>
         )}
