@@ -122,7 +122,7 @@ function renderEmail({
           <tr>
             <td bgcolor="#0f2b3d" style="background-color:#0f2b3d;padding:32px 24px 26px;text-align:center;">
               <img src="${logoSrc}" alt="Beauty One International" width="150" style="display:block;max-width:150px;width:100%;height:auto;margin:0 auto 16px auto;border:0;" />
-              <span style="display:inline-block;background-color:#123449;color:#5eead4;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 16px;border-radius:20px;">Tender Management System</span>
+              <span style="display:inline-block;color:#5eead4;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;border-bottom:1px solid rgba(94,234,212,0.4);padding-bottom:7px;">Tender Management System</span>
             </td>
           </tr>
 
@@ -562,9 +562,7 @@ export async function sendPasswordResetEmail(
     <p style="margin:0 0 14px;">An administrator has reset your password for the Tender Management System.</p>
     <p style="margin:0 0 14px;"><span style="font-weight:600;color:#334155;">Temporary Password:</span> <span style="font-family:monospace;">${escapeHtml(tempPassword)}</span></p>
     <p style="margin:0 0 14px;">Please set a new password using the button below.</p>
-    <div style="background-color:#fef2f2;border-left:4px solid #dc2626;border-radius:6px;padding:12px 16px;margin:0;text-align:left;">
-      <span style="font-size:13px;color:#b91c1c;font-weight:600;">If you did not expect this, contact your administrator immediately.</span>
-    </div>
+    <p style="font-size:13px;color:#dc2626;font-weight:600;margin:0;">If you did not expect this, contact your administrator immediately.</p>
   `;
 
   await transporter.sendMail({
@@ -590,9 +588,7 @@ export async function sendLoginAlertEmail(
     <p style="margin:0 0 14px;">A login to your TMS account was just recorded:</p>
     <p style="margin:0 0 6px;"><span style="font-weight:600;color:#334155;">IP Address:</span> ${escapeHtml(ipAddress)}</p>
     <p style="margin:0 0 14px;"><span style="font-weight:600;color:#334155;">Device/Browser:</span> ${escapeHtml(userAgent)}</p>
-    <div style="background-color:#fef2f2;border-left:4px solid #dc2626;border-radius:6px;padding:12px 16px;margin:0;text-align:left;">
-      <span style="font-size:13px;color:#b91c1c;font-weight:600;">If this wasn't you, contact your administrator immediately.</span>
-    </div>
+    <p style="font-size:13px;color:#dc2626;font-weight:600;margin:0;">If this wasn't you, contact your administrator immediately.</p>
   `;
 
   await transporter.sendMail({
