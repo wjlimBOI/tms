@@ -6,6 +6,13 @@ module.exports = {
   ],
   theme: {
     extend: {
+      // `xs` is used in src/app/tenders/page.tsx's compact table date-editor
+      // (e.g. `text-[8px] xs:text-[10px]`) but was never defined here, so
+      // those responsive rules were silently dead - the base (tiniest)
+      // classes always won, regardless of screen width.
+      screens: {
+        xs: "400px",
+      },
       colors: {
         border: "hsl(var(--border) / <alpha-value>)",
         input: "hsl(var(--input) / <alpha-value>)",
