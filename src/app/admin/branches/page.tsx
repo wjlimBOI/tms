@@ -304,10 +304,10 @@ export default function AdminBranchesPage() {
 
   if (status === "loading" || (loading && branches.length === 0)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-gray-500 dark:text-cyan-300/70">Loading branches…</p>
+          <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500">Loading branches…</p>
         </div>
       </div>
     );
@@ -315,9 +315,9 @@ export default function AdminBranchesPage() {
 
   if (error && branches.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-[#0a1228]">
-        <div className="bg-red-100 dark:bg-red-500/20 border border-red-300 dark:border-red-500/50 rounded-2xl p-8 text-center max-w-md">
-          <p className="text-red-700 dark:text-red-200">{error}</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+        <div className="bg-red-100 border border-red-300 rounded-2xl p-8 text-center max-w-md">
+          <p className="text-red-700">{error}</p>
           <button onClick={fetchBranches} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
             Retry
           </button>
@@ -327,25 +327,25 @@ export default function AdminBranchesPage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gray-50 dark:bg-[#0a1228]">
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
+    <div className="min-h-screen relative overflow-hidden bg-gray-50">
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
 
       <div className="relative z-10 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Branch Management</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Branch Management</h1>
+              <p className="text-sm text-gray-500 mt-1">
                 Manage all branch locations and their details
               </p>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => { fetchBranches(); fetchBrands(); }}
-                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm dark:shadow-lg text-gray-700 dark:text-white bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-all duration-200"
+                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
                 title="Refresh"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,7 +355,7 @@ export default function AdminBranchesPage() {
               </button>
               <button
                 onClick={openCreateModal}
-                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm dark:shadow-lg text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 dark:from-cyan-500 dark:to-blue-600 dark:hover:from-cyan-600 dark:hover:to-blue-700 transition-all duration-200 hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 transition-all duration-200 hover:-translate-y-0.5"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -367,47 +367,47 @@ export default function AdminBranchesPage() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white dark:bg-[#0a1228]/90 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-cyan-500/30 p-5 shadow-sm dark:shadow-none">
-              <p className="text-xs font-semibold text-gray-400 dark:text-cyan-300 uppercase tracking-wider">Total Branches</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{filteredAndSortedBranches.length}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">All active locations</p>
+            <div className="bg-white backdrop-blur-sm rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Branches</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{filteredAndSortedBranches.length}</p>
+              <p className="text-xs text-gray-400 mt-1">All active locations</p>
             </div>
-            <div className="bg-white dark:bg-[#0a1228]/90 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-cyan-500/30 p-5 shadow-sm dark:shadow-none">
-              <p className="text-xs font-semibold text-gray-400 dark:text-cyan-300 uppercase tracking-wider">Operational</p>
-              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{activeBranches.length}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Excludes closed locations</p>
+            <div className="bg-white backdrop-blur-sm rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Operational</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">{activeBranches.length}</p>
+              <p className="text-xs text-gray-400 mt-1">Excludes closed locations</p>
             </div>
-            <div className="bg-white dark:bg-[#0a1228]/90 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-cyan-500/30 p-5 shadow-sm dark:shadow-none">
-              <p className="text-xs font-semibold text-gray-400 dark:text-cyan-300 uppercase tracking-wider">Works in Progress</p>
-              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{ongoingWorksBranches.length}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Under renovation/refurbishment</p>
+            <div className="bg-white backdrop-blur-sm rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Works in Progress</p>
+              <p className="text-2xl font-bold text-amber-600 mt-1">{ongoingWorksBranches.length}</p>
+              <p className="text-xs text-gray-400 mt-1">Under renovation/refurbishment</p>
             </div>
-            <div className="bg-white dark:bg-[#0a1228]/90 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-cyan-500/30 p-5 shadow-sm dark:shadow-none">
-              <p className="text-xs font-semibold text-gray-400 dark:text-cyan-300 uppercase tracking-wider">Closed</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+            <div className="bg-white backdrop-blur-sm rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Closed</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">
                 {filteredAndSortedBranches.filter(b => b.operation_status === 'Closed').length}
               </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Permanently closed</p>
+              <p className="text-xs text-gray-400 mt-1">Permanently closed</p>
             </div>
           </div>
 
           {/* Filter Bar */}
-          <div className="bg-white dark:bg-[#0a1228]/90 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-cyan-500/30 p-5 mb-6 shadow-sm dark:shadow-none">
+          <div className="bg-white backdrop-blur-sm rounded-2xl border border-gray-200 p-5 mb-6 shadow-sm">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end">
               <div className="lg:col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider mb-1">Search Branch</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Search Branch</label>
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Type branch name..."
                     defaultValue={searchTerm}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:focus:ring-cyan-400 focus:border-transparent px-3 py-2 text-sm"
+                    className="w-full bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent px-3 py-2 text-sm"
                   />
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 18" />
@@ -418,11 +418,11 @@ export default function AdminBranchesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider mb-1">Filter by Brand</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Filter by Brand</label>
                 <select
                   value={brandFilter}
                   onChange={(e) => setBrandFilter(e.target.value)}
-                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:focus:ring-cyan-400 px-3 py-2 text-sm"
+                  className="w-full bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-600 px-3 py-2 text-sm"
                   disabled={brandsLoading}
                 >
                   <option value="">All Brands</option>
@@ -435,19 +435,19 @@ export default function AdminBranchesPage() {
                     );
                   })}
                 </select>
-                {brandsLoading && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Loading brands…</p>}
+                {brandsLoading && <p className="text-xs text-gray-400 mt-1">Loading brands…</p>}
               </div>
 
               <div className="flex gap-3">
                 <button
                   onClick={applyFilter}
-                  className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 dark:from-cyan-500 dark:to-blue-600 text-white text-sm font-medium rounded-lg shadow-sm transition"
+                  className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
                 >
                   Apply Filter
                 </button>
                 <button
                   onClick={clearFilters}
-                  className="px-4 py-2 border border-cyan-600 dark:border-cyan-500/50 rounded-lg text-sm font-medium text-cyan-700 dark:text-cyan-300 bg-transparent hover:bg-cyan-50 dark:hover:bg-cyan-500/10 transition"
+                  className="px-4 py-2 border border-cyan-600 rounded-lg text-sm font-medium text-cyan-700 bg-transparent hover:bg-cyan-50 transition"
                 >
                   Clear All
                 </button>
@@ -456,20 +456,20 @@ export default function AdminBranchesPage() {
           </div>
 
           {/* Table - Brand Color as Left Border */}
-          <div className="bg-white dark:bg-[#0a1228]/90 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-cyan-500/30 overflow-hidden shadow-sm dark:shadow-none">
+          <div className="bg-white backdrop-blur-sm rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-white/10">
-                <thead className="bg-gray-50 dark:bg-white/5">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Branch</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Building</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Full Address</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Postal Code</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Branch</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Building</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Full Address</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Postal Code</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-white/10">
+                <tbody className="divide-y divide-gray-200">
                   {filteredAndSortedBranches.length > 0 ? (
                     filteredAndSortedBranches.map((branch) => {
                       const brandColor = BRAND_COLORS[branch.brand_id] || '#6B7280';
@@ -478,23 +478,23 @@ export default function AdminBranchesPage() {
                       return (
                         <tr 
                           key={branch.branch_id} 
-                          className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150 relative"
+                          className="hover:bg-gray-50 transition-colors duration-150 relative"
                         >
                           {/* Left border color indicator for brand */}
-                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white text-center relative">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center relative">
                             <div 
                               className="absolute left-0 top-0 bottom-0 w-1 rounded-l"
                               style={{ backgroundColor: brandColor }}
                             />
                             {branch.branch_name}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-white/70 text-center">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
                             {branch.address?.building_name || "—"}
                           </td>
-                          <td className="px-4 py-4 text-sm text-gray-600 dark:text-white/70 text-center max-w-xs truncate" title={branch.address?.full_address || ""}>
+                          <td className="px-4 py-4 text-sm text-gray-600 text-center max-w-xs truncate" title={branch.address?.full_address || ""}>
                             {branch.address?.full_address || "—"}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-white/70 text-center">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
                             {branch.address?.postal_code || "—"}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm text-center">
@@ -506,13 +506,13 @@ export default function AdminBranchesPage() {
                             <div className="flex justify-center gap-2">
                               <button
                                 onClick={() => openEditModal(branch)}
-                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/50 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-all"
+                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 transition-all"
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => handleDelete(branch.branch_id, branch.branch_name)}
-                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-800 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/50 hover:bg-red-200 dark:hover:bg-red-500/30 transition-all"
+                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-800 border-red-200 hover:bg-red-200 transition-all"
                               >
                                 Delete
                               </button>
@@ -523,7 +523,7 @@ export default function AdminBranchesPage() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-white/50">
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                         {brandFilter || searchTerm ? "No branches match your filters." : "No branches have been created yet."}
                       </td>
                     </tr>
@@ -538,14 +538,14 @@ export default function AdminBranchesPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl transform transition-all border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl transform transition-all border border-slate-200 overflow-hidden">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 tracking-tight">
+                  <h2 className="text-xl font-semibold text-slate-800 tracking-tight">
                     {editingBranch ? "Edit Branch" : "Create New Branch"}
                   </h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-sm text-slate-500 mt-0.5">
                     {editingBranch
                       ? "Update branch details and operation status"
                       : "Add a new branch under a brand"}
@@ -553,7 +553,7 @@ export default function AdminBranchesPage() {
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+                  className="text-slate-400 hover:text-slate-600 transition"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 18" />
@@ -565,7 +565,7 @@ export default function AdminBranchesPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className="block text-sm font-medium text-slate-700">
                     Branch Name <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -573,19 +573,19 @@ export default function AdminBranchesPage() {
                     required
                     value={formData.branch_name}
                     onChange={(e) => setFormData({ ...formData, branch_name: e.target.value })}
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                     placeholder="e.g. Orchard Road"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className="block text-sm font-medium text-slate-700">
                     Brand <span className="text-rose-500">*</span>
                   </label>
                   <select
                     required
                     value={formData.brand_id}
                     onChange={(e) => setFormData({ ...formData, brand_id: e.target.value })}
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                   >
                     <option value="">Select a brand</option>
                     {brands.map((brand) => {
@@ -601,14 +601,14 @@ export default function AdminBranchesPage() {
               </div>
 
               {/* Address Section */}
-              <div className="space-y-4 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+              <div className="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Address Information</h3>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Primary address</span>
+                  <h3 className="text-sm font-semibold text-slate-700">Address Information</h3>
+                  <span className="text-xs text-slate-500">Primary address</span>
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className="block text-sm font-medium text-slate-700">
                     Full Address <span className="text-rose-500">*</span>
                   </label>
                   <textarea
@@ -619,14 +619,14 @@ export default function AdminBranchesPage() {
                       address: { ...formData.address, full_address: e.target.value }
                     })}
                     rows={2}
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                     placeholder="Full address of the branch"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label className="block text-sm font-medium text-slate-700">
                       Building Name
                     </label>
                     <input
@@ -636,12 +636,12 @@ export default function AdminBranchesPage() {
                         ...formData, 
                         address: { ...formData.address, building_name: e.target.value }
                       })}
-                      className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                      className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                       placeholder="e.g. Kovan Heartland Mall"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label className="block text-sm font-medium text-slate-700">
                       Postal Code
                     </label>
                     <input
@@ -651,7 +651,7 @@ export default function AdminBranchesPage() {
                         ...formData, 
                         address: { ...formData.address, postal_code: e.target.value }
                       })}
-                      className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                      className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                       placeholder="e.g. 530205"
                     />
                   </div>
@@ -659,32 +659,32 @@ export default function AdminBranchesPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Operation Status</label>
+                <label className="block text-sm font-medium text-slate-700">Operation Status</label>
                 <select
                   value={formData.operation_status}
                   onChange={(e) => setFormData({ ...formData, operation_status: e.target.value })}
-                  className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                 >
                   {OPERATION_STATUSES.map((status) => (
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-500">
                   Indicates the current operational state of the branch.
                 </p>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 dark:from-cyan-500 dark:to-blue-600 rounded-lg text-sm font-medium text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-lg text-sm font-medium text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
                 >
                   {editingBranch ? "Update Branch" : "Create Branch"}
                 </button>
