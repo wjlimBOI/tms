@@ -215,7 +215,7 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
 
   if (!hasPermission) {
     return (
-      <div className="p-6 text-center text-red-600 dark:text-red-400">
+      <div className="p-6 text-center text-red-600">
         <p className="text-lg font-semibold">Access Denied</p>
         <p className="text-sm">You do not have the required permission to manage default tender timings.</p>
       </div>
@@ -226,7 +226,7 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
     return (
       <div className="text-center py-8">
         <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-slate-500 dark:text-slate-400">Loading default timings...</p>
+        <p className="text-slate-500">Loading default timings...</p>
       </div>
     );
   }
@@ -234,7 +234,7 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+        <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={fetchTimings}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
@@ -248,14 +248,14 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
   const hasAnyTiming = Object.values(timings).some((v) => v !== "");
 
   return (
-    <div className="backdrop-blur-sm bg-white/40 dark:bg-gray-900/40 rounded-2xl border border-white/20 dark:border-white/10 shadow-xl p-6">
+    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+        <h2 className="text-xl font-semibold text-gray-800">
           Tender Timings
         </h2>
         <button
           onClick={fetchTimings}
-          className="text-sm text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
+          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -264,20 +264,20 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
         </button>
       </div>
 
-      <p className="text-sm text-gray-500 dark:text-cyan-300/70 mb-6">
+      <p className="text-sm text-gray-500 mb-6">
         These default times are applied to all new tenders. The dates are set per tender, but the times are locked globally.
         Changing these defaults will only affect <strong>new</strong> tenders; existing tenders are unchanged.
       </p>
 
       {!hasAnyTiming && (
-        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-300 text-sm">
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
           No default timings have been set yet. Use the form below to set the default times.
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Tender Start Time
           </label>
           <input
@@ -285,13 +285,13 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
             name="default_tender_start"
             value={timings.default_tender_start}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-gray-400 mt-1">The default time when the tender period begins.</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Download Start Time
           </label>
           <input
@@ -299,13 +299,13 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
             name="default_download_start"
             value={timings.default_download_start}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-gray-400 mt-1">The default time when contractors can start downloading documents.</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Tender Closing Time
           </label>
           <input
@@ -313,13 +313,13 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
             name="default_closing_time"
             value={timings.default_closing_time}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-gray-400 mt-1">The default time of the deadline for tender submissions.</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Submission Start Time
           </label>
           <input
@@ -327,13 +327,13 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
             name="default_submission_start"
             value={timings.default_submission_start}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-gray-400 mt-1">The default time when the submission window opens.</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Submission End Time
           </label>
           <input
@@ -341,7 +341,7 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
             name="default_submission_end"
             value={timings.default_submission_end}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-gray-400 mt-1">The default time when the submission window closes.</p>
         </div>
@@ -357,7 +357,7 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
         </div>
       </form>
 
-      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
         <Clock className="w-4 h-4 inline mr-2" />
         <span>
           <strong>Note:</strong> These times are applied to the corresponding date fields when a new tender is created.
@@ -436,7 +436,7 @@ function CCSettings() {
     return (
       <div className="text-center py-8">
         <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-slate-500 dark:text-slate-400">Loading CC settings...</p>
+        <p className="text-slate-500">Loading CC settings...</p>
       </div>
     );
   }
@@ -444,7 +444,7 @@ function CCSettings() {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+        <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={fetchData}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
@@ -456,12 +456,12 @@ function CCSettings() {
   }
 
   return (
-    <div className="backdrop-blur-sm bg-white/40 dark:bg-gray-900/40 rounded-2xl border border-white/20 dark:border-white/10 shadow-xl p-6">
+    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">CC Recipients</h2>
+        <h2 className="text-xl font-semibold text-gray-800">CC Recipients</h2>
         <button
           onClick={fetchData}
-          className="text-sm text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
+          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -470,22 +470,22 @@ function CCSettings() {
         </button>
       </div>
 
-      <p className="text-sm text-gray-500 dark:text-cyan-300/70 mb-6">
+      <p className="text-sm text-gray-500 mb-6">
         Select which roles should receive <strong>CC notifications</strong> for tender events (e.g., new tender creation, extension requests, approvals, etc.).
       </p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 dark:border-slate-700">
-              <th className="py-2 px-3 font-semibold text-slate-600 dark:text-slate-300">Role</th>
-              <th className="py-2 px-3 font-semibold text-slate-600 dark:text-slate-300 text-center">Receive CC</th>
+            <tr className="border-b border-slate-200">
+              <th className="py-2 px-3 font-semibold text-slate-600">Role</th>
+              <th className="py-2 px-3 font-semibold text-slate-600 text-center">Receive CC</th>
             </tr>
           </thead>
           <tbody>
             {roles.map((role) => (
-              <tr key={role.role_id} className="border-b border-slate-100 dark:border-slate-800">
-                <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-200">
+              <tr key={role.role_id} className="border-b border-slate-100">
+                <td className="py-2 px-3 font-medium text-slate-800">
                   {getRoleDisplayName(role.role_name)}
                 </td>
                 <td className="py-2 px-3 text-center">
@@ -493,7 +493,7 @@ function CCSettings() {
                     type="checkbox"
                     checked={ccRoleIds.includes(role.role_id)}
                     onChange={() => toggleRole(role.role_id)}
-                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
                 </td>
               </tr>
@@ -512,7 +512,7 @@ function CCSettings() {
         </button>
       </div>
 
-      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
         <Mail className="w-4 h-4 inline mr-2" />
         <span>
           <strong>Note:</strong> CC recipients will receive a copy of all relevant tender notifications. This is separate from the approver list for extensions.
@@ -590,28 +590,28 @@ export default function SecurityDashboard() {
 
   if (loading || status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0a1228] dark:to-[#0a0f20]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center animate-pulse">
-          <div className="w-12 h-12 border-4 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-cyan-300/70 font-medium">Loading security portal…</p>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 font-medium">Loading security portal…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0a1228] dark:to-[#0a0f20] py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8 backdrop-blur-sm bg-white/30 dark:bg-black/20 rounded-2xl p-6 border border-white/20 dark:border-white/10 shadow-xl">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-cyan-300 bg-clip-text text-transparent">
+        <div className="mb-8 backdrop-blur-sm bg-white/30 rounded-2xl p-6 border border-white/20 shadow-xl">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
             Security Dashboard
           </h1>
-          <p className="text-sm text-gray-600 dark:text-cyan-300/70 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Access controls, time‑locked workflows, audit trails, and tender settings
           </p>
         </div>
 
-        <div className="border-b border-gray-200 dark:border-gray-700 mb-8 overflow-x-auto">
+        <div className="border-b border-gray-200 mb-8 overflow-x-auto">
           <nav className="-mb-px flex space-x-8">
             <TabButton active={activeTab === "notifications"} onClick={() => setActiveTab("notifications")} label="Notifications" />
             {isAdmin && (
@@ -634,7 +634,7 @@ export default function SecurityDashboard() {
           {activeTab === "audit" && isAdmin && <AuditLogs />}
           {activeTab === "tender-settings" && isAdmin && (
             <>
-              <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+              <div className="flex border-b border-gray-200 mb-6">
                 {canViewTimings && (
                   <SubTabButton
                     active={activeSubTab === "timings"}
@@ -668,8 +668,8 @@ function TabButton({ active, onClick, label }: { active: boolean; onClick: () =>
       onClick={onClick}
       className={`relative pb-4 px-1 font-medium text-sm transition-all duration-300 whitespace-nowrap ${
         active
-          ? "text-blue-600 dark:text-cyan-400"
-          : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+          ? "text-blue-600"
+          : "text-gray-500 hover:text-gray-700"
       }`}
     >
       {label}
@@ -686,8 +686,8 @@ function SubTabButton({ active, onClick, label }: { active: boolean; onClick: ()
       onClick={onClick}
       className={`relative pb-3 px-1 text-sm font-medium transition-all duration-300 ${
         active
-          ? "text-blue-600 dark:text-cyan-400 border-b-2 border-blue-600 dark:border-cyan-400"
-          : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+          ? "text-blue-600 border-b-2 border-blue-600"
+          : "text-gray-500 hover:text-gray-700"
       }`}
     >
       {label}
@@ -793,13 +793,13 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
   const getTypeStyles = (type: Notification["type"]) => {
     switch (type) {
       case "success":
-        return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800";
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
       case "warning":
-        return "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800";
+        return "bg-amber-100 text-amber-800 border-amber-200";
       case "error":
-        return "bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800";
+        return "bg-rose-100 text-rose-800 border-rose-200";
       default:
-        return "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800";
+        return "bg-blue-100 text-blue-800 border-blue-200";
     }
   };
 
@@ -820,10 +820,10 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
 
   return (
     <>
-      <div className="backdrop-blur-sm bg-white/40 dark:bg-gray-900/40 rounded-2xl border border-white/20 dark:border-white/10 shadow-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/20 dark:border-white/10">
+      <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/20">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Notifications</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Notifications</h2>
             {unreadCount > 0 && (
               <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-blue-600 text-white">
                 {unreadCount}
@@ -833,16 +833,16 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="text-sm text-blue-600 dark:text-cyan-400 hover:text-blue-700 dark:hover:text-cyan-300 transition"
+              className="text-sm text-blue-600 hover:text-blue-700 transition"
             >
               Mark all as read
             </button>
           )}
         </div>
 
-        <div className="divide-y divide-gray-200 dark:divide-white/10">
+        <div className="divide-y divide-gray-200">
           {notifications.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            <div className="p-8 text-center text-gray-500">
               No notifications. You're all caught up!
             </div>
           ) : (
@@ -850,8 +850,8 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
               <div
                 key={notification.id}
                 onClick={() => openAcknowledgeModal(notification)}
-                className={`p-5 transition-all duration-200 hover:bg-white/30 dark:hover:bg-white/5 cursor-pointer ${
-                  !notification.read ? "bg-white/20 dark:bg-white/5" : ""
+                className={`p-5 transition-all duration-200 hover:bg-white/30 cursor-pointer ${
+                  !notification.read ? "bg-white/20" : ""
                 }`}
               >
                 <div className="flex gap-4">
@@ -864,19 +864,19 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
                   </div>
                   <div className="flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{notification.title}</h3>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <h3 className="font-semibold text-gray-900">{notification.title}</h3>
+                      <span className="text-xs text-gray-500">
                         {format(notification.timestamp, "dd/MM/yyyy HH:mm")}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{notification.message}</p>
+                    <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
                     {!notification.read && notification.id !== "2" && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           markAsRead(notification.id);
                         }}
-                        className="mt-2 text-xs text-blue-600 dark:text-cyan-400 hover:underline"
+                        className="mt-2 text-xs text-blue-600 hover:underline"
                       >
                         Mark as read
                       </button>
@@ -902,42 +902,42 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
 
       {showAcknowledgeModal && selectedNotification && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-[#0f1630] rounded-2xl shadow-2xl max-w-md w-full border border-white/20 dark:border-white/10 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200 dark:border-white/10">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-white/20 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">
                 Second‑Level Approval Required
               </h3>
             </div>
             <div className="p-6 space-y-4">
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <div className="flex items-center gap-2 text-amber-600">
                 <span className="text-2xl">⚠️</span>
                 <span className="font-semibold">Project Manager Review</span>
               </div>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-gray-600">
                 Tender <strong>Shakura Pigmentation Beauty #05-17 Tampines 1</strong> is ready for go‑live.
               </p>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-gray-600">
                 Please confirm that all documents are compliant and the tender is ready to be published.
               </p>
-              <div className="bg-gray-100 dark:bg-gray-800/50 p-3 rounded-lg text-sm">
-                <p className="font-mono text-gray-700 dark:text-gray-200">
+              <div className="bg-gray-100 p-3 rounded-lg text-sm">
+                <p className="font-mono text-gray-700">
                   Tender ID: <span className="font-bold">T-2026-002</span>
                 </p>
-                <p className="font-mono text-gray-700 dark:text-gray-200 mt-1">
+                <p className="font-mono text-gray-700 mt-1">
                   Created by: <span className="font-bold">Mark Nocon (Renovation Team)</span>
                 </p>
-                <p className="font-mono text-gray-700 dark:text-gray-200 mt-1">
+                <p className="font-mono text-gray-700 mt-1">
                   Requires approval from: <span className="font-bold">Jack Puan (Project Manager)</span>
                 </p>
               </div>
             </div>
-            <div className="flex justify-end gap-3 px-6 py-5 bg-gray-50 dark:bg-gray-800/30 border-t border-gray-200 dark:border-white/10">
+            <div className="flex justify-end gap-3 px-6 py-5 bg-gray-50 border-t border-gray-200">
               <button
                 onClick={() => {
                   setShowAcknowledgeModal(false);
                   setSelectedNotification(null);
                 }}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
@@ -1147,8 +1147,8 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
   const isLoading = loadingMap[activeResource];
 
   return (
-    <div className="backdrop-blur-sm bg-white/40 dark:bg-gray-900/40 rounded-2xl border border-white/20 dark:border-white/10 shadow-xl">
-      <div className="border-b border-white/20 dark:border-white/10 px-6 pt-4">
+    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl">
+      <div className="border-b border-white/20 px-6 pt-4">
         <div className="flex space-x-6 overflow-x-auto">
           {Object.entries(resourceConfig).map(([key, config]) => (
             <button
@@ -1156,8 +1156,8 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
               onClick={() => setActiveResource(key as ResourceType)}
               className={`relative pb-3 px-1 text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 activeResource === key
-                  ? "text-blue-600 dark:text-cyan-400"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  ? "text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               {config.label}
@@ -1172,10 +1172,10 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+            <h2 className="text-xl font-semibold text-gray-800">
               {resourceConfig[activeResource].label} – Acknowledgment Steps
             </h2>
-            <p className="text-sm text-gray-500 dark:text-cyan-300/70 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               {resourceConfig[activeResource].description}
             </p>
           </div>
@@ -1193,27 +1193,27 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
         {isLoading ? (
           <div className="space-y-3 animate-pulse">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+              <div key={i} className="h-16 bg-gray-200 rounded-lg" />
             ))}
           </div>
         ) : !isEditing ? (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700 rounded-xl overflow-hidden">
+          <div className="divide-y divide-gray-200 rounded-xl overflow-hidden">
             {currentSteps.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400 bg-white/30 dark:bg-black/20 rounded-xl">
+              <div className="p-8 text-center text-gray-500 bg-white/30 rounded-xl">
                 No acknowledgment steps defined. Click "Edit Workflow" to create one.
               </div>
             ) : (
               currentSteps.map((step, idx) => (
                 <div
                   key={idx}
-                  className="p-4 flex flex-wrap items-center gap-3 bg-white/30 dark:bg-black/20 backdrop-blur-sm hover:bg-white/50 dark:hover:bg-gray-800/50 transition"
+                  className="p-4 flex flex-wrap items-center gap-3 bg-white/30 backdrop-blur-sm hover:bg-white/50 transition"
                 >
-                  <span className="font-mono text-gray-400 dark:text-gray-500 w-8">#{idx + 1}</span>
-                  <span className="font-medium text-gray-800 dark:text-gray-200 w-48">
+                  <span className="font-mono text-gray-400 w-8">#{idx + 1}</span>
+                  <span className="font-medium text-gray-800 w-48">
                     {getRoleDisplayName(step.role_name || "Unknown role")}
                   </span>
                   {step.deadline_hours && (
-                    <span className="text-xs text-amber-600 dark:text-amber-400">
+                    <span className="text-xs text-amber-600">
                       ⏱️ Must complete within {step.deadline_hours}h
                     </span>
                   )}
@@ -1232,17 +1232,17 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
                 <div className="space-y-3">
                   {currentSteps.map((step, idx) => (
                     <SortableItem key={step.id} id={step.id}>
-                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-wrap items-center gap-3 shadow-sm">
-                        <div className="cursor-move text-gray-400 dark:text-gray-500">
+                      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap items-center gap-3 shadow-sm">
+                        <div className="cursor-move text-gray-400">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                           </svg>
                         </div>
-                        <span className="font-mono text-gray-400 dark:text-gray-500 w-8">#{idx + 1}</span>
+                        <span className="font-mono text-gray-400 w-8">#{idx + 1}</span>
                         <select
                           value={step.role_id}
                           onChange={(e) => updateStep(activeResource, idx, "role_id", e.target.value)}
-                          className="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-800"
+                          className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white"
                         >
                           {sortedRoles.map((role) => (
                             <option key={role.role_id} value={role.role_id}>
@@ -1260,13 +1260,13 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
                             onChange={(e) =>
                               updateStep(activeResource, idx, "deadline_hours", e.target.value)
                             }
-                            className="w-20 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-800"
+                            className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm bg-white"
                             placeholder="Optional"
                           />
                         </div>
                         <button
                           onClick={() => removeStep(activeResource, idx)}
-                          className="text-red-500 dark:text-red-400 hover:text-red-700 ml-auto"
+                          className="text-red-500 hover:text-red-700 ml-auto"
                         >
                           Remove
                         </button>
@@ -1279,7 +1279,7 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => addStep(activeResource)}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 rounded-lg text-sm"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
               >
                 + Add Step
               </button>
@@ -1292,7 +1292,7 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
               </button>
               <button
                 onClick={() => cancelEdit(activeResource)}
-                className="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded-lg text-sm"
+                className="px-4 py-2 bg-gray-300 rounded-lg text-sm"
               >
                 Cancel
               </button>
@@ -1300,7 +1300,7 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
           </div>
         )}
       </div>
-      <div className="p-4 text-sm text-gray-500 dark:text-gray-400 border-t bg-white/20 dark:bg-black/20 rounded-b-2xl flex items-center gap-2">
+      <div className="p-4 text-sm text-gray-500 border-t bg-white/20 rounded-b-2xl flex items-center gap-2">
         <GitBranch className="w-4 h-4" />
         <span>
           Define the sequence of acknowledgment steps (e.g., who must approve in which order). For each step, you can optionally set a time limit (in hours). If a step exceeds its deadline, the workflow may be escalated or cancelled.
@@ -1576,8 +1576,8 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
   if (loading || extensionLoading) {
     return (
       <div className="animate-pulse space-y-4">
-        <div className="h-10 bg-white/50 dark:bg-gray-800/50 rounded-lg w-1/3" />
-        <div className="h-64 bg-white/50 dark:bg-gray-800/50 rounded-xl" />
+        <div className="h-10 bg-white/50 rounded-lg w-1/3" />
+        <div className="h-64 bg-white/50 rounded-xl" />
       </div>
     );
   }
@@ -1586,7 +1586,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
     <>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Role Permissions</h2>
+          <h2 className="text-xl font-semibold text-gray-800">Role Permissions</h2>
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition"
@@ -1596,33 +1596,33 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
         </div>
 
         {/* SINGLE TABLE – integrated Extension Approver column */}
-        <div className="backdrop-blur-sm bg-white/40 dark:bg-gray-900/40 rounded-xl border border-white/20 dark:border-white/10 shadow-md overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-white/50 dark:bg-gray-800/50">
+        <div className="backdrop-blur-sm bg-white/40 rounded-xl border border-white/20 shadow-md overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-white/50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
                 </th>
                 {permissions.map((perm) => (
                   <th
                     key={perm.permission_id}
-                    className="px-4 py-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     {perm.permission_name}
                   </th>
                 ))}
-                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Extension Approver
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-200">
               {roles.map((role) => (
                 <tr
                   key={role.role_id}
-                  className="hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors duration-150"
+                  className="hover:bg-white/50 transition-colors duration-150"
                 >
-                  <td className="px-6 py-3 text-sm font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                  <td className="px-6 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
                     {getRoleDisplayName(role.role_name)}
                   </td>
                   {permissions.map((perm) => (
@@ -1632,7 +1632,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                         checked={(rolePerms[role.role_id] || []).includes(perm.permission_id)}
                         onChange={() => togglePermission(role.role_id, perm.permission_id)}
                         disabled={perm.permission_id < 0}
-                        className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-cyan-400 focus:ring-blue-500 dark:focus:ring-cyan-400 transition-transform hover:scale-110 disabled:opacity-50"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-transform hover:scale-110 disabled:opacity-50"
                       />
                     </td>
                   ))}
@@ -1642,14 +1642,14 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                       checked={extensionData[role.role_id]?.is_approver || false}
                       onChange={() => toggleExtensionApprover(role.role_id)}
                       disabled={extensionSaving[role.role_id]}
-                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-cyan-400 focus:ring-blue-500 dark:focus:ring-cyan-400 transition-transform hover:scale-110 disabled:opacity-50"
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-transform hover:scale-110 disabled:opacity-50"
                     />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="p-5 border-t border-white/20 dark:border-white/10 flex justify-end bg-white/30 dark:bg-black/20">
+          <div className="p-5 border-t border-white/20 flex justify-end bg-white/30">
             <button
               onClick={savePermissions}
               disabled={saving}
@@ -1659,7 +1659,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
             </button>
           </div>
         </div>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+        <p className="text-xs text-slate-400 mt-1">
           Tip: Toggle "Extension Approver" to allow the role to approve extension requests.
         </p>
       </div>
@@ -1667,9 +1667,9 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
       {/* Add Permission Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-[#0f1630] rounded-2xl shadow-2xl max-w-md w-full border border-white/20 dark:border-white/10 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200 dark:border-white/10 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Add New Permission</h3>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-white/20 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-900">Add New Permission</h3>
               <button
                 onClick={() => {
                   setShowAddModal(false);
@@ -1677,14 +1677,14 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                   setNewPermName("");
                   setNewPermModule("");
                 }}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-gray-400 hover:text-gray-600"
               >
                 ✕
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-700">
                   Permission Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1692,20 +1692,20 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                   value={newPermName}
                   onChange={(e) => setNewPermName(e.target.value)}
                   placeholder="e.g., View Cost Comparison"
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white"
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   A short, descriptive name for the permission.
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-700">
                   Module <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={newPermModule}
                   onChange={(e) => setNewPermModule(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white"
                 >
                   <option value="">Select a module…</option>
                   {modules.map((mod) => (
@@ -1719,17 +1719,17 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                 </p>
               </div>
               {newPermName && newPermModule && (
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 text-sm">
-                  <span className="text-gray-600 dark:text-gray-300">Will be created as: </span>
-                  <code className="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
+                <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                  <span className="text-gray-600">Will be created as: </span>
+                  <code className="bg-gray-200 px-1.5 py-0.5 rounded text-xs font-mono">
                     {generateCode(newPermName)}
                   </code>
-                  <span className="text-gray-500 dark:text-gray-400 ml-1">(automatically generated)</span>
+                  <span className="text-gray-500 ml-1">(automatically generated)</span>
                 </div>
               )}
-              {addError && <p className="text-red-600 dark:text-red-400 text-sm">{addError}</p>}
+              {addError && <p className="text-red-600 text-sm">{addError}</p>}
             </div>
-            <div className="flex justify-end gap-3 px-6 py-5 bg-gray-50 dark:bg-gray-800/30 border-t border-gray-200 dark:border-white/10">
+            <div className="flex justify-end gap-3 px-6 py-5 bg-gray-50 border-t border-gray-200">
               <button
                 onClick={() => {
                   setShowAddModal(false);
@@ -1737,7 +1737,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                   setNewPermName("");
                   setNewPermModule("");
                 }}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
@@ -1880,12 +1880,12 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
   };
 
   if (loading) {
-    return <div className="animate-pulse h-48 bg-white/40 dark:bg-gray-800/40 rounded-xl" />;
+    return <div className="animate-pulse h-48 bg-white/40 rounded-xl" />;
   }
 
   if (error) {
     return (
-      <div className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 p-6 rounded-xl">
+      <div className="bg-red-100 text-red-800 p-6 rounded-xl">
         <p className="font-semibold">Error loading access windows</p>
         <p className="text-sm">{error}</p>
         <button onClick={fetchAccessWindows} className="mt-3 px-3 py-1 bg-red-600 text-white rounded text-sm">Retry</button>
@@ -1895,15 +1895,15 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
 
   return (
     <>
-      <div className="backdrop-blur-sm bg-white/40 dark:bg-gray-900/40 rounded-2xl border border-white/20 dark:border-white/10 shadow-xl">
-        <div className="p-4 bg-blue-50/50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 rounded-t-2xl">
+      <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl">
+        <div className="p-4 bg-blue-50/50 border-b border-blue-200 rounded-t-2xl">
           <div className="flex items-start gap-3">
-            <div className="text-blue-600 dark:text-blue-400 mt-0.5">
+            <div className="text-blue-600 mt-0.5">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="text-sm text-gray-700 dark:text-gray-200">
+            <div className="text-sm text-gray-700">
               <p className="font-semibold">How time‑locked access works</p>
               <ul className="list-disc list-inside mt-1 space-y-1 text-xs">
                 <li><strong>Contractors</strong> can view and submit tender/BQ only within the defined open window.</li>
@@ -1919,8 +1919,8 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Time‑Based Access Windows</h2>
-              <p className="text-sm text-gray-500 dark:text-cyan-300/70 mt-1">
+              <h2 className="text-xl font-semibold text-gray-800">Time‑Based Access Windows</h2>
+              <p className="text-sm text-gray-500 mt-1">
                 Define when each role can view or submit resources. Use the dropdowns to select the appropriate access level.
               </p>
             </div>
@@ -1933,14 +1933,14 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
                 <button onClick={saveWindows} disabled={saving} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm">
                   {saving ? "Saving..." : "Save"}
                 </button>
-                <button onClick={cancelEdit} className="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded-lg text-sm">Cancel</button>
+                <button onClick={cancelEdit} className="px-4 py-2 bg-gray-300 rounded-lg text-sm">Cancel</button>
               </div>
             )}
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-white/50 dark:bg-gray-800/50">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-white/50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Access Type</th>
@@ -1949,12 +1949,12 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
                   {editing && <th className="px-4 py-3 text-center text-xs font-medium text-gray-500">Actions</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-gray-200">
                 {tempWindows.map((win, idx) => (
-                  <tr key={idx} className="hover:bg-white/30 dark:hover:bg-gray-800/30">
+                  <tr key={idx} className="hover:bg-white/30">
                     <td className="px-4 py-3">
                       {editing ? (
-                        <select value={win.role_id} onChange={(e) => updateWindow(idx, "role_id", e.target.value)} className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-800">
+                        <select value={win.role_id} onChange={(e) => updateWindow(idx, "role_id", e.target.value)} className="border rounded-md px-2 py-1 text-sm bg-white">
                           {roles.map((role) => (
                             <option key={role.role_id} value={role.role_id}>{getRoleDisplayName(role.role_name)}</option>
                           ))}
@@ -1965,7 +1965,7 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
                     </td>
                     <td className="px-4 py-3">
                       {editing ? (
-                        <select value={win.resource_type} onChange={(e) => updateWindow(idx, "resource_type", e.target.value)} className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-800">
+                        <select value={win.resource_type} onChange={(e) => updateWindow(idx, "resource_type", e.target.value)} className="border rounded-md px-2 py-1 text-sm bg-white">
                           {resourceTypes.map((rt) => (
                             <option key={rt.value} value={rt.value}>{rt.label}</option>
                           ))}
@@ -2000,19 +2000,19 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
           </div>
           {editing && (
             <div className="mt-4">
-              <button onClick={addWindow} className="text-blue-600 dark:text-cyan-400 text-sm hover:underline">+ Add Access Window</button>
+              <button onClick={addWindow} className="text-blue-600 text-sm hover:underline">+ Add Access Window</button>
             </div>
           )}
         </div>
 
-        <div className="p-4 border-t bg-white/30 dark:bg-black/20 rounded-b-2xl flex justify-between items-center">
-          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+        <div className="p-4 border-t bg-white/30 rounded-b-2xl flex justify-between items-center">
+          <div className="flex items-center gap-2 text-amber-600">
             <Clock className="w-4 h-4" />
             <span className="text-sm">Time‑locked envelopes: Bids are encrypted and released only after scheduled opening.</span>
           </div>
           <button
             onClick={() => setShowDisclaimer(true)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm transition"
+            className="flex items-center gap-1 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition"
           >
             <span className="text-base">⚖️</span> Legal & Compliance Info
           </button>
@@ -2021,14 +2021,14 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
 
       {showDisclaimer && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-[#0f1630] rounded-2xl shadow-2xl max-w-2xl w-full border border-white/20 dark:border-white/10 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200 dark:border-white/10 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Time‑Locked Envelope – Legal Framework</h3>
-              <button onClick={() => setShowDisclaimer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-white/20 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-900">Time‑Locked Envelope – Legal Framework</h3>
+              <button onClick={() => setShowDisclaimer(false)} className="text-gray-400 hover:text-gray-600">
                 ✕
               </button>
             </div>
-            <div className="p-6 space-y-4 text-gray-700 dark:text-gray-300 text-sm">
+            <div className="p-6 space-y-4 text-gray-700 text-sm">
               <p>This time‑locked access mechanism implements a secure “two‑envelope” tendering process compliant with Singapore procurement standards:</p>
               <ul className="list-disc pl-5 space-y-2">
                 <li><strong>GeBIZ / IMDA Guidelines</strong> – Sealed bids are kept confidential until the official opening date and time.</li>
@@ -2037,11 +2037,11 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
                 <li><strong>ISO 27001</strong> – Encryption at rest and time‑based access controls are applied.</li>
                 <li><strong>Non‑repudiation</strong> – All decryption events are logged in the immutable audit trail.</li>
               </ul>
-              <p className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500">
                 Technical bids are encrypted with a key that becomes valid only after <code>technical_opening_time</code> (set per tender). Commercial bids use a separate key with a later validity. No system user (including admins) can access them before the scheduled time.
               </p>
             </div>
-            <div className="flex justify-end px-6 py-4 bg-gray-50 dark:bg-gray-800/30 border-t border-gray-200 dark:border-white/10">
+            <div className="flex justify-end px-6 py-4 bg-gray-50 border-t border-gray-200">
               <button onClick={() => setShowDisclaimer(false)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
                 OK
               </button>
@@ -2097,12 +2097,12 @@ function AuditLogs() {
   );
 
   if (loading) {
-    return <div className="animate-pulse h-96 bg-white/40 dark:bg-gray-800/40 rounded-xl" />;
+    return <div className="animate-pulse h-96 bg-white/40 rounded-xl" />;
   }
 
   if (error) {
     return (
-      <div className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 p-6 rounded-xl">
+      <div className="bg-red-100 text-red-800 p-6 rounded-xl">
         <p className="font-semibold">Error loading audit logs</p>
         <p className="text-sm">{error}</p>
         <button onClick={fetchLogs} className="mt-3 px-3 py-1 bg-red-600 text-white rounded text-sm">Retry</button>
@@ -2112,24 +2112,24 @@ function AuditLogs() {
 
   return (
     <>
-      <div className="backdrop-blur-sm bg-white/40 dark:bg-gray-900/40 rounded-2xl border border-white/20 dark:border-white/10 shadow-xl">
+      <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Immutable Audit Trail</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Immutable Audit Trail</h2>
             <input
               type="text"
               placeholder="Filter by user, action, resource..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="px-3 py-1 border rounded-lg text-sm bg-white dark:bg-gray-800"
+              className="px-3 py-1 border rounded-lg text-sm bg-white"
             />
           </div>
           <div className="overflow-x-auto">
             {filteredLogs.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No audit logs found.</p>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-white/50 dark:bg-gray-800/50">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-white/50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase">Timestamp</th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase">User</th>
@@ -2139,13 +2139,13 @@ function AuditLogs() {
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase">IP Address</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-200">
                   {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-white/30 dark:hover:bg-gray-800/30">
+                    <tr key={log.id} className="hover:bg-white/30">
                       <td className="px-4 py-3 text-xs font-mono">{format(new Date(log.timestamp), "dd/MM/yyyy HH:mm:ss")}</td>
                       <td className="px-4 py-3 text-sm">{log.username}</td>
                       <td className="px-4 py-3 text-sm">
-                        <span className="px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-xs">{log.action}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-gray-200 text-xs">{log.action}</span>
                       </td>
                       <td className="px-4 py-3 text-sm">{log.resource_type}</td>
                       <td className="px-4 py-3 text-sm">
@@ -2160,14 +2160,14 @@ function AuditLogs() {
           </div>
         </div>
 
-        <div className="p-4 border-t bg-white/30 dark:bg-black/20 rounded-b-2xl flex justify-between items-center">
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+        <div className="p-4 border-t bg-white/30 rounded-b-2xl flex justify-between items-center">
+          <div className="flex items-center gap-2 text-gray-600">
             <Lock className="w-4 h-4" />
             <span className="text-sm">All access attempts, decryption events, and permission changes are recorded in a tamper‑evident log.</span>
           </div>
           <button
             onClick={() => setShowDisclaimer(true)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm transition"
+            className="flex items-center gap-1 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition"
           >
             <span className="text-base">📜</span> Compliance & Legal Info
           </button>
@@ -2176,14 +2176,14 @@ function AuditLogs() {
 
       {showDisclaimer && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-[#0f1630] rounded-2xl shadow-2xl max-w-2xl w-full border border-white/20 dark:border-white/10 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200 dark:border-white/10 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Compliance & Legal Framework</h3>
-              <button onClick={() => setShowDisclaimer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-white/20 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-900">Compliance & Legal Framework</h3>
+              <button onClick={() => setShowDisclaimer(false)} className="text-gray-400 hover:text-gray-600">
                 ✕
               </button>
             </div>
-            <div className="p-6 space-y-4 text-gray-700 dark:text-gray-300 text-sm">
+            <div className="p-6 space-y-4 text-gray-700 text-sm">
               <p>This audit trail is designed to meet the highest standards of transparency and non‑repudiation, in accordance with Singapore regulations and industry best practices:</p>
               <ul className="list-disc pl-5 space-y-2">
                 <li><strong>Personal Data Protection Act (PDPA) 2012</strong> – All access to personal data is logged and subject to audit.</li>
@@ -2193,11 +2193,11 @@ function AuditLogs() {
                 <li><strong>Blockchain‑style chained hashing</strong> – Each log entry is cryptographically linked to the previous one, preventing retroactive tampering.</li>
                 <li><strong>Role‑based access control (RBAC)</strong> – Only authorised roles (Admin, Auditor) can view raw logs.</li>
               </ul>
-              <p className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500">
                 The system maintains a write‑once, append‑only log with SHA‑256 row hashing. The latest hash can be anchored to an external immutable ledger (e.g., AWS QLDB, public blockchain) for external verification.
               </p>
             </div>
-            <div className="flex justify-end px-6 py-4 bg-gray-50 dark:bg-gray-800/30 border-t border-gray-200 dark:border-white/10">
+            <div className="flex justify-end px-6 py-4 bg-gray-50 border-t border-gray-200">
               <button onClick={() => setShowDisclaimer(false)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
                 OK
               </button>
