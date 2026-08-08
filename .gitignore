@@ -184,14 +184,16 @@ load-test-results/
 # Architecture decision records
 docs/adr/*.html
 
-# Cloud credentials
+# Cloud credentials — named patterns only, NOT a blanket *.json. A broad
+# *.json rule silently drops real app config (components.json, any future
+# .json config file) from commits with no warning; confirmed to have already
+# dropped components.json from this repo.
 .aws/
 .azure/
-*.json
-!firebase.json
-!firestore.indexes.json
-!firestore.rules
-!storage.rules
+*-service-account.json
+*-credentials.json
+service-account*.json
+gcp-key*.json
 
 # Sensitive data
 *.key
@@ -219,5 +221,8 @@ master-session-prompt.md
 
 # ===== OPTIONAL: KEEP DIRECTORY STRUCTURE =====
 # If you want to keep empty directories in git
-# !.gitkeeptest-output.css
-*.css
+# !.gitkeep
+
+# Ad hoc scratch build output — not a blanket *.css (that would drop any
+# real stylesheet from commits with no warning).
+test-output.css
