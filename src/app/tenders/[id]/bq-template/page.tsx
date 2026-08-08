@@ -61,7 +61,7 @@ export default function TenderTemplateView() {
     if (session?.user && id) {
       const checkAcknowledgment = async () => {
         try {
-          const res = await fetch(`/api/tenders/${id}/acknowledgment-status`);
+          const res = await fetch(`/api/tenders/${id}/acknowledgement-status`);
           const data = await res.json();
           if (!data.acknowledged) {
             router.push(`/tenders/${id}/document`);

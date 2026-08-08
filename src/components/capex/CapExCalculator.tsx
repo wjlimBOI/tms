@@ -75,6 +75,14 @@ export function CapExCalculator({
 
   const [isEditingConstraints, setIsEditingConstraints] = useState(false);
   const [editableConstraints, setEditableConstraints] = useState<CapacityConstraints | null>(null);
+  // A manually-saved override of the brand-rules-suggested constraints —
+  // real business need: capacity ranges occasionally need a one-off manual
+  // adjustment (negotiated exception, edge-case site) rather than always
+  // following the suggested rule. Cleared whenever brand/area changes the
+  // underlying suggestion basis, since a stale override from a different
+  // brand/area wouldn't make sense to silently carry forward.
+  const [savedConstraints, setSavedConstraints] = useState<CapacityConstraints | null>(null);
+  const effectiveConstraints = savedConstraints ?? constraints;
 
   useEffect(() => {
     if (constraints) {
@@ -82,6 +90,8 @@ export function CapExCalculator({
     } else {
       setEditableConstraints(null);
     }
+    setSavedConstraints(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [constraints]);
 
   const [customPercentages, setCustomPercentages] = useState({
@@ -120,9 +130,13 @@ export function CapExCalculator({
   };
 
   const saveConstraints = () => {
-    // TODO: Call API to persist changes
-    console.log('Saving constraints:', editableConstraints);
+    if (editableConstraints) setSavedConstraints(editableConstraints);
     setIsEditingConstraints(false);
+  };
+
+  const resetConstraints = () => {
+    setSavedConstraints(null);
+    if (constraints) setEditableConstraints({ ...constraints });
   };
 
   const handleSelectChange = (setter: (value: number | undefined) => void) => (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -157,7 +171,11 @@ export function CapExCalculator({
         finalCost: selectedAmount,
         selectedBudgetType,
         breakdown: customBreakdown,
-        validation: result?.capacityValidation,
+        // Reflects any manually-saved constraint override, not just the raw
+        // brand-rules suggestion — see saveConstraints/effectiveConstraints.
+        validation: result?.capacityValidation
+          ? { ...result.capacityValidation, suggestedConstraints: effectiveConstraints }
+          : result?.capacityValidation,
         customPercentages,
       });
     }
@@ -168,28 +186,40 @@ export function CapExCalculator({
       <Card className="border-slate-200 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
           <CardTitle className="text-lg font-semibold text-slate-900">Budget Calculator</CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (isEditingConstraints) {
-                saveConstraints();
-              } else {
-                setIsEditingConstraints(true);
-              }
-            }}
-            className="gap-1 text-slate-600 border-slate-300"
-          >
-            {isEditingConstraints ? (
-              <>
-                <Save className="h-3.5 w-3.5" /> Save Constraints
-              </>
-            ) : (
-              <>
-                <Pencil className="h-3.5 w-3.5" /> Edit Constraints
-              </>
+          <div className="flex items-center gap-3">
+            {!isEditingConstraints && savedConstraints && (
+              <button
+                type="button"
+                onClick={resetConstraints}
+                className="text-xs text-slate-500 hover:text-slate-700 hover:underline"
+              >
+                Reset to suggested values
+              </button>
             )}
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (isEditingConstraints) {
+                  saveConstraints();
+                } else {
+                  if (effectiveConstraints) setEditableConstraints({ ...effectiveConstraints });
+                  setIsEditingConstraints(true);
+                }
+              }}
+              className="gap-1 text-slate-600 border-slate-300"
+            >
+              {isEditingConstraints ? (
+                <>
+                  <Save className="h-3.5 w-3.5" /> Save Constraints
+                </>
+              ) : (
+                <>
+                  <Pencil className="h-3.5 w-3.5" /> Edit Constraints
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           {/* Brand */}
@@ -250,13 +280,13 @@ export function CapExCalculator({
                   className="w-16 h-8 text-sm"
                 />
               </div>
-            ) : constraints ? (
+            ) : effectiveConstraints ? (
               <select
                 value={input.desiredCR ?? ''}
                 onChange={handleSelectChange(setDesiredCR)}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
-                {generateOptions(constraints.minCR, constraints.maxCR).map(opt => (
+                {generateOptions(effectiveConstraints.minCR, effectiveConstraints.maxCR).map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
@@ -289,13 +319,13 @@ export function CapExCalculator({
                   className="w-16 h-8 text-sm"
                 />
               </div>
-            ) : constraints ? (
+            ) : effectiveConstraints ? (
               <select
                 value={input.desiredTR ?? ''}
                 onChange={handleSelectChange(setDesiredTR)}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
-                {generateOptions(constraints.minTR, constraints.maxTR).map(opt => (
+                {generateOptions(effectiveConstraints.minTR, effectiveConstraints.maxTR).map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
@@ -329,13 +359,13 @@ export function CapExCalculator({
                     className="w-16 h-8 text-sm"
                   />
                 </div>
-              ) : constraints ? (
+              ) : effectiveConstraints ? (
                 <select
                   value={input.desiredOpenTR ?? ''}
                   onChange={handleSelectChange(setDesiredOpenTR)}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                 >
-                  {generateOptions(constraints.minOpenTR, constraints.maxOpenTR).map(opt => (
+                  {generateOptions(effectiveConstraints.minOpenTR, effectiveConstraints.maxOpenTR).map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
@@ -370,13 +400,13 @@ export function CapExCalculator({
                     className="w-16 h-8 text-sm"
                   />
                 </div>
-              ) : constraints ? (
+              ) : effectiveConstraints ? (
                 <select
                   value={input.desiredShampoo ?? ''}
                   onChange={handleSelectChange(setDesiredShampoo)}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                 >
-                  {generateOptions(constraints.minShampoo, constraints.maxShampoo).map(opt => (
+                  {generateOptions(effectiveConstraints.minShampoo, effectiveConstraints.maxShampoo).map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
@@ -411,13 +441,13 @@ export function CapExCalculator({
                     className="w-16 h-8 text-sm"
                   />
                 </div>
-              ) : constraints && constraints.minBlueSpirit !== undefined ? (
+              ) : effectiveConstraints && effectiveConstraints.minBlueSpirit !== undefined ? (
                 <select
                   value={input.desiredBlueSpirit ?? ''}
                   onChange={handleSelectChange(setDesiredBlueSpirit)}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                 >
-                  {generateOptions(constraints.minBlueSpirit, constraints.maxBlueSpirit!).map(opt => (
+                  {generateOptions(effectiveConstraints.minBlueSpirit, effectiveConstraints.maxBlueSpirit!).map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
@@ -451,13 +481,13 @@ export function CapExCalculator({
                     className="w-16 h-8 text-sm"
                   />
                 </div>
-              ) : constraints && constraints.minMaleBed !== undefined ? (
+              ) : effectiveConstraints && effectiveConstraints.minMaleBed !== undefined ? (
                 <select
                   value={input.desiredMaleBed ?? ''}
                   onChange={handleSelectChange(setDesiredMaleBed)}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                 >
-                  {generateOptions(constraints.minMaleBed, constraints.maxMaleBed!).map(opt => (
+                  {generateOptions(effectiveConstraints.minMaleBed, effectiveConstraints.maxMaleBed!).map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
@@ -491,13 +521,13 @@ export function CapExCalculator({
                     className="w-16 h-8 text-sm"
                   />
                 </div>
-              ) : constraints && constraints.minMealPlan !== undefined ? (
+              ) : effectiveConstraints && effectiveConstraints.minMealPlan !== undefined ? (
                 <select
                   value={input.desiredMealPlan ?? ''}
                   onChange={handleSelectChange(setDesiredMealPlan)}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                 >
-                  {generateOptions(constraints.minMealPlan, constraints.maxMealPlan!).map(opt => (
+                  {generateOptions(effectiveConstraints.minMealPlan, effectiveConstraints.maxMealPlan!).map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
@@ -517,7 +547,7 @@ export function CapExCalculator({
             <div className="sm:col-span-2">
               <Label className="text-slate-700">Total Beds / Seats</Label>
               <div className="text-sm font-medium text-slate-700">
-                {constraints?.minTotalBeds} – {constraints?.maxTotalBeds}
+                {effectiveConstraints?.minTotalBeds} – {effectiveConstraints?.maxTotalBeds}
                 {isEditingConstraints && (
                   <span className="ml-2 text-xs text-muted-foreground">(editable in backend rules)</span>
                 )}
@@ -535,9 +565,9 @@ export function CapExCalculator({
               <CardTitle className="text-lg font-semibold text-slate-900">Capacity Validation</CardTitle>
             </CardHeader>
             <CardContent>
-              {constraints ? (
+              {effectiveConstraints ? (
                 <BrandMetricsTable
-                  constraints={isEditingConstraints && editableConstraints ? editableConstraints : constraints}
+                  constraints={isEditingConstraints && editableConstraints ? editableConstraints : effectiveConstraints}
                   desired={desired}
                 />
               ) : (
