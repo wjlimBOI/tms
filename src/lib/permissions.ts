@@ -174,6 +174,55 @@ export async function canMarkHandover(
   return result.rows[0].project_manager_email.toLowerCase() === userEmail.toLowerCase();
 }
 
+// ========== TENDER MESSAGING (contractor Q&A + staff announcements) ==========
+// Private thread per (tender, contractor) pair — a contractor only ever
+// unlocks their own thread (contractorId must equal userId), staff can
+// access any contractor's thread on a tender they have responsibility for.
+// This deliberately mirrors the app's existing contractor-anonymity stance
+// (BQ comparison masking) rather than a single shared per-tender thread.
+export async function canAccessTenderMessages(
+  tenderId: number,
+  userId: number,
+  userEmail: string | null | undefined,
+  roleIds: number | number[],
+  contractorId?: number
+): Promise<{ allowed: boolean; isStaff: boolean }> {
+  const roles = normalizeRoleIds(roleIds);
+
+  if (hasRole(roles, ROLE_IDS.ADMIN)) return { allowed: true, isStaff: true };
+
+  const tenderRes = await pool.query(
+    `SELECT created_by, project_manager_email FROM tender WHERE tender_id = $1 AND is_deleted = false`,
+    [tenderId]
+  );
+  if (tenderRes.rows.length === 0) return { allowed: false, isStaff: false };
+  const tender = tenderRes.rows[0];
+
+  if (tender.created_by === userId) return { allowed: true, isStaff: true };
+  if (
+    (hasRole(roles, ROLE_IDS.PROJECT_MANAGER) || hasRole(roles, ROLE_IDS.SENIOR_PROJECT_MANAGER)) &&
+    userEmail && tender.project_manager_email &&
+    tender.project_manager_email.toLowerCase() === userEmail.toLowerCase()
+  ) {
+    return { allowed: true, isStaff: true };
+  }
+
+  if (hasRole(roles, ROLE_IDS.CONTRACTOR)) {
+    if (!contractorId || contractorId !== userId) return { allowed: false, isStaff: false };
+    const participation = await pool.query(
+      `SELECT 1 FROM tender_submission WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false
+       UNION SELECT 1 FROM tender_interest WHERE tender_id = $1 AND contractor_id = $2
+       UNION SELECT 1 FROM tender_contractor WHERE tender_id = $1 AND contractor_id = $2
+       UNION SELECT 1 FROM tender_award WHERE tender_id = $1 AND winning_contractor_id = $2
+       LIMIT 1`,
+      [tenderId, userId]
+    );
+    return { allowed: participation.rows.length > 0, isStaff: false };
+  }
+
+  return { allowed: false, isStaff: false };
+}
+
 // ========== DRAFT TENDER VISIBILITY ==========
 export async function canViewDraftTender(roleIds: number | number[]): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);

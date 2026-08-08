@@ -119,6 +119,15 @@ export const handoverSchema = z.object({
 });
 
 // ===========================================
+// TENDER MESSAGING SCHEMA
+// ===========================================
+export const tenderMessageSchema = z.object({
+  body: z.string().min(1).max(4000),
+  contractor_id: z.number().int().positive().optional(),
+  is_announcement: z.boolean().optional(),
+});
+
+// ===========================================
 // TENDER LIST QUERY SCHEMA
 // ===========================================
 export const tenderListQuerySchema = z.object({

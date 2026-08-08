@@ -44,12 +44,15 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-const FAKE_MESSAGES = [
-  { id: 1, unread: true, sender: "Raj Kumar", initials: "RK", color: "bg-violet-500", preview: "Can you send over the revised BQ for Block C?", time: "10:42 AM", tag: "Contractor" },
-  { id: 2, unread: true, sender: "Finance Team", initials: "FT", color: "bg-emerald-500", preview: "Q2 budget reconciliation needs your sign-off.", time: "9:15 AM", tag: "Internal" },
-  { id: 3, unread: false, sender: "Amanda Loh", initials: "AL", color: "bg-rose-500", preview: "Meeting rescheduled to Thursday 3pm.", time: "Yesterday", tag: "Management" },
-  { id: 4, unread: false, sender: "Site Team", initials: "ST", color: "bg-amber-500", preview: "Level 4 inspection completed. Report attached.", time: "Mon", tag: "Team" },
-];
+interface RecentMessage {
+  tender_id: number;
+  tender_name: string;
+  sender_name: string;
+  is_announcement: boolean;
+  preview: string;
+  created_at: string;
+  link: string;
+}
 
 const IconBell = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -86,7 +89,7 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [notiItems, setNotiItems] = useState<NotificationItem[]>([]);
-  const [msgItems, setMsgItems] = useState(FAKE_MESSAGES);
+  const [msgItems, setMsgItems] = useState<RecentMessage[]>([]);
   const [isMobileSearchExpanded, setIsMobileSearchExpanded] = useState(false);
   const [searchType, setSearchType] = useState<"all" | "tender" | "bq">("all");
 
@@ -112,7 +115,6 @@ export default function Navbar() {
   const isPublicMode = (!isLoggedIn && (isHomepage || isLoginPage)) || isExpressInterest;
 
   const unreadNoti = notiItems.filter((n) => !n.is_read).length;
-  const unreadMsg = msgItems.filter((m) => m.unread).length;
 
   // `/` renders its own complete nav (`.apple-nav` in `src/app/page.tsx`),
   // fixed at the same position/z-index as this one. Rendering both stacked
@@ -161,6 +163,24 @@ export default function Navbar() {
     if (!isLoggedIn) return;
     fetchNotifications();
   }, [isLoggedIn, fetchNotifications]);
+
+  const fetchRecentMessages = useCallback(async () => {
+    try {
+      const res = await fetch("/api/messages/recent");
+      if (!res.ok) return;
+      const data = await res.json();
+      setMsgItems(data.data || []);
+    } catch {
+      // ignore — best-effort inbox feed
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetchRecentMessages();
+    const interval = setInterval(fetchRecentMessages, 30000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn, fetchRecentMessages]);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
@@ -447,28 +467,38 @@ export default function Navbar() {
               <div className="relative" ref={inboxRef}>
                 <button onClick={() => { closeAll("inbox"); setIsInboxOpen((o) => !o); }} className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus:outline-none">
                   <IconInbox />
-                  <Badge count={unreadMsg} />
                 </button>
                 {isInboxOpen && (
                   <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                      <div><p className="text-sm font-semibold text-gray-800">Messages</p><p className="text-[11px] text-gray-400">{unreadMsg} unread conversations</p></div>
-                      <button className="text-[11px] text-[#15406a] hover:underline font-medium">New message</button>
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-800">Messages</p>
+                      <p className="text-[11px] text-gray-400">Recent activity across your tenders</p>
                     </div>
                     <div className="max-h-72 overflow-y-auto divide-y divide-gray-50">
-                      {msgItems.map((m) => (
-                        <button key={m.id} onClick={() => setMsgItems((prev) => prev.map((x) => x.id === m.id ? { ...x, unread: false } : x))} className={`w-full text-left flex items-center gap-3 px-4 py-3 transition-colors ${m.unread ? "bg-blue-50/40 hover:bg-blue-50" : "hover:bg-slate-50"}`}>
-                          <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${m.color}`}>{m.initials}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between"><p className={`text-xs font-semibold truncate ${m.unread ? "text-gray-900" : "text-gray-600"}`}>{m.sender}</p><span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">{m.time}</span></div>
-                            <p className="text-xs text-gray-500 mt-0.5 truncate">{m.preview}</p>
-                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-500">{m.tag}</span>
-                          </div>
-                          {m.unread && <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}
-                        </button>
-                      ))}
+                      {msgItems.length === 0 ? (
+                        <p className="px-4 py-6 text-center text-xs text-gray-400">No messages yet.</p>
+                      ) : (
+                        msgItems.map((m, idx) => (
+                          <button
+                            key={`${m.tender_id}-${m.created_at}-${idx}`}
+                            onClick={() => { setIsInboxOpen(false); router.push(m.link); }}
+                            className="w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-semibold text-gray-800 truncate">{m.sender_name}</p>
+                                <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">{relativeTime(m.created_at)}</span>
+                              </div>
+                              <p className="text-[11px] text-gray-500 truncate">{m.tender_name}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 truncate">{m.preview}</p>
+                              {m.is_announcement && (
+                                <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700">Announcement</span>
+                              )}
+                            </div>
+                          </button>
+                        ))
+                      )}
                     </div>
-                    <div className="px-4 py-2.5 border-t border-gray-100 text-center"><button className="text-xs text-[#15406a] hover:underline font-medium">Open full inbox</button></div>
                   </div>
                 )}
               </div>
