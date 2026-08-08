@@ -106,7 +106,7 @@ export default function BQPage() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-xl p-6 text-center">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
           <p className="text-red-700">{error}</p>
           <button onClick={() => router.back()} className="mt-4 px-4 py-2 bg-slate-800 text-white rounded">
             Go Back
@@ -117,10 +117,10 @@ export default function BQPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 py-8 px-4 md:py-12 md:px-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-4 md:py-12 md:px-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-slate-900">
             Bill of Quantities – {tenderName}
           </h1>
           <div className="flex gap-2 print:hidden">
@@ -141,30 +141,30 @@ export default function BQPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="p-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Description</th>
-                  <th className="p-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Unit</th>
-                  <th className="p-3 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">Quantity</th>
-                  <th className="p-3 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">Unit Rate (SGD)</th>
-                  <th className="p-3 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">Amount (SGD)</th>
+                  <th className="p-3 text-left text-sm font-semibold text-slate-700">Description</th>
+                  <th className="p-3 text-left text-sm font-semibold text-slate-700">Unit</th>
+                  <th className="p-3 text-right text-sm font-semibold text-slate-700">Quantity</th>
+                  <th className="p-3 text-right text-sm font-semibold text-slate-700">Unit Rate (SGD)</th>
+                  <th className="p-3 text-right text-sm font-semibold text-slate-700">Amount (SGD)</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <tr key={item.id} className="border-b border-slate-100 dark:border-slate-800">
-                    <td className="p-3 text-sm text-slate-800 dark:text-slate-200">{item.description}</td>
-                    <td className="p-3 text-sm text-slate-600 dark:text-slate-400">{item.unit}</td>
+                  <tr key={item.id} className="border-b border-slate-100">
+                    <td className="p-3 text-sm text-slate-800">{item.description}</td>
+                    <td className="p-3 text-sm text-slate-600">{item.unit}</td>
                     <td className="p-3 text-right">
                       <input
                         type="number"
                         step="0.01"
                         value={item.quantity || ""}
                         onChange={(e) => updateItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
-                        className="w-24 text-right px-2 py-1 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                        className="w-24 text-right px-2 py-1 border border-slate-300 rounded bg-white text-slate-900"
                       />
                     </td>
                     <td className="p-3 text-right">
@@ -173,21 +173,21 @@ export default function BQPage() {
                         step="0.01"
                         value={item.unitRate || ""}
                         onChange={(e) => updateItem(item.id, "unitRate", parseFloat(e.target.value) || 0)}
-                        className="w-28 text-right px-2 py-1 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                        className="w-28 text-right px-2 py-1 border border-slate-300 rounded bg-white text-slate-900"
                       />
                     </td>
-                    <td className="p-3 text-right font-mono font-medium text-slate-900 dark:text-slate-100">
+                    <td className="p-3 text-right font-mono font-medium text-slate-900">
                       {item.amount?.toFixed(2) || "0.00"}
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
+              <tfoot className="bg-slate-50 border-t border-slate-200">
                 <tr>
-                  <td colSpan={4} className="p-3 text-right font-bold text-slate-800 dark:text-slate-200">
+                  <td colSpan={4} className="p-3 text-right font-bold text-slate-800">
                     Total
                   </td>
-                  <td className="p-3 text-right font-bold font-mono text-slate-900 dark:text-white">
+                  <td className="p-3 text-right font-bold font-mono text-slate-900">
                     {totalAmount.toFixed(2)}
                   </td>
                 </tr>
@@ -196,7 +196,7 @@ export default function BQPage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400 print:hidden">
+        <div className="mt-6 text-center text-sm text-slate-500 print:hidden">
           <p>Fill in your quantities and unit rates. Click Save to store your progress.</p>
           <p className="mt-1">After saving, you can return to this page to continue editing.</p>
         </div>
