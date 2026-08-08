@@ -273,7 +273,7 @@ export default function PrivacyPage() {
 
           <hr className="my-12 border-slate-200" />
 
-          <SectionHeader id="section4" level={2} summary="We use industry‑standard encryption (TLS/AES‑256), MFA, and strict role‑based isolation to protect your data.">
+          <SectionHeader id="section4" level={2} summary="We use industry‑standard encryption, role‑based access control, and login monitoring to protect your data.">
             SECTION 4: DATA SECURITY AND ENTERPRISE SAFEGUARDS
           </SectionHeader>
           <p>We implement industry‑standard technical and organisational measures to protect data against unauthorised access, loss, destruction, or alteration.</p>
@@ -281,19 +281,18 @@ export default function PrivacyPage() {
           <SectionHeader level={3}>4.1 Encryption Standards</SectionHeader>
           <LegalList
             items={[
-              <span key="4-1-1"><strong>Data in Transit:</strong> TLS 1.2 or higher – All data transmitted between client devices and servers encrypted.</span>,
-              <span key="4-1-2"><strong>Data at Rest:</strong> AES‑256 – All stored data, databases, file storage, and backups encrypted.</span>,
-              <span key="4-1-3"><strong>Backup Media:</strong> AES‑256 – All backup media and portable storage devices encrypted.</span>,
+              <span key="4-1-1"><strong>Data in Transit:</strong> TLS – Database connections and all data transmitted between client devices and our servers are encrypted in transit, with certificate verification enforced in production.</span>,
+              <span key="4-1-2"><strong>Sensitive Fields at Rest:</strong> Select highly sensitive fields are encrypted at the application layer using AES‑256‑GCM before storage. Broader database and disk-level encryption depends on our hosting infrastructure.</span>,
             ]}
           />
 
           <SectionHeader level={3}>4.2 Access Controls</SectionHeader>
           <LegalList
             items={[
-              <span key="4-2-1"><strong>Multi‑Factor Authentication (MFA):</strong> Mandatory for all users accessing the Platform.</span>,
-              <span key="4-2-2"><strong>Single Sign‑On (SSO):</strong> Enterprise‑grade SSO for centralised identity management.</span>,
-              <span key="4-2-3"><strong>Session Management:</strong> Automatic session timeouts and concurrent session controls.</span>,
-              <span key="4-2-4"><strong>Password Policy:</strong> Enforced password complexity, rotation, and history requirements.</span>,
+              <span key="4-2-1"><strong>Role‑Based Access Control (RBAC):</strong> Every user is assigned one or more roles, and access to each feature and data category is enforced per‑request based on those roles.</span>,
+              <span key="4-2-2"><strong>Session Management:</strong> Sessions expire automatically after a period of inactivity, requiring re‑authentication.</span>,
+              <span key="4-2-3"><strong>Password Policy:</strong> Enforced password complexity requirements; accounts are temporarily locked after repeated failed login attempts.</span>,
+              <span key="4-2-4"><strong>Login Monitoring:</strong> Login attempts (successful and failed) are recorded with IP address and device information, and account holders are alerted by email of new logins.</span>,
             ]}
           />
 
@@ -309,7 +308,7 @@ export default function PrivacyPage() {
           <SectionHeader level={3}>4.4 Monitoring &amp; Incident Response</SectionHeader>
           <LegalList
             items={[
-              <span key="4-4-1"><strong>Continuous Monitoring:</strong> 24/7 system monitoring for security events and anomalies.</span>,
+              <span key="4-4-1"><strong>Login Monitoring:</strong> Every login attempt is recorded with timestamp, IP address, and outcome, and account holders receive an email alert for each successful login.</span>,
               <span key="4-4-2"><strong>Audit Logging:</strong> Comprehensive audit trails of all data access, modification, and deletion events.</span>,
               <span key="4-4-3"><strong>Incident Response Plan:</strong> Documented and tested procedures for data breach scenarios.</span>,
               <span key="4-4-4"><strong>Breach Notification:</strong> Affected data subjects and the Personal Data Protection Commission (PDPC) notified promptly in the event of a notifiable breach.</span>,
@@ -323,7 +322,7 @@ export default function PrivacyPage() {
               <span key="4-5-2"><strong>Staff Training:</strong> Mandatory data privacy and security training on induction and annually.</span>,
               <span key="4-5-3"><strong>Vendor Due Diligence:</strong> All third‑party providers subject to security and privacy assessments.</span>,
               <span key="4-5-4"><strong>Data Protection by Design:</strong> Privacy and security integrated into all system development processes.</span>,
-              <span key="4-5-5"><strong>Business Continuity:</strong> Redundant infrastructure, regular backups, tested disaster recovery plans.</span>,
+              <span key="4-5-5"><strong>Business Continuity:</strong> Regular database backups are maintained to support recovery in the event of data loss.</span>,
             ]}
           />
 
@@ -362,7 +361,6 @@ export default function PrivacyPage() {
           </SectionHeader>
           <div className="bg-white p-6 rounded-lg border border-slate-200 my-6">
             <p><strong>Data Protection Officer</strong><br />
-            [Full Name, Title]<br />
             Beauty One International Pte Ltd.<br />
             2 Venture Drive, #21‑01,<br />
             VISION EXCHANGE,<br />
@@ -374,19 +372,16 @@ export default function PrivacyPage() {
 
           <hr className="my-12 border-slate-200" />
 
-          <SectionHeader id="section7" level={2} summary="We use essential, functional, analytical, and security cookies – you can manage preferences.">
+          <SectionHeader id="section7" level={2} summary="We use only essential cookies required for login and security – no analytics or tracking cookies are used.">
             SECTION 7: COOKIES &amp; TRACKING TECHNOLOGIES
           </SectionHeader>
-          <p>The Platform uses cookies and similar tracking technologies to enhance user experience, analyse usage, and maintain security.</p>
+          <p>The Platform uses only strictly necessary cookies. We do not use analytics, advertising, or third‑party tracking cookies.</p>
           <LegalList
             items={[
-              <span key="7-1"><strong>Essential/Strictly Necessary:</strong> Required for Platform to function (session cookies, authentication).</span>,
-              <span key="7-2"><strong>Functional:</strong> Remember preferences (language, regional settings).</span>,
-              <span key="7-3"><strong>Analytical/Performance:</strong> Analyse user behaviour to improve Platform performance.</span>,
-              <span key="7-4"><strong>Security:</strong> Detect and prevent security incidents.</span>,
+              <span key="7-1"><strong>Essential/Strictly Necessary:</strong> Required for the Platform to function — session authentication and security (e.g., CSRF protection).</span>,
             ]}
           />
-          <p><strong>Managing Preferences:</strong> You can manage cookie preferences through browser settings. Disabling essential cookies may impact functionality. Non‑essential cookies can be opted out via the Platform&#x27;s cookie preference centre.</p>
+          <p><strong>Managing Preferences:</strong> You can manage or block cookies through your browser settings. Because the Platform uses only essential cookies, disabling them will prevent you from logging in or using the Platform.</p>
 
           <hr className="my-12 border-slate-200" />
 
@@ -484,10 +479,10 @@ export default function PrivacyPage() {
                 <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">Lawful Bases</td><td className="px-5 py-3">Consent, Contractual Necessity, Legal Obligation, Legitimate Interests</td></tr>
                 <tr className="border-t border-slate-200"><td className="px-5 py-3">Data Sharing</td><td className="px-5 py-3">Never sold; shared only with authorised personnel, service providers under DPAs, and for legal compliance</td></tr>
                 <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">Data Retention</td><td className="px-5 py-3">2 to 7 years depending on category; longer for legal claims or regulatory compliance</td></tr>
-                <tr className="border-t border-slate-200"><td className="px-5 py-3">Access Controls</td><td className="px-5 py-3">RBAC, least privilege, segregation of duties, isolation of sensitive financial data, MFA</td></tr>
-                <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">Security Measures</td><td className="px-5 py-3">AES‑256 encryption at rest, TLS 1.2+ in transit, incident response plan, business continuity</td></tr>
+                <tr className="border-t border-slate-200"><td className="px-5 py-3">Access Controls</td><td className="px-5 py-3">RBAC, least privilege, segregation of duties, isolation of sensitive financial data</td></tr>
+                <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">Security Measures</td><td className="px-5 py-3">Field-level AES‑256‑GCM encryption for select sensitive data, TLS in transit, account lockout, login monitoring, incident response plan</td></tr>
                 <tr className="border-t border-slate-200"><td className="px-5 py-3">Data Subject Rights</td><td className="px-5 py-3">Access, Correction, Withdraw Consent, Portability, Lodge Complaint</td></tr>
-                <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">DPO Contact</td><td className="px-5 py-3">dpo@beautyone.com.sg — [+XX XXXX XXXX]</td></tr>
+                <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">DPO Contact</td><td className="px-5 py-3">dpo@beautyone.com.sg</td></tr>
                 <tr className="border-t border-slate-200"><td className="px-5 py-3">International Transfers</td><td className="px-5 py-3">Primarily Singapore; may transfer to Malaysia under appropriate safeguards</td></tr>
                 <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">Review Cycle</td><td className="px-5 py-3">Annual or as required by law or operational changes</td></tr>
               </tbody>
@@ -508,16 +503,12 @@ export default function PrivacyPage() {
             <p><strong>Document Control:</strong></p>
             <ul className="list-none pl-0 space-y-0.5">
               <li>Maintained by: Legal &amp; Compliance Function</li>
-              <li>Approved by: [Name/Title]</li>
-              <li>Date of Approval: [Date]</li>
-              <li>Next Review Date: [Date]</li>
             </ul>
             <p className="mt-4">
               <strong>Implementation Note:</strong> For questions regarding this Privacy Policy, data protection matters, or to exercise your privacy rights, please contact our Data Protection Officer:
             </p>
             <ul className="list-none pl-0 space-y-0.5">
               <li><strong>Email:</strong> dpo@beautyone.com.sg</li>
-              <li><strong>Phone:</strong> [+XX XXXX XXXX]</li>
               <li><strong>Address:</strong> 2 Venture Drive, #21-01, VISION EXCHANGE, Singapore 608526</li>
             </ul>
           </div>
