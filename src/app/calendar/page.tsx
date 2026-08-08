@@ -14,10 +14,10 @@ import type { EventInput } from "@fullcalendar/core";
 const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
   ssr: false,
   loading: () => (
-    <div className="h-full flex items-center justify-center bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-700">
+    <div className="h-full flex items-center justify-center bg-white/50 backdrop-blur-sm rounded-2xl border border-slate-200">
       <div className="text-center">
-        <div className="w-8 h-8 border-3 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">Loading calendar…</p>
+        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <p className="text-sm text-slate-500">Loading calendar…</p>
       </div>
     </div>
   ),
@@ -104,76 +104,76 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-200" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Edit Event</h3>
+            <h3 className="text-xl font-bold text-slate-900">Edit Event</h3>
           </div>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Title *</label>
             <input
               type="text"
               value={formData.title}
               onChange={e => setFormData({ ...formData, title: e.target.value })}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Start Date/Time *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Start Date/Time *</label>
               <input
                 type="datetime-local"
                 value={formData.start_date}
                 onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">End Date/Time</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">End Date/Time</label>
               <input
                 type="datetime-local"
                 value={formData.end_date}
                 onChange={e => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
               />
             </div>
           </div>
-          <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+          <label className="flex items-center gap-2 text-slate-700">
             <input
               type="checkbox"
               checked={formData.all_day}
               onChange={e => setFormData({ ...formData, all_day: e.target.checked })}
-              className="rounded border-slate-300 dark:border-slate-600 text-cyan-600 focus:ring-cyan-500"
+              className="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
             />
             <span className="text-sm">All day event</span>
           </label>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Brand</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Brand</label>
             <select
               value={formData.brand_id}
               onChange={e => {
                 const newBrandId = e.target.value;
                 setFormData({ ...formData, brand_id: newBrandId, branch_id: "" });
               }}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
             >
               <option value="">Select brand (optional)</option>
               {brands.map(b => <option key={b.brand_id} value={b.brand_id}>{b.displayName}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Branch (Location)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Branch (Location)</label>
             <select
               value={formData.branch_id}
               onChange={e => setFormData({ ...formData, branch_id: e.target.value })}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
               disabled={!formData.brand_id}
             >
               <option value="">Select branch</option>
@@ -182,30 +182,30 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             {!formData.brand_id && <p className="text-xs text-amber-600 mt-1">Select a brand first to see branches</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tender</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Tender</label>
             <select
               value={formData.tender_id}
               onChange={e => setFormData({ ...formData, tender_id: e.target.value })}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
             >
               <option value="">Select tender (optional)</option>
               {tenders.map(t => <option key={t.tender_id} value={t.tender_id}>{t.tender_name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
             <textarea
               rows={2}
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none resize-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none resize-none"
             />
           </div>
         </div>
-        <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 px-6 py-4 flex justify-end gap-3">
+        <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition font-medium text-sm"
+            className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition font-medium text-sm"
           >
             Cancel
           </button>
@@ -625,10 +625,10 @@ export default function CalendarPage() {
   // ---------- Render ----------
   if (status === "loading" || loading || hasAccess === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 dark:text-slate-300">Loading your calendar...</p>
+          <div className="w-12 h-12 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Loading your calendar...</p>
         </div>
       </div>
     );
@@ -637,21 +637,21 @@ export default function CalendarPage() {
   if (hasAccess === false) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col">
       <div className="flex-1 flex flex-col max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8 flex-shrink-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
               Project Calendar
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-sm text-slate-500 mt-1">
               Industrial‑grade timeline for all renovation projects
             </p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-lg shadow-cyan-500/20 dark:shadow-cyan-700/30 transition-all duration-200 transform hover:scale-[1.02] active:scale-95 flex-shrink-0"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-lg shadow-cyan-500/20 transition-all duration-200 transform hover:scale-[1.02] active:scale-95 flex-shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -661,7 +661,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Calendar container – fills remaining height */}
-        <div className="flex-1 min-h-[500px] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
+        <div className="flex-1 min-h-[500px] bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/50 overflow-hidden">
           <div className="h-full p-4 sm:p-5 lg:p-6">
             <FullCalendar
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, multimonthPlugin]}
@@ -696,10 +696,10 @@ export default function CalendarPage() {
         {/* Event Detail Modal – supports grouped events */}
         {showModal && selectedEvent && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-6 shadow-2xl border border-slate-200" onClick={e => e.stopPropagation()}>
               <div className="flex items-start justify-between mb-4">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-6">{selectedEvent.title}</h3>
-                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
+                <h3 className="text-xl font-bold text-slate-900 pr-6">{selectedEvent.title}</h3>
+                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 transition">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -708,16 +708,16 @@ export default function CalendarPage() {
 
               {selectedEvent.extendedProps?.children ? (
                 <div className="space-y-4">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                  <p className="text-sm text-slate-600">
                     <span className="font-medium">{selectedEvent.extendedProps.children.length}</span> events for this tender on this date:
                   </p>
-                  <ul className="divide-y divide-slate-200 dark:divide-slate-700">
+                  <ul className="divide-y divide-slate-200">
                     {selectedEvent.extendedProps.children.map((child: any, idx: number) => (
                       <li key={child.event_id || idx} className="py-2 flex items-start gap-2">
                         <span className="w-2 h-2 rounded-full bg-cyan-500 mt-1.5 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-slate-800 dark:text-white">{child.title}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                          <p className="text-sm font-medium text-slate-800">{child.title}</p>
+                          <p className="text-xs text-slate-500">
                             {child.all_day
                               ? format(parseISO(child.start_date), "PPP")
                               : `${format(parseISO(child.start_date), "PPP p")} – ${child.end_date ? format(parseISO(child.end_date), "PPP p") : ''}`
@@ -735,7 +735,7 @@ export default function CalendarPage() {
                       <svg className="w-4 h-4 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span className="text-slate-700 dark:text-slate-300">
+                      <span className="text-slate-700">
                         {format(new Date(selectedEvent.start as string), "PPP")}
                         {selectedEvent.end && selectedEvent.end !== selectedEvent.start && ` – ${format(new Date(selectedEvent.end as string), "PPP")}`}
                       </span>
@@ -745,7 +745,7 @@ export default function CalendarPage() {
                         <svg className="w-4 h-4 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="text-slate-700 dark:text-slate-300">
+                        <span className="text-slate-700">
                           {format(new Date(selectedEvent.start as string), "p")}
                           {selectedEvent.end && ` – ${format(new Date(selectedEvent.end as string), "p")}`}
                         </span>
@@ -756,7 +756,7 @@ export default function CalendarPage() {
                         <svg className="w-4 h-4 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
-                        <span className="text-slate-700 dark:text-slate-300">
+                        <span className="text-slate-700">
                           Branch: {getBranchName(selectedEvent.extendedProps.branch_id)}
                         </span>
                       </div>
@@ -766,7 +766,7 @@ export default function CalendarPage() {
                         <svg className="w-4 h-4 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h7" />
                         </svg>
-                        <span className="text-slate-700 dark:text-slate-300">{selectedEvent.extendedProps.description}</span>
+                        <span className="text-slate-700">{selectedEvent.extendedProps.description}</span>
                       </div>
                     )}
                   </div>
@@ -782,7 +782,7 @@ export default function CalendarPage() {
                   )}
                 </>
               )}
-              <button onClick={() => setShowModal(false)} className="mt-3 w-full px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg transition text-sm font-medium">
+              <button onClick={() => setShowModal(false)} className="mt-3 w-full px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg transition text-sm font-medium">
                 Close
               </button>
             </div>
@@ -803,9 +803,9 @@ export default function CalendarPage() {
         {/* Add Event Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
-              <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Create New Event</h3>
+            <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200" onClick={e => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4">
+                <h3 className="text-xl font-bold text-slate-900">Create New Event</h3>
               </div>
               <div className="p-6 space-y-4">
                 <input
@@ -813,51 +813,51 @@ export default function CalendarPage() {
                   placeholder="Event title *"
                   value={newEvent.title}
                   onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none transition"
+                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none transition"
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     type="datetime-local"
                     value={newEvent.start_date}
                     onChange={e => setNewEvent({ ...newEvent, start_date: e.target.value })}
-                    className="border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                    className="border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                   />
                   <input
                     type="datetime-local"
                     value={newEvent.end_date}
                     onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })}
-                    className="border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                    className="border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                   />
                 </div>
-                <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                <label className="flex items-center gap-2 text-slate-700">
                   <input
                     type="checkbox"
                     checked={newEvent.all_day}
                     onChange={e => setNewEvent({ ...newEvent, all_day: e.target.checked })}
-                    className="rounded border-slate-300 dark:border-slate-600 text-cyan-600 focus:ring-cyan-500"
+                    className="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
                   />
                   <span className="text-sm">All day event</span>
                 </label>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Brand</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Brand</label>
                   <select
                     value={newEvent.brand_id}
                     onChange={e => {
                       const brandId = e.target.value;
                       setNewEvent({ ...newEvent, brand_id: brandId, branch_id: "" });
                     }}
-                    className="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                   >
                     <option value="">Select brand (optional)</option>
                     {brands.map(b => <option key={b.brand_id} value={b.brand_id}>{b.displayName}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Branch (Location)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Branch (Location)</label>
                   <select
                     value={newEvent.branch_id}
                     onChange={e => setNewEvent({ ...newEvent, branch_id: e.target.value })}
-                    className="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                     disabled={!newEvent.brand_id}
                   >
                     <option value="">Select branch</option>
@@ -866,11 +866,11 @@ export default function CalendarPage() {
                   {!newEvent.brand_id && <p className="text-xs text-amber-600 mt-1">Select a brand first to see branches</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tender</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tender</label>
                   <select
                     value={newEvent.tender_id}
                     onChange={e => setNewEvent({ ...newEvent, tender_id: e.target.value })}
-                    className="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                   >
                     <option value="">Select tender (optional)</option>
                     {tenders.map(t => <option key={t.tender_id} value={t.tender_id}>{t.tender_name}</option>)}
@@ -881,11 +881,11 @@ export default function CalendarPage() {
                   rows={3}
                   value={newEvent.description}
                   onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
-                  className="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none resize-none"
+                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none resize-none"
                 />
               </div>
-              <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 px-6 py-4 flex justify-end gap-3">
-                <button onClick={() => setShowAddModal(false)} className="px-5 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition font-medium">Cancel</button>
+              <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
+                <button onClick={() => setShowAddModal(false)} className="px-5 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-50 transition font-medium">Cancel</button>
                 <button onClick={handleAddEvent} className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl font-medium shadow-md transition">Create Event</button>
               </div>
             </div>
