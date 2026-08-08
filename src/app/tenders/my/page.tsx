@@ -228,10 +228,6 @@ export default function MyTendersListPage() {
     <div className="min-h-screen relative overflow-hidden bg-gray-50">
       {renderAlertModal()}
 
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none hidden" />
-      <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl animate-pulse pointer-events-none hidden" />
-      <div className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none hidden" />
-
       <div className="relative z-10 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
