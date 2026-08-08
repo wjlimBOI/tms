@@ -129,24 +129,24 @@ export default function ViewBQPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0a1228]">
-        <div className="text-xl text-gray-600 dark:text-cyan-300/70">Loading Bill of Quantities...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-xl text-gray-600">Loading Bill of Quantities...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0a1228]">
-        <div className="text-red-600 dark:text-red-400 text-center">{error}</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-red-600 text-center">{error}</div>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0a1228]">
-        <div className="text-center text-gray-700 dark:text-gray-300">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center text-gray-700">
           Please log in to view this Bill of Quantities.
         </div>
       </div>
@@ -179,7 +179,7 @@ export default function ViewBQPage() {
   const statusLabel = getBQStatusLabel(submission?.status || '');
 
   return (
-    <div className="p-4 max-w-[95%] mx-auto print:p-0 print:max-w-none bg-gray-50 dark:bg-[#0a1228] min-h-screen">
+    <div className="p-4 max-w-[95%] mx-auto print:p-0 print:max-w-none bg-gray-50 min-h-screen">
       <style jsx global>{`
         @media print {
           nav, .navbar, .sticky, .no-print, button, a:not([href^="/bq/"]) {
@@ -256,29 +256,29 @@ export default function ViewBQPage() {
 
       <div className="bq-container">
         {/* Header Card with Status Badge */}
-        <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-lg shadow-sm p-4 mb-6 print:shadow-none print:border header-card">
+        <div className="bg-white backdrop-blur-sm border border-gray-200 rounded-lg shadow-sm p-4 mb-6 print:shadow-none print:border header-card">
           <div className="flex flex-wrap justify-between items-start gap-4">
             <div
               style={{ borderLeftColor: clientColor.borderColor }}
               className="flex-1 border-l-4 pl-3"
             >
-              <div className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide">Client</div>
-              <div className="font-bold text-lg text-gray-800 dark:text-white">{currentClientName}</div>
+              <div className="text-sm text-gray-500 uppercase tracking-wide">Client</div>
+              <div className="font-bold text-lg text-gray-800">{currentClientName}</div>
 
-              <div className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-3">Job Site</div>
-              <div className="font-medium text-gray-700 dark:text-gray-200">{currentJobSite}</div>
+              <div className="text-sm text-gray-500 uppercase tracking-wide mt-3">Job Site</div>
+              <div className="font-medium text-gray-700">{currentJobSite}</div>
 
-              <div className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-3">Submitted By</div>
-              <div className="font-medium text-gray-700 dark:text-gray-200">{maskedContractor}</div>
+              <div className="text-sm text-gray-500 uppercase tracking-wide mt-3">Submitted By</div>
+              <div className="font-medium text-gray-700">{maskedContractor}</div>
 
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Document Date</div>
-                  <div className="font-medium text-gray-700 dark:text-gray-200">{formatDate(documentDate)}</div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Document Date</div>
+                  <div className="font-medium text-gray-700">{formatDate(documentDate)}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Area</div>
-                  <div className="font-medium text-gray-700 dark:text-gray-200">{submission?.area_size || "—"}</div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Area</div>
+                  <div className="font-medium text-gray-700">{submission?.area_size || "—"}</div>
                 </div>
               </div>
             </div>
@@ -291,7 +291,7 @@ export default function ViewBQPage() {
                   (e.target as HTMLImageElement).src = "/logos/placeholder.png";
                 }}
               />
-              <div className="text-right text-sm text-gray-600 dark:text-gray-400 no-print">
+              <div className="text-right text-sm text-gray-600 no-print">
                 <div>
                   Version {submission?.round_no}
                   {submission?.version_name ? ` – ${submission.version_name}` : ""}
@@ -308,67 +308,67 @@ export default function ViewBQPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg print:border print:overflow-visible table-container">
+        <div className="overflow-x-auto border border-gray-200 rounded-lg print:border print:overflow-visible table-container">
           <table className="min-w-full border-collapse text-sm print:w-full">
-            <thead className="bg-gray-100 dark:bg-gray-800/50">
+            <thead className="bg-gray-100">
               <tr>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Item No.</th>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Location</th>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Description</th>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Specifications</th>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Brand</th>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-200">Qty</th>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-left text-gray-700 dark:text-gray-200">Unit</th>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-200">Unit Rate ($)</th>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-200">Discount ($)</th>
-                <th className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-200">Amount ($)</th>
+                <th className="border border-gray-200 p-2 text-left text-gray-700">Item No.</th>
+                <th className="border border-gray-200 p-2 text-left text-gray-700">Location</th>
+                <th className="border border-gray-200 p-2 text-left text-gray-700">Description</th>
+                <th className="border border-gray-200 p-2 text-left text-gray-700">Specifications</th>
+                <th className="border border-gray-200 p-2 text-left text-gray-700">Brand</th>
+                <th className="border border-gray-200 p-2 text-right text-gray-700">Qty</th>
+                <th className="border border-gray-200 p-2 text-left text-gray-700">Unit</th>
+                <th className="border border-gray-200 p-2 text-right text-gray-700">Unit Rate ($)</th>
+                <th className="border border-gray-200 p-2 text-right text-gray-700">Discount ($)</th>
+                <th className="border border-gray-200 p-2 text-right text-gray-700">Amount ($)</th>
               </tr>
             </thead>
             <tbody>
               {groupedItems.map((cat) => (
                 <React.Fragment key={`cat-${cat.category_id}`}>
-                  <tr className="bg-gray-200 dark:bg-gray-800">
-                    <td colSpan={10} className="border border-gray-200 dark:border-gray-700 p-2 font-semibold text-base text-gray-900 dark:text-white">
+                  <tr className="bg-gray-200">
+                    <td colSpan={10} className="border border-gray-200 p-2 font-semibold text-base text-gray-900">
                       {cat.category_name}
                     </td>
                   </tr>
                   {cat.items.map((item) => (
-                    <tr key={item.line_item_id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 print:break-inside-avoid">
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-center font-mono text-gray-700 dark:text-gray-300">{item.item_no}</td>
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">{item.location || "—"}</td>
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 min-w-[300px] whitespace-pre-wrap description-cell text-gray-800 dark:text-gray-200">
+                    <tr key={item.line_item_id} className="border-b border-gray-200 hover:bg-gray-50 print:break-inside-avoid">
+                      <td className="border border-gray-200 p-2 text-center font-mono text-gray-700">{item.item_no}</td>
+                      <td className="border border-gray-200 p-2 text-gray-700">{item.location || "—"}</td>
+                      <td className="border border-gray-200 p-2 min-w-[300px] whitespace-pre-wrap description-cell text-gray-800">
                         {item.description}
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">{item.specifications || "—"}</td>
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">{item.brand || "—"}</td>
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-right text-gray-700 dark:text-gray-300">{item.quantity}</td>
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">{item.unit}</td>
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono whitespace-nowrap currency-cell text-gray-700 dark:text-gray-300">
+                      <td className="border border-gray-200 p-2 text-gray-700">{item.specifications || "—"}</td>
+                      <td className="border border-gray-200 p-2 text-gray-700">{item.brand || "—"}</td>
+                      <td className="border border-gray-200 p-2 text-right text-gray-700">{item.quantity}</td>
+                      <td className="border border-gray-200 p-2 text-gray-700">{item.unit}</td>
+                      <td className="border border-gray-200 p-2 text-right font-mono whitespace-nowrap currency-cell text-gray-700">
                         {formatCurrency(item.unit_price)}
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono whitespace-nowrap currency-cell text-gray-700 dark:text-gray-300">
+                      <td className="border border-gray-200 p-2 text-right font-mono whitespace-nowrap currency-cell text-gray-700">
                         {formatCurrency(item.discount)}
                       </td>
-                      <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono whitespace-nowrap currency-cell text-gray-700 dark:text-gray-300">
+                      <td className="border border-gray-200 p-2 text-right font-mono whitespace-nowrap currency-cell text-gray-700">
                         {formatCurrency(item.amount)}
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-gray-50 dark:bg-gray-800/30">
-                    <td colSpan={9} className="border border-gray-200 dark:border-gray-700 p-2 text-right font-bold text-gray-800 dark:text-gray-200">
+                  <tr className="bg-gray-50">
+                    <td colSpan={9} className="border border-gray-200 p-2 text-right font-bold text-gray-800">
                       Category Subtotal:
                     </td>
-                    <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono font-bold whitespace-nowrap currency-cell text-gray-800 dark:text-gray-200">
+                    <td className="border border-gray-200 p-2 text-right font-mono font-bold whitespace-nowrap currency-cell text-gray-800">
                       {formatCurrency(cat.items.reduce((sum, i) => sum + i.amount, 0))}
                     </td>
                   </tr>
                 </React.Fragment>
               ))}
-              <tr className="bg-gray-100 dark:bg-gray-800/50 font-bold">
-                <td colSpan={9} className="border border-gray-200 dark:border-gray-700 p-2 text-right text-base text-gray-900 dark:text-white">
+              <tr className="bg-gray-100 font-bold">
+                <td colSpan={9} className="border border-gray-200 p-2 text-right text-base text-gray-900">
                   GRAND TOTAL:
                 </td>
-                <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono text-base whitespace-nowrap currency-cell text-gray-900 dark:text-white">
+                <td className="border border-gray-200 p-2 text-right font-mono text-base whitespace-nowrap currency-cell text-gray-900">
                   {formatCurrency(grandTotal)}
                 </td>
               </tr>
@@ -381,7 +381,7 @@ export default function ViewBQPage() {
           <div className="w-full md:w-auto flex justify-center md:justify-start">
             <Link
               href="/bq/my"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-medium text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition font-medium text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -393,14 +393,14 @@ export default function ViewBQPage() {
           <div className="w-full md:w-auto flex flex-wrap justify-center gap-3">
             <button
               onClick={() => window.print()}
-              className="bg-gray-600 hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm"
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm"
             >
               🖨️ Print / PDF
             </button>
             {submission?.can_edit && (
               <Link
                 href={`/bq/${submissionId}/edit`}
-                className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition font-medium shadow-sm"
               >
                 Edit BQ
               </Link>
@@ -410,7 +410,7 @@ export default function ViewBQPage() {
 
         {/* Informational message for non‑Draft/Submitted */}
         {submission?.status !== 'Draft' && submission?.status !== 'Submitted' && (
-          <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400 no-print">
+          <div className="mt-6 text-center text-sm text-gray-500 no-print">
             ℹ️ This BQ is {submission?.status}. Only Draft and Submitted BQs are active.
           </div>
         )}
