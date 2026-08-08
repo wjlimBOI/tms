@@ -37,22 +37,22 @@ export default function CreateProjectPage() {
     let bgColor, borderColor, icon;
     switch (type) {
       case "success":
-        bgColor = "bg-emerald-50 dark:bg-emerald-900/20";
+        bgColor = "bg-emerald-50";
         borderColor = "border-emerald-500";
         icon = "✅";
         break;
       case "error":
-        bgColor = "bg-red-50 dark:bg-red-900/20";
+        bgColor = "bg-red-50";
         borderColor = "border-red-500";
         icon = "⚠️";
         break;
       case "warning":
-        bgColor = "bg-amber-50 dark:bg-amber-900/20";
+        bgColor = "bg-amber-50";
         borderColor = "border-amber-500";
         icon = "⚠️";
         break;
       default:
-        bgColor = "bg-blue-50 dark:bg-blue-900/20";
+        bgColor = "bg-blue-50";
         borderColor = "border-blue-500";
         icon = "ℹ️";
         break;
@@ -63,16 +63,16 @@ export default function CreateProjectPage() {
           <div className="flex items-start gap-4">
             <span className="text-3xl">{icon}</span>
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{message}</p>
-              {details && <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{details}</p>}
+              <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+              <p className="text-sm text-gray-700 mt-1">{message}</p>
+              {details && <p className="text-xs text-gray-600 mt-2">{details}</p>}
             </div>
             <button
               onClick={() => {
                 setShowAlertModal(false);
                 setAlertData(null);
               }}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-gray-500 hover:text-gray-700"
             >
               <X className="w-5 h-5" />
             </button>
@@ -83,7 +83,7 @@ export default function CreateProjectPage() {
                 setShowAlertModal(false);
                 setAlertData(null);
               }}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition"
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition"
             >
               Got it
             </button>
@@ -164,10 +164,10 @@ export default function CreateProjectPage() {
 
   if (sessionStatus === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Loading your session…</p>
+          <p className="text-slate-500 font-medium">Loading your session…</p>
         </div>
       </div>
     );
@@ -179,32 +179,32 @@ export default function CreateProjectPage() {
 
       {showSuccessModal && createdTender && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 text-center transform animate-in zoom-in-95 duration-300">
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 sm:p-8 text-center transform animate-in zoom-in-95 duration-300">
             <button
               onClick={() => setShowSuccessModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="mx-auto w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-4">
-              <CheckCircle className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
+            <div className="mx-auto w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+              <CheckCircle className="w-12 h-12 text-emerald-600" />
             </div>
 
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">
               Tender Created!
             </h2>
-            <p className="text-slate-600 dark:text-slate-300 text-sm mb-1">
+            <p className="text-slate-600 text-sm mb-1">
               <span className="font-medium">Tender ID:</span> #{createdTender.id}
             </p>
-            <p className="text-slate-600 dark:text-slate-300 text-sm mb-6 break-words">
+            <p className="text-slate-600 text-sm mb-6 break-words">
               <span className="font-medium">Name:</span> {createdTender.name}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => router.push(`/tenders/${createdTender.id}`)}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-medium rounded-lg transition shadow-sm"
+                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition shadow-sm"
               >
                 View Tender
               </button>
@@ -213,7 +213,7 @@ export default function CreateProjectPage() {
                   setShowSuccessModal(false);
                   router.push("/tenders");
                 }}
-                className="px-6 py-2.5 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition"
+                className="px-6 py-2.5 border border-slate-300 hover:bg-slate-50 rounded-lg transition"
               >
                 Go to Tenders List
               </button>
@@ -222,19 +222,19 @@ export default function CreateProjectPage() {
         </div>
       )}
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50/80 via-white to-slate-100/80 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50/80 via-white to-slate-100/80 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-8 p-4 sm:p-6 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/20 dark:border-slate-800/50 shadow-lg shadow-slate-200/50 dark:shadow-slate-950/50">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-8 p-4 sm:p-6 bg-white/60 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg shadow-slate-200/50">
             <div>
               <div className="flex items-center gap-3">
-                <FileCheck className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent">
+                <FileCheck className="w-6 h-6 text-indigo-500" />
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">
                   Create New Tender
                 </h1>
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 ml-9">
+              <p className="text-sm text-slate-500 mt-1 ml-9">
                 The tender will be created as{" "}
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
                   Upcoming
                 </span>{" "}
                 and can be opened later via the stage management.
@@ -242,7 +242,7 @@ export default function CreateProjectPage() {
             </div>
             <button
               onClick={() => router.back()}
-              className="group flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 hover:shadow-md"
+              className="group flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl border border-slate-200 hover:bg-slate-100 transition-all duration-200 hover:shadow-md"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
               Cancel
@@ -250,14 +250,14 @@ export default function CreateProjectPage() {
           </div>
 
           {validationErrors.length > 0 && (
-            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/20 border-l-4 border-rose-500 rounded-xl shadow-sm">
+            <div className="mb-6 p-4 bg-rose-50 border-l-4 border-rose-500 rounded-xl shadow-sm">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-semibold text-rose-700 dark:text-rose-300">
+                  <h4 className="text-sm font-semibold text-rose-700">
                     Please fix the following issues:
                   </h4>
-                  <ul className="mt-1 text-sm text-rose-600 dark:text-rose-400 list-disc list-inside space-y-0.5">
+                  <ul className="mt-1 text-sm text-rose-600 list-disc list-inside space-y-0.5">
                     {validationErrors.map((err, i) => (
                       <li key={i}>{err}</li>
                     ))}
@@ -267,7 +267,7 @@ export default function CreateProjectPage() {
             </div>
           )}
 
-          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/30 dark:shadow-slate-950/30">
+          <div className="bg-white/70 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/30">
             <TenderForm
               onSubmit={handleSubmit}
               isSubmitting={isSubmitting}
