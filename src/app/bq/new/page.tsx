@@ -160,10 +160,10 @@ export default function NewCostEstimatePage() {
   };
 
   if (status === "loading") return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-gray-100 dark:from-[#0a1228] dark:to-[#0f1630]">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-gray-100">
       <div className="text-center">
-        <div className="w-10 h-10 border-4 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-gray-500 dark:text-cyan-300/70">Loading session...</p>
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-gray-500">Loading session...</p>
       </div>
     </div>
   );
@@ -173,26 +173,26 @@ export default function NewCostEstimatePage() {
   const allSelected = selectedCategories.length === ALL_CATEGORIES.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 dark:from-[#0a1228] dark:to-[#0f1630] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
             New Bill of Quantities
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2 text-lg font-light">
+          <p className="text-gray-600 mt-2 text-lg font-light">
             Generate a new BQ for an active project. Build manually or import from Excel.
           </p>
         </div>
 
         {/* Mode Toggle - Segmented Control */}
-        <div className="bg-gray-100 dark:bg-gray-800/60 rounded-lg p-1 inline-flex mb-8 border border-gray-200/60 dark:border-gray-700/50">
+        <div className="bg-gray-100 rounded-lg p-1 inline-flex mb-8 border border-gray-200/60">
           <button
             onClick={() => setUploadMode("manual")}
             className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${
               uploadMode === "manual"
-                ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-cyan-400 shadow-sm"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             Manual Selection
@@ -201,8 +201,8 @@ export default function NewCostEstimatePage() {
             onClick={() => setUploadMode("excel")}
             className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${
               uploadMode === "excel"
-                ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-cyan-400 shadow-sm"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             Import Excel
@@ -210,36 +210,36 @@ export default function NewCostEstimatePage() {
         </div>
 
         {/* Main Card */}
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/60 dark:border-gray-700/50 overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/60 overflow-hidden">
           <div className="p-8 md:p-10 space-y-8">
             {/* Auto-generated title */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
                 Document Title <span className="text-gray-400 text-xs font-normal">(auto‑generated)</span>
               </label>
-              <div className="text-sm bg-gray-100/80 dark:bg-gray-800/80 p-3 rounded-xl border border-gray-200/60 dark:border-gray-700/60 text-gray-700 dark:text-gray-300">
+              <div className="text-sm bg-gray-100/80 p-3 rounded-xl border border-gray-200/60 text-gray-700">
                 {generatedName || "Select a project to preview the title"}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+              <p className="text-xs text-gray-500 mt-1.5">
                 Format: <strong className="font-medium">Contractor – Project – v1</strong>
               </p>
             </div>
 
             {/* Project selection */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
                 Project <span className="text-red-500">*</span>
               </label>
               {loadingTenders ? (
-                <div className="flex items-center space-x-3 text-gray-500 dark:text-gray-400">
-                  <div className="w-5 h-5 border-2 border-gray-400 dark:border-gray-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="flex items-center space-x-3 text-gray-500">
+                  <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                   <span className="text-sm">Loading projects...</span>
                 </div>
               ) : (
                 <select
                   value={tenderId}
                   onChange={(e) => setTenderId(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-cyan-400 focus:border-blue-600 dark:focus:border-cyan-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white text-gray-900 transition-all"
                 >
                   <option value="">— Choose a project —</option>
                   {tenders.map((t) => (
@@ -255,32 +255,32 @@ export default function NewCostEstimatePage() {
             {uploadMode === "manual" && (
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-semibold text-gray-700">
                     Work Categories <span className="text-red-500">*</span>
                   </label>
                   <button
                     onClick={toggleAllCategories}
-                    className="text-sm text-blue-600 dark:text-cyan-400 hover:text-blue-800 dark:hover:text-cyan-300 font-medium flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full transition-colors"
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 bg-blue-50 px-3 py-1 rounded-full transition-colors"
                   >
                     {allSelected ? "Deselect All" : "Select All"}
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-80 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-2 bg-gray-50/50 dark:bg-gray-800/30">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-80 overflow-y-auto border border-gray-200 rounded-xl p-2 bg-gray-50/50">
                   {ALL_CATEGORIES.map((cat) => (
-                    <label key={cat.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white dark:hover:bg-gray-700/50 transition-all cursor-pointer group">
+                    <label key={cat.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white transition-all cursor-pointer group">
                       <input
                         type="checkbox"
                         checked={selectedCategories.includes(cat.id)}
                         onChange={() => toggleCategory(cat.id)}
-                        className="w-4 h-4 text-blue-600 dark:text-cyan-500 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                      <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
                         {cat.name}
                       </span>
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-xs text-gray-500 mt-2">
                   {selectedCategories.length} category(s) selected
                 </p>
               </div>
@@ -289,21 +289,21 @@ export default function NewCostEstimatePage() {
             {/* Excel Mode: file upload */}
             {uploadMode === "excel" && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Excel File (BQ Template) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="file"
                   accept=".xlsx, .xls, .csv"
                   onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                  className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800/40 transition-all"
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-xs text-gray-500 mt-2">
                   Required columns: <strong>Item No.</strong> (B), <strong>Description</strong> (C), <strong>Quantity</strong> (D), <strong>Unit</strong> (E).<br />
                   Categories are detected automatically from the item number prefix.
                 </p>
                 {uploadFile && (
-                  <div className="mt-3 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-2 rounded-lg border border-green-200 dark:border-green-800/50 inline-flex items-center gap-2">
+                  <div className="mt-3 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200 inline-flex items-center gap-2">
                     <span>✓</span> File selected: {uploadFile.name}
                   </div>
                 )}
@@ -312,11 +312,11 @@ export default function NewCostEstimatePage() {
 
             {/* Updated Contractor Note */}
             {isContractor && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 flex items-start gap-3">
-                <span className="text-amber-600 dark:text-amber-400 text-lg">📌</span>
+              <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 flex items-start gap-3">
+                <span className="text-amber-600 text-lg">📌</span>
                 <div>
-                  <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">Submission Policy</p>
-                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                  <p className="text-sm text-amber-800 font-medium">Submission Policy</p>
+                  <p className="text-sm text-amber-700">
                     You may submit <strong>multiple revisions</strong> per project. 
                     Only the <strong>most recently submitted</strong> version will be considered for evaluation.
                   </p>
@@ -348,7 +348,7 @@ export default function NewCostEstimatePage() {
         </div>
 
         {/* Updated Bottom Tip */}
-        <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50/80 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200/50 dark:border-gray-700/50 flex items-center justify-center gap-2 backdrop-blur-sm">
+        <div className="mt-8 text-center text-sm text-gray-500 bg-gray-50/80 p-4 rounded-xl border border-gray-200/50 flex items-center justify-center gap-2 backdrop-blur-sm">
           <span className="text-lg">💡</span>
           <span>
             <strong className="font-medium">Auto-generated title:</strong> Re-submissions create a new version, ensuring traceability while keeping only the latest active.
