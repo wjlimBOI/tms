@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import DateRangePicker from '@/components/ui/DateRangePicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -34,11 +36,42 @@ interface CostingsResponse {
 }
 
 export default function CostingsDashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [groupBy, setGroupBy] = useState<'monthly' | 'yearly' | 'category' | 'item' | 'tender'>('monthly');
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({
     start: null,
     end: null,
   });
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (status === 'loading') return;
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+      const userRole = (session.user as any)?.role_id;
+      if (userRole === 1) {
+        setHasAccess(true);
+        return;
+      }
+      try {
+        const res = await fetch('/api/user/permissions');
+        if (!res.ok) throw new Error('Failed to fetch permissions');
+        const data = await res.json();
+        if (data.permissions?.includes('view')) {
+          setHasAccess(true);
+        } else {
+          router.push('/');
+        }
+      } catch {
+        setHasAccess(true);
+      }
+    };
+    checkAccess();
+  }, [session, status, router]);
 
   const { data, isLoading, error } = useQuery<CostingsResponse>({
     queryKey: ['costings', groupBy, dateRange.start, dateRange.end],
@@ -48,13 +81,18 @@ export default function CostingsDashboard() {
       if (dateRange.start) params.set('startDate', dateRange.start.toISOString().split('T')[0]);
       if (dateRange.end) params.set('endDate', dateRange.end.toISOString().split('T')[0]);
       const res = await fetch(`/api/analytics/costings?${params}`);
+      if (res.status === 401 || res.status === 403) {
+        router.push('/');
+        throw new Error('Access denied');
+      }
       if (!res.ok) throw new Error('Failed to fetch costings');
       return res.json();
     },
+    enabled: hasAccess === true,
     staleTime: 5 * 60 * 1000,
   });
 
-  if (isLoading) return (
+  if (status === 'loading' || hasAccess === null || (hasAccess && isLoading)) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
         <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -62,13 +100,18 @@ export default function CostingsDashboard() {
       </div>
     </div>
   );
-  
+
+  if (hasAccess === false) return null;
+
   if (error) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-red-600">Error: {error.message}</div>
+      <div className="text-center">
+        <p className="text-red-600 font-medium">We couldn't load the costings data.</p>
+        <p className="text-gray-500 text-sm mt-1">Please refresh the page or try again later.</p>
+      </div>
     </div>
   );
-  
+
   if (!data) return null;
 
   const chartData = data.data;
