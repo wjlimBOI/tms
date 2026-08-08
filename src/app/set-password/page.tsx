@@ -38,7 +38,7 @@ const PasswordField = ({
   setShow?: (val: boolean) => void;
 }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
       {label}
     </label>
     <div className="relative">
@@ -48,13 +48,13 @@ const PasswordField = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 pr-10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:focus:ring-cyan-400 transition-colors"
+        className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 pr-10 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-600 transition-colors"
       />
       {showToggle && (
         <button
           type="button"
           onClick={() => setShow?.(!show)}
-          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
         >
           {show ? (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,10 +151,10 @@ export default function SetPasswordPage() {
 
   if (validToken === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-gray-500 dark:text-gray-400">Verifying link...</p>
+          <p className="text-gray-500">Verifying link...</p>
         </div>
       </div>
     );
@@ -162,15 +162,15 @@ export default function SetPasswordPage() {
 
   if (validToken === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228] px-4">
-        <div className="max-w-md w-full bg-white dark:bg-white/10 rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Invalid or Expired Link</h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid or Expired Link</h1>
+          <p className="text-gray-600 mb-6">
             The password set link is invalid, expired, or has already been used.
           </p>
           <button
@@ -186,15 +186,15 @@ export default function SetPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228] px-4">
-        <div className="max-w-md w-full bg-white dark:bg-white/10 rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Password Set Successfully!</h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Password Set Successfully!</h1>
+          <p className="text-gray-600 mb-6">
             You can now log in with your new password.
           </p>
           <div className="w-8 h-8 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -205,10 +205,10 @@ export default function SetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gradient-to-br dark:from-[#0d2d4a] dark:to-[#0a1228] px-4">
-      <div className="w-full max-w-md bg-white dark:bg-white/10 backdrop-blur-xl rounded-2xl shadow-lg dark:shadow-2xl border border-gray-200 dark:border-white/20 p-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">Set Your Password</h1>
-        <p className="text-gray-600 dark:text-white/60 text-sm text-center mb-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200 p-8">
+        <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">Set Your Password</h1>
+        <p className="text-gray-600 text-sm text-center mb-6">
           Choose a strong password to secure your account.
         </p>
 
@@ -226,7 +226,7 @@ export default function SetPasswordPage() {
             {newPassword && (
               <div className="mt-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-gray-200 dark:bg-white/20 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all ${
                         passwordValidation.score === 0
@@ -239,7 +239,7 @@ export default function SetPasswordPage() {
                       }`}
                     />
                   </div>
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="text-xs text-gray-600">
                     {passwordValidation.isValid
                       ? "Strong"
                       : passwordValidation.errors.length <= 2
@@ -248,26 +248,26 @@ export default function SetPasswordPage() {
                   </span>
                 </div>
                 <div className="text-xs space-y-1">
-                  <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
+                  <p className="text-gray-700 font-medium mb-1">
                     Password must have:
                   </p>
                   <ul className="space-y-0.5">
-                    <li className={newPassword.length >= 15 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                    <li className={newPassword.length >= 15 ? "text-green-600" : "text-red-600"}>
                       ✓ At least 15 characters
                     </li>
-                    <li className={newPassword.length <= 64 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                    <li className={newPassword.length <= 64 ? "text-green-600" : "text-red-600"}>
                       ✓ Maximum 64 characters
                     </li>
-                    <li className={/[A-Z]/.test(newPassword) ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                    <li className={/[A-Z]/.test(newPassword) ? "text-green-600" : "text-red-600"}>
                       ✓ One uppercase letter (A–Z)
                     </li>
-                    <li className={/[a-z]/.test(newPassword) ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                    <li className={/[a-z]/.test(newPassword) ? "text-green-600" : "text-red-600"}>
                       ✓ One lowercase letter (a–z)
                     </li>
-                    <li className={/\d/.test(newPassword) ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                    <li className={/\d/.test(newPassword) ? "text-green-600" : "text-red-600"}>
                       ✓ One digit (0–9)
                     </li>
-                    <li className={/[^A-Za-z0-9]/.test(newPassword) ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                    <li className={/[^A-Za-z0-9]/.test(newPassword) ? "text-green-600" : "text-red-600"}>
                       ✓ One special character (e.g., !@#$%^&*)
                     </li>
                   </ul>
@@ -287,14 +287,14 @@ export default function SetPasswordPage() {
               setShow={setShowConfirmPassword}
             />
             {confirmPassword && newPassword !== confirmPassword && (
-              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+              <p className="text-xs text-orange-600 mt-1">
                 ✧ Passwords don’t match yet
               </p>
             )}
           </div>
 
           {error && (
-            <div className="bg-red-100 dark:bg-red-500/20 border border-red-300 dark:border-red-500/50 rounded-lg p-2 text-sm text-red-800 dark:text-red-200">
+            <div className="bg-red-100 border border-red-300 rounded-lg p-2 text-sm text-red-800">
               {error}
             </div>
           )}
@@ -308,7 +308,7 @@ export default function SetPasswordPage() {
               newPassword !== confirmPassword ||
               !passwordValidation.isValid
             }
-            className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 dark:from-cyan-500 dark:to-blue-600 dark:hover:from-cyan-600 dark:hover:to-blue-700 text-white font-semibold py-2 rounded-lg transition transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold py-2 rounded-lg transition transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
             {loading ? "Setting password..." : "Set Password"}
           </button>
