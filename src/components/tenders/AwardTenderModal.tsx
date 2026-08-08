@@ -95,18 +95,18 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-lg max-h-[85vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800"
+        className="w-full max-w-lg max-h-[85vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-200">
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Trophy className="w-4 h-4 text-amber-500" />
               Award Tender
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{tenderName}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{tenderName}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -118,16 +118,16 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
             </div>
           )}
 
-          {!loading && error && <p className="text-sm text-rose-600 dark:text-rose-400 text-center py-6">{error}</p>}
+          {!loading && error && <p className="text-sm text-rose-600 text-center py-6">{error}</p>}
 
           {!loading && !error && alreadyAwarded && (
-            <p className="text-sm text-slate-600 dark:text-slate-300 text-center py-6">
+            <p className="text-sm text-slate-600 text-center py-6">
               This tender has already been awarded.
             </p>
           )}
 
           {!loading && !error && !alreadyAwarded && submissions.length === 0 && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-6">
+            <p className="text-sm text-slate-500 text-center py-6">
               No submitted bids to award — contractors must submit before this tender can be awarded.
             </p>
           )}
@@ -135,7 +135,7 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
           {!loading && !error && !alreadyAwarded && submissions.length > 0 && (
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Winning submission
                 </label>
                 <div className="space-y-2">
@@ -144,8 +144,8 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
                       key={s.submission_id}
                       className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${
                         selectedSubmissionId === s.submission_id
-                          ? "border-indigo-400 bg-indigo-50 dark:border-indigo-500 dark:bg-indigo-950/30"
-                          : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          ? "border-indigo-400 bg-indigo-50"
+                          : "border-slate-200 hover:bg-slate-50"
                       }`}
                     >
                       <input
@@ -156,8 +156,8 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
                         onChange={() => setSelectedSubmissionId(s.submission_id)}
                       />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-900 dark:text-white">{s.contractor_name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-sm font-medium text-slate-900">{s.contractor_name}</p>
+                        <p className="text-xs text-slate-500">
                           {s.bq_name}
                           {s.submitted_at && ` — submitted ${format(new Date(s.submitted_at), "MMM dd, yyyy")}`}
                         </p>
@@ -168,7 +168,7 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
                   Contract value (SGD)
                 </label>
                 <input
@@ -178,12 +178,12 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
                   value={contractValue}
                   onChange={(e) => setContractValue(e.target.value)}
                   placeholder="0.00"
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition px-3 py-2 text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
                   Remark <span className="font-normal text-slate-400">(optional)</span>
                 </label>
                 <textarea
@@ -192,7 +192,7 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
                   rows={2}
                   maxLength={500}
                   placeholder="e.g. Negotiated down from initial bid"
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition px-3 py-2 text-sm resize-none"
+                  className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition px-3 py-2 text-sm resize-none"
                 />
               </div>
             </div>
@@ -200,7 +200,7 @@ export default function AwardTenderModal({ tenderId, tenderName, onClose, onAwar
         </div>
 
         {!loading && !error && !alreadyAwarded && submissions.length > 0 && (
-          <div className="flex justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex justify-end gap-3 p-5 border-t border-slate-200">
             <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
               Cancel
             </Button>
