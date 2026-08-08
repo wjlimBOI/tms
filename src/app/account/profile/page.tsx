@@ -52,7 +52,7 @@ const PasswordField = ({
   setShow?: (val: boolean) => void;
 }) => (
   <div>
-    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+    <label className="block text-sm font-medium text-slate-700">
       {label}
     </label>
     <div className="relative mt-1">
@@ -62,13 +62,13 @@ const PasswordField = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 pr-10 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+        className="w-full border border-slate-300 rounded-lg px-3 py-2 pr-10 text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
       />
       {showToggle && (
         <button
           type="button"
           onClick={() => setShow?.(!show)}
-          className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-700"
         >
           {show ? (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,10 +237,10 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-slate-600 dark:text-slate-300 text-sm">Loading profile...</p>
+          <p className="text-slate-600 text-sm">Loading profile...</p>
         </div>
       </div>
     );
@@ -251,28 +251,28 @@ export default function ProfilePage() {
   const isContractor = profile.role_id === 4;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8 text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
             Account Settings
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
+          <p className="text-slate-600 text-sm mt-1">
             Manage your personal information and password
           </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div className="p-6 md:p-8">
             {/* Profile section */}
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+              <h2 className="text-xl font-semibold text-slate-900">
                 Personal Information
               </h2>
               {!isEditingProfile && (
                 <button
                   onClick={() => setIsEditingProfile(true)}
-                  className="text-sm text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300 font-medium transition"
+                  className="text-sm text-cyan-600 hover:text-cyan-700 font-medium transition"
                 >
                   Edit
                 </button>
@@ -282,65 +282,65 @@ export default function ProfilePage() {
             {!isEditingProfile ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Username
                   </label>
-                  <p className="mt-1 text-sm text-slate-900 dark:text-white">
+                  <p className="mt-1 text-sm text-slate-900">
                     {profile.username}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Email
                   </label>
-                  <p className="mt-1 text-sm text-slate-900 dark:text-white">
+                  <p className="mt-1 text-sm text-slate-900">
                     {profile.email}
                   </p>
                 </div>
                 {/* NEW: Display Name */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Display Name
                   </label>
-                  <p className="mt-1 text-sm text-slate-900 dark:text-white">
+                  <p className="mt-1 text-sm text-slate-900">
                     {profile.display_name || profile.username}
                   </p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                  <p className="text-[10px] text-slate-400 mt-0.5">
                     Shown in the dashboard greeting
                   </p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Full Name
                   </label>
-                  <p className="mt-1 text-sm text-slate-900 dark:text-white">
+                  <p className="mt-1 text-sm text-slate-900">
                     {profile.full_name || "—"}
                   </p>
                 </div>
                 {isContractor && (
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Company / Organization
                     </label>
-                    <p className="mt-1 text-sm text-slate-900 dark:text-white">
+                    <p className="mt-1 text-sm text-slate-900">
                       {profile.company_name || "—"}
                     </p>
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Phone
                   </label>
-                  <p className="mt-1 text-sm text-slate-900 dark:text-white">
+                  <p className="mt-1 text-sm text-slate-900">
                     {profile.phone || "—"}
                   </p>
                 </div>
                 {profile.job_title && (
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Job Title
                     </label>
-                    <p className="mt-1 text-sm text-slate-900 dark:text-white">
+                    <p className="mt-1 text-sm text-slate-900">
                       {profile.job_title}
                     </p>
                   </div>
@@ -351,7 +351,7 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* NEW: Display Name field */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label className="block text-sm font-medium text-slate-700">
                       Display Name
                     </label>
                     <input
@@ -361,14 +361,14 @@ export default function ProfilePage() {
                         setFormData({ ...formData, display_name: e.target.value })
                       }
                       placeholder="e.g., John Doe"
-                      className="mt-1 w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                      className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                     />
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                    <p className="text-[10px] text-slate-400 mt-1">
                       Will appear in the dashboard greeting. Leave blank to use your username.
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label className="block text-sm font-medium text-slate-700">
                       Full Name
                     </label>
                     <input
@@ -377,12 +377,12 @@ export default function ProfilePage() {
                       onChange={(e) =>
                         setFormData({ ...formData, full_name: e.target.value })
                       }
-                      className="mt-1 w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                      className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                     />
                   </div>
                   {isContractor && (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <label className="block text-sm font-medium text-slate-700">
                         Company / Organization
                       </label>
                       <input
@@ -391,12 +391,12 @@ export default function ProfilePage() {
                         onChange={(e) =>
                           setFormData({ ...formData, company_name: e.target.value })
                         }
-                        className="mt-1 w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                        className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                       />
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label className="block text-sm font-medium text-slate-700">
                       Phone
                     </label>
                     <input
@@ -405,7 +405,7 @@ export default function ProfilePage() {
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
                       }
-                      className="mt-1 w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                      className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -413,7 +413,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => setIsEditingProfile(false)}
-                    className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                    className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
                   >
                     Cancel
                   </button>
@@ -427,18 +427,18 @@ export default function ProfilePage() {
               </form>
             )}
 
-            <div className="my-8 border-t border-slate-200 dark:border-slate-700" />
+            <div className="my-8 border-t border-slate-200" />
 
             {/* Password section */}
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                <h2 className="text-xl font-semibold text-slate-900">
                   Password
                 </h2>
                 {!isChangingPassword && (
                   <button
                     onClick={() => setIsChangingPassword(true)}
-                    className="text-sm text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300 font-medium transition"
+                    className="text-sm text-cyan-600 hover:text-cyan-700 font-medium transition"
                   >
                     Change Password
                   </button>
@@ -446,7 +446,7 @@ export default function ProfilePage() {
               </div>
 
               {!isChangingPassword ? (
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-slate-600">
                   Keep your account secure with a strong password. Click "Change Password" to update it.
                 </p>
               ) : (
@@ -481,7 +481,7 @@ export default function ProfilePage() {
                     {passwordForm.new_password && (
                       <div className="mt-3 space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                             <div
                               className={`h-full transition-all ${
                                 passwordValidation.score === 0
@@ -494,7 +494,7 @@ export default function ProfilePage() {
                               }`}
                             />
                           </div>
-                          <span className="text-xs text-slate-600 dark:text-slate-400">
+                          <span className="text-xs text-slate-600">
                             {passwordValidation.isValid
                               ? "Strong"
                               : passwordValidation.errors.length <= 2
@@ -503,26 +503,26 @@ export default function ProfilePage() {
                           </span>
                         </div>
                         <div className="text-xs space-y-1">
-                          <p className="text-slate-600 dark:text-slate-400 font-medium mb-1">
+                          <p className="text-slate-600 font-medium mb-1">
                             Password must have:
                           </p>
                           <ul className="space-y-0.5">
-                            <li className={passwordForm.new_password.length >= 15 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                            <li className={passwordForm.new_password.length >= 15 ? "text-green-600" : "text-red-600"}>
                               ✓ At least 15 characters
                             </li>
-                            <li className={passwordForm.new_password.length <= 64 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                            <li className={passwordForm.new_password.length <= 64 ? "text-green-600" : "text-red-600"}>
                               ✓ Maximum 64 characters
                             </li>
-                            <li className={/[A-Z]/.test(passwordForm.new_password) ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                            <li className={/[A-Z]/.test(passwordForm.new_password) ? "text-green-600" : "text-red-600"}>
                               ✓ One uppercase letter (A–Z)
                             </li>
-                            <li className={/[a-z]/.test(passwordForm.new_password) ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                            <li className={/[a-z]/.test(passwordForm.new_password) ? "text-green-600" : "text-red-600"}>
                               ✓ One lowercase letter (a–z)
                             </li>
-                            <li className={/\d/.test(passwordForm.new_password) ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                            <li className={/\d/.test(passwordForm.new_password) ? "text-green-600" : "text-red-600"}>
                               ✓ One digit (0–9)
                             </li>
-                            <li className={/[^A-Za-z0-9]/.test(passwordForm.new_password) ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                            <li className={/[^A-Za-z0-9]/.test(passwordForm.new_password) ? "text-green-600" : "text-red-600"}>
                               ✓ One special character (e.g., !@#$%^&*)
                             </li>
                           </ul>
@@ -544,7 +544,7 @@ export default function ProfilePage() {
                   />
                   {passwordForm.confirm_password &&
                     passwordForm.new_password !== passwordForm.confirm_password && (
-                      <p className="text-xs text-orange-600 dark:text-orange-400 -mt-2">
+                      <p className="text-xs text-orange-600 -mt-2">
                         ✧ Passwords don’t match yet
                       </p>
                     )}
@@ -561,7 +561,7 @@ export default function ProfilePage() {
                         });
                         setPasswordValidation({ isValid: false, errors: [], score: 0 });
                       }}
-                      className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                      className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
                     >
                       Cancel
                     </button>
@@ -581,7 +581,7 @@ export default function ProfilePage() {
                           !passwordValidation.isValid
                         )
                           ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
-                          : "bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+                          : "bg-slate-200 text-slate-400 cursor-not-allowed"
                       }`}
                     >
                       Update Password
@@ -592,31 +592,31 @@ export default function ProfilePage() {
             </div>
 
             {isContractor && (
-              <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
-                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+              <div className="mt-8 pt-6 border-t border-slate-200">
+                <h3 className="text-sm font-medium text-slate-700 mb-3">
                   Account Validity
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-slate-500 dark:text-slate-400">Valid from:</span>
-                    <span className="ml-2 text-slate-900 dark:text-white">
+                    <span className="text-slate-500">Valid from:</span>
+                    <span className="ml-2 text-slate-900">
                       {formatDate(profile.access_start_date)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 dark:text-slate-400">Valid until:</span>
-                    <span className="ml-2 text-slate-900 dark:text-white">
+                    <span className="text-slate-500">Valid until:</span>
+                    <span className="ml-2 text-slate-900">
                       {formatDate(profile.access_end_date)}
                     </span>
                   </div>
                 </div>
                 {profile.is_active === false && (
-                  <p className="mt-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
+                  <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">
                     Your account is currently inactive. Please contact support.
                   </p>
                 )}
                 {profile.is_approved === false && (
-                  <p className="mt-3 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2">
+                  <p className="mt-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
                     Your account is pending approval.
                   </p>
                 )}
