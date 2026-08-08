@@ -121,8 +121,8 @@ function renderEmail({
           <!-- Header -->
           <tr>
             <td bgcolor="#0f2b3d" style="background-color:#0f2b3d;padding:32px 24px 26px;text-align:center;">
-              <img src="${logoSrc}" alt="Beauty One International" width="150" style="display:block;max-width:150px;width:100%;height:auto;margin:0 auto 16px auto;border:0;" />
-              <span style="display:inline-block;color:#5eead4;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;border-bottom:1px solid rgba(94,234,212,0.4);padding-bottom:7px;">Tender Management System</span>
+              <img src="${logoSrc}" alt="Beauty One International" width="210" style="display:block;max-width:210px;width:100%;height:auto;margin:0 auto 16px auto;border:0;" />
+              <span style="display:inline-block;color:#f1f5f9;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;border-bottom:1px solid rgba(241,245,249,0.35);padding-bottom:7px;">Tender Management System</span>
             </td>
           </tr>
 
@@ -137,7 +137,7 @@ function renderEmail({
           <tr>
             <td bgcolor="#ffffff" class="body-bg">
               <div class="content" style="padding:30px 28px 0;text-align:center;">
-                <h1 class="email-title" style="font-size:20px;font-weight:600;color:#1a2c3e;margin:0;">${escapeHtml(title)}</h1>
+                <h1 class="email-title" style="font-size:20px;font-weight:700;color:#1a2c3e;margin:0;">${escapeHtml(title)}</h1>
               </div>
               <div class="content email-text" style="padding:16px 28px 30px;font-size:15px;line-height:1.6;color:#334155;">
                 ${bodyHtml}
