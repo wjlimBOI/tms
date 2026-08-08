@@ -119,21 +119,21 @@ function ReadOnlyItemRow({
   const displayUnit = getDisplayFromCode(item.unit);
 
   return (
-    <div className="flex flex-wrap sm:flex-nowrap items-start gap-3 py-3 border-b border-gray-200 dark:border-white/10">
-      <div className="w-16 text-xs text-gray-500 dark:text-gray-400 font-mono self-center">
+    <div className="flex flex-wrap sm:flex-nowrap items-start gap-3 py-3 border-b border-gray-200">
+      <div className="w-16 text-xs text-gray-500 font-mono self-center">
         {itemNumber}
       </div>
-      <div className="flex-1 text-sm text-gray-800 dark:text-gray-200">
+      <div className="flex-1 text-sm text-gray-800">
         {item.description}
       </div>
       <div className="flex gap-2 w-full sm:w-auto">
-        <div className="w-24 text-center text-sm text-gray-700 dark:text-gray-300">
+        <div className="w-24 text-center text-sm text-gray-700">
           {item.quantity ?? ""}
         </div>
-        <div className="w-24 text-center text-sm text-gray-700 dark:text-gray-300">
+        <div className="w-24 text-center text-sm text-gray-700">
           {displayUnit}
         </div>
-        <div className="w-24 text-right text-sm text-gray-700 dark:text-gray-300">
+        <div className="w-24 text-right text-sm text-gray-700">
           {formatRate(item.rate)}
         </div>
       </div>
@@ -309,31 +309,31 @@ export default function BQTemplateViewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-gray-600 dark:text-cyan-300/70">Loading BQ template…</p>
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-600">Loading BQ template…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a1228] py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
+        <div className="bg-white backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
           <div className="flex flex-wrap justify-between items-center gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                 BQ Template for Tender: {tenderName}
               </h1>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-white/60 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 Read‑only view. Use the edit page to modify the template.
               </p>
             </div>
             <div className="flex gap-2 sm:gap-3 flex-wrap">
-              <label className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 cursor-pointer transition-colors">
+              <label className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 cursor-pointer transition-colors">
                 {uploading ? "Uploading..." : "📤 Upload Excel"}
                 <input
                   type="file"
@@ -346,19 +346,19 @@ export default function BQTemplateViewPage() {
               <button
                 onClick={handleClearTemplate}
                 disabled={clearing}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 {clearing ? "Clearing..." : "🗑️ Clear Template"}
               </button>
               <button
                 onClick={() => router.push(`/admin/tenders/${tenderId}/bq-template/edit`)}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
               >
                 ✏️ Edit Template
               </button>
               <button
                 onClick={() => router.push("/admin/tenders")}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white/80 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
               >
                 ← Back
               </button>
@@ -373,15 +373,15 @@ export default function BQTemplateViewPage() {
             return (
               <div
                 key={category.category_id}
-                className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-xl shadow-sm overflow-hidden"
+                className="bg-white backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm overflow-hidden"
               >
-                <div className="bg-gray-50 dark:bg-white/10 px-4 py-3 border-b border-gray-200 dark:border-white/10">
-                  <h3 className="font-semibold text-gray-800 dark:text-white text-base sm:text-lg">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-800 text-base sm:text-lg">
                     {category.name}
                   </h3>
                 </div>
                 <div className="p-2 sm:p-4">
-                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 pb-2 border-b border-gray-300 dark:border-white/20 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 pb-2 border-b border-gray-300 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     <div className="w-16">Item No.</div>
                     <div className="flex-1">Description</div>
                     <div className="flex gap-2 w-full sm:w-auto">
@@ -391,7 +391,7 @@ export default function BQTemplateViewPage() {
                     </div>
                   </div>
                   {rootItems.length === 0 && (
-                    <div className="text-center text-gray-400 dark:text-white/40 py-4 text-sm">
+                    <div className="text-center text-gray-400 py-4 text-sm">
                       No items in this category.
                     </div>
                   )}
@@ -403,8 +403,8 @@ export default function BQTemplateViewPage() {
         </div>
 
         {visibleCategories.length === 0 && (
-          <div className="bg-white dark:bg-white/5 rounded-xl p-8 text-center">
-            <p className="text-gray-500 dark:text-white/50">
+          <div className="bg-white rounded-xl p-8 text-center">
+            <p className="text-gray-500">
               No categories selected. Go to <strong>Edit Template</strong> to add categories.
             </p>
           </div>
