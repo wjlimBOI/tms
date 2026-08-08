@@ -93,6 +93,15 @@ function renderEmail({
       <meta name="supported-color-schemes" content="light">
       <title>${escapeHtml(title)}</title>
       <style>
+        html, body { margin: 0 !important; padding: 0 !important; height: 100% !important; width: 100% !important; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        /* Outlook.com/Hotmail wraps the message body in its own
+           <div class="ExternalClass">, which has a default line-height
+           that shows up as extra space above/below the content unless
+           reset explicitly. */
+        .ExternalClass { width: 100%; }
+        .ExternalClass, .ExternalClass p, .ExternalClass span, .ExternalClass font, .ExternalClass td, .ExternalClass div { line-height: 100%; }
         @media only screen and (max-width: 600px) {
           .container { width: 100% !important; }
           .content { padding-left: 20px !important; padding-right: 20px !important; }
@@ -100,7 +109,7 @@ function renderEmail({
         }
       </style>
     </head>
-    <body style="margin:0;padding:0;background-color:#eef1f6;font-family:Arial,Helvetica,sans-serif;">
+    <body bgcolor="#eef1f6" style="margin:0;padding:0;background-color:#eef1f6;font-family:Arial,Helvetica,sans-serif;">
       <center style="width:100%;table-layout:fixed;">
         <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" class="container" style="max-width:600px;width:100%;background-color:#ffffff;margin:0 auto;border:1px solid #e0e7ef;">
 
