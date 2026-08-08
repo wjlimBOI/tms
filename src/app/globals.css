@@ -115,27 +115,6 @@ body {
   --ring: 243 75% 59%;
   --radius: 0.5rem;
 }
-.dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 243 75% 65%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 243 75% 65%;
-}
 
 /* ===== Public Theme – color variables & custom styles ===== */
 :root {
@@ -307,232 +286,6 @@ body {
   font-family: 'DM Sans', 'Inter', sans-serif;
 }
 
-/* ===== DARK MODE DROPDOWN FIXES ===== */
-/* For native select elements in dark mode */
-.dark select,
-.dark select option,
-select.dark,
-select.dark option {
-  background-color: #1a1a2e !important;
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Light dropdown arrow for dark mode selects */
-.dark select,
-select.dark {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.5rem center;
-  background-size: 1.25rem;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-/* For datalist‑backed inputs */
-.dark input[list],
-input[list].dark {
-  background-color: #1a1a2e !important;
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Datalist picker icon (calendar) – make it visible */
-.dark input[list]::-webkit-calendar-picker-indicator,
-input[list].dark::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-}
-
-/* Fallback for any other unstyled select (system preference) */
-@media (prefers-color-scheme: dark) {
-  select:not([class*="bg-"]),
-  option:not([class*="bg-"]),
-  input[list]:not([class*="bg-"]) {
-    background-color: #1a1a2e !important;
-    color: white !important;
-  }
-}
-
-/* ===== FULLCALENDAR DARK MODE DATE VISIBILITY FIXES ===== */
-/* Force date numbers to be bright white in dark mode */
-.dark .fc-daygrid-day-number,
-.dark .fc-daygrid-day-number span,
-.dark .fc-daygrid-day-number a,
-.dark .fc-daygrid-day-top .fc-daygrid-day-number,
-.dark .fc-daygrid-day-frame .fc-daygrid-day-number {
-  color: #ffffff !important;
-  font-weight: 500 !important;
-  opacity: 1 !important;
-}
-
-/* Days from other months – lighter but readable */
-.dark .fc-day-other .fc-daygrid-day-number,
-.dark .fc-day-other .fc-daygrid-day-number span,
-.dark .fc-day-other .fc-daygrid-day-number a {
-  color: #cbd5e1 !important;
-  opacity: 0.8 !important;
-}
-
-/* Today's date – white on blue circle */
-.dark .fc-day-today .fc-daygrid-day-number {
-  background-color: #3b82f6 !important;
-  color: white !important;
-  border-radius: 9999px !important;
-  width: 2rem !important;
-  height: 2rem !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-weight: bold !important;
-}
-
-/* Ensure day cells have dark background */
-.dark .fc-daygrid-day {
-  background-color: #0f172a;
-}
-
-/* Weekday headers (Mon, Tue, etc.) */
-.dark .fc-col-header-cell-cushion,
-.dark .fc-col-header-cell-cushion span,
-.dark .fc-col-header-cell-cushion a {
-  color: #e2e8f0 !important;
-  font-weight: 600 !important;
-}
-
-/* Month title and toolbar */
-.dark .fc-toolbar-title {
-  color: #f8fafc !important;
-  font-weight: 600 !important;
-}
-
-/* General calendar background overrides */
-.dark .fc {
-  --fc-page-bg-color: #0f172a;
-  --fc-border-color: #334155;
-  --fc-neutral-bg-color: #1e293b;
-  --fc-today-bg-color: rgba(59, 130, 246, 0.15);
-  --fc-button-bg-color: #1e293b;
-  --fc-button-border-color: #334155;
-  --fc-button-hover-bg-color: #334155;
-  --fc-button-hover-border-color: #475569;
-  --fc-button-active-bg-color: #2563eb;
-  --fc-button-active-border-color: #2563eb;
-  --fc-list-event-hover-bg-color: #1e293b;
-}
-
-.dark .fc-theme-standard td,
-.dark .fc-theme-standard th,
-.dark .fc-theme-standard .fc-scrollgrid,
-.dark .fc-theme-standard .fc-popover {
-  border-color: #334155;
-}
-
-.dark .fc-daygrid-day,
-.dark .fc-timegrid-slot,
-.dark .fc-timegrid-col,
-.dark .fc-list-table,
-.dark .fc-list-table tbody,
-.dark .fc-list-table tr {
-  background-color: #0f172a;
-}
-
-/* Buttons */
-.dark .fc .fc-button-primary {
-  background-color: var(--fc-button-bg-color);
-  border-color: var(--fc-button-border-color);
-  color: #e2e8f0;
-}
-.dark .fc .fc-button-primary:hover {
-  background-color: var(--fc-button-hover-bg-color);
-  border-color: var(--fc-button-hover-border-color);
-}
-.dark .fc .fc-button-primary:not(:disabled).fc-button-active,
-.dark .fc .fc-button-primary:not(:disabled):active {
-  background-color: var(--fc-button-active-bg-color);
-  border-color: var(--fc-button-active-border-color);
-  color: white;
-}
-.dark .fc .fc-button-primary:disabled {
-  background-color: #1e293b;
-  border-color: #334155;
-  opacity: 0.6;
-}
-
-/* More link */
-.dark .fc-daygrid-more-link {
-  color: #93c5fd !important;
-}
-.dark .fc-daygrid-more-link:hover {
-  color: #bfdbfe !important;
-}
-
-/* Popover (more events) */
-.dark .fc-popover {
-  background-color: #1e293b;
-  border-color: #334155;
-}
-.dark .fc-popover-header {
-  background-color: #0f172a;
-  color: #e2e8f0;
-}
-.dark .fc-popover-body .fc-daygrid-day {
-  background-color: #1e293b;
-}
-
-/* List view */
-.dark .fc-list-day-cushion {
-  background-color: #0f172a;
-}
-.dark .fc-list-day-text,
-.dark .fc-list-day-side-text {
-  color: #e2e8f0 !important;
-}
-.dark .fc-list-event,
-.dark .fc-list-event td {
-  background-color: #1e293b;
-  border-color: #334155;
-}
-.dark .fc-list-event:hover td {
-  background-color: #2d3a4e;
-}
-.dark .fc-list-event-title,
-.dark .fc-list-event-time {
-  color: #e2e8f0 !important;
-}
-
-/* TimeGrid view */
-.dark .fc-timegrid-slot-label-cushion,
-.dark .fc-timegrid-axis-cushion {
-  color: #cbd5e1 !important;
-}
-.dark .fc-timegrid-now-indicator-line {
-  border-color: #ef4444;
-}
-.dark .fc-timegrid-now-indicator-arrow {
-  border-color: #ef4444;
-  border-bottom-color: transparent;
-}
-
-/* Events – ensure white text */
-.dark .fc-event {
-  filter: brightness(1.1);
-  border: none !important;
-  border-radius: 6px !important;
-}
-.dark .fc-event .fc-event-title,
-.dark .fc-event .fc-event-time {
-  color: white !important;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.3);
-}
-
-/* Icons */
-.dark .fc .fc-icon {
-  color: #cbd5e1;
-}
-.dark .fc .fc-icon:hover {
-  color: white;
-}
-
 /* Responsive toolbar for mobile */
 @media (max-width: 640px) {
   .fc .fc-toolbar {
@@ -553,7 +306,7 @@ input[list].dark::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ===== IMPROVED DARK MODE FOR DATETIME-LOCAL INPUTS – FULLY CLICKABLE ===== */
+/* ===== DATETIME-LOCAL / DATE / TIME INPUTS – FULLY CLICKABLE ===== */
 /* Make the entire input behave like a normal text field */
 input[type="datetime-local"],
 input[type="date"],
@@ -569,51 +322,6 @@ input[type="time"] {
   color: #111827;
   cursor: text; /* ensures the whole box shows text cursor */
   transition: all 0.2s;
-}
-
-/* Dark mode overrides */
-.dark input[type="datetime-local"],
-.dark input[type="date"],
-.dark input[type="time"],
-input[type="datetime-local"].dark,
-input[type="date"].dark,
-input[type="time"].dark {
-  background-color: #1a1a2e !important;
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  caret-color: white; /* makes the blinking cursor visible */
-}
-
-/* Make the editable fields inside the input white */
-.dark input[type="datetime-local"]::-webkit-datetime-edit,
-.dark input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper,
-.dark input[type="datetime-local"]::-webkit-datetime-edit-text,
-.dark input[type="datetime-local"]::-webkit-datetime-edit-month-field,
-.dark input[type="datetime-local"]::-webkit-datetime-edit-day-field,
-.dark input[type="datetime-local"]::-webkit-datetime-edit-year-field,
-.dark input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
-.dark input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
-  color: white !important;
-  background-color: transparent !important;
-}
-
-/* Calendar picker icon – visible and clickable */
-.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-.dark input[type="date"]::-webkit-calendar-picker-indicator,
-.dark input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  cursor: pointer;
-  margin-left: auto; /* pushes icon to the right, but still part of input */
-  padding: 4px;
-}
-
-/* Ensure the entire input area responds to clicks (no transparent overlay) */
-.dark input[type="datetime-local"]:focus,
-.dark input[type="date"]:focus,
-.dark input[type="time"]:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 /* If the input is inside a wrapper with negative margins or absolute positioning, fix it */
@@ -667,26 +375,6 @@ input[type="datetime-local"] {
   border-left-color: #f59e0b;
   background: #fffbeb;
 }
-.dark .toast-success {
-  background: #1e293b;
-  border-left-color: #34d399;
-  color: #e2e8f0;
-}
-.dark .toast-error {
-  background: #1e293b;
-  border-left-color: #f87171;
-  color: #e2e8f0;
-}
-.dark .toast-info {
-  background: #1e293b;
-  border-left-color: #60a5fa;
-  color: #e2e8f0;
-}
-.dark .toast-warning {
-  background: #1e293b;
-  border-left-color: #fbbf24;
-  color: #e2e8f0;
-}
 .toast-icon {
   flex-shrink: 0;
   width: 20px;
@@ -711,12 +399,6 @@ input[type="datetime-local"] {
 .toast-close:hover {
   color: #475569;
 }
-.dark .toast-close {
-  color: #64748b;
-}
-.dark .toast-close:hover {
-  color: #cbd5e1;
-}
 
 /* ================================================================
    PRINT STYLES – Professional legal document output (compact)
@@ -732,8 +414,7 @@ input[type="datetime-local"] {
   /* Page background and text colors */
   body,
   .min-h-screen,
-  .bg-slate-50,
-  .dark .bg-slate-950 {
+  .bg-slate-50 {
     background: white !important;
     color: black !important;
   }
@@ -744,8 +425,7 @@ input[type="datetime-local"] {
   .shadow-lg,
   .shadow-xl,
   .border,
-  .border-slate-200,
-  .dark .border-slate-800 {
+  .border-slate-200 {
     box-shadow: none !important;
     border-color: #e5e7eb !important;
   }
@@ -753,8 +433,7 @@ input[type="datetime-local"] {
   /* Links – black with underline (except TOC) */
   a,
   .prose a,
-  .text-cyan-600,
-  .dark .text-cyan-400 {
+  .text-cyan-600 {
     color: black !important;
     text-decoration: underline !important;
   }
@@ -780,10 +459,6 @@ input[type="datetime-local"] {
   .text-slate-600,
   .text-slate-500,
   .text-slate-400,
-  .dark .text-white,
-  .dark .text-slate-300,
-  .dark .text-slate-400,
-  .dark .text-slate-500,
   .prose p,
   .prose li,
   .prose h1,
@@ -855,10 +530,7 @@ input[type="datetime-local"] {
 
   .bg-cyan-50,
   .bg-amber-50,
-  .bg-slate-100,
-  .dark .bg-cyan-900\/20,
-  .dark .bg-amber-900\/20,
-  .dark .bg-slate-800\/50 {
+  .bg-slate-100 {
     padding: 0.5em 0.8em !important;
     margin: 0.6em 0 !important;
     background: #f8fafc !important;
@@ -866,7 +538,6 @@ input[type="datetime-local"] {
   }
 
   .bg-white,
-  .dark .bg-slate-900\/80,
   .rounded-xl,
   .shadow-sm {
     padding: 0.6em 1em !important;
@@ -909,20 +580,12 @@ input[type="datetime-local"] {
   }
 
   .border,
-  .border-slate-200,
-  .dark .border-slate-700 {
+  .border-slate-200 {
     border-color: #cbd5e1 !important;
   }
 
   .bg-white {
     background: white !important;
-  }
-
-  .dark .bg-slate-800\/30,
-  .dark .bg-slate-800\/50,
-  .dark .bg-slate-900\/80,
-  .dark .bg-slate-900\/60 {
-    background: #f1f5f9 !important;
   }
 
   .print\:py-6 {
