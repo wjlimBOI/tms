@@ -120,7 +120,7 @@ export async function DELETE(
   try {
     const result = await prisma.calendar_events.update({
       where: { event_id: eventId },
-      data: { is_deleted: true, deleted_at: new Date() },
+      data: { is_deleted: true, updated_at: new Date() },
     });
 
     // 4. Audit log

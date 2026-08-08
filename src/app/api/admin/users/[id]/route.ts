@@ -117,7 +117,7 @@ export async function PUT(
     where: { user_id: userId },
     include: {
       user_profile: true,
-      user_roles: {
+      user_roles_user_roles_user_idTousers: {
         include: { roles: true },
       },
     },
@@ -129,8 +129,7 @@ export async function PUT(
     );
   }
 
-  // Safely access user_roles – cast to any to avoid type inference issues
-  const userRoles = (oldUser as any).user_roles || [];
+  const userRoles = oldUser.user_roles_user_roles_user_idTousers;
   const currentRoleId = userRoles.length > 0 ? userRoles[0].role_id : null;
 
   // 2. Build update data for users table
@@ -253,7 +252,7 @@ export async function PUT(
     where: { user_id: userId },
     include: {
       user_profile: true,
-      user_roles: {
+      user_roles_user_roles_user_idTousers: {
         include: { roles: true },
       },
     },
@@ -319,7 +318,7 @@ export async function DELETE(
     where: { user_id: userId },
     include: {
       user_profile: true,
-      user_roles: {
+      user_roles_user_roles_user_idTousers: {
         include: { roles: true },
       },
     },

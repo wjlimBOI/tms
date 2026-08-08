@@ -2,21 +2,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { query, getClient } from "@/lib/db";
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
 import { ROLE_IDS } from "@/lib/roles";
 
 // ---------- GET (fetch single branch with address) ----------
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const id = parseInt(params.id);
+  const { id: idParam } = await params;
+  const id = parseInt(idParam);
 
   const sql = `
     SELECT 
@@ -71,7 +72,7 @@ export async function GET(
 // ---------- PUT (update branch and address) ----------
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
@@ -83,7 +84,8 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const id = parseInt(params.id);
+  const { id: idParam } = await params;
+  const id = parseInt(idParam);
   const body = await req.json();
   const { branch_name, brand_id, operation_status, address } = body;
 
@@ -108,14 +110,14 @@ export async function PUT(
   }
 
   // Start transaction
-  const client = await (query as any).getClient();
-  
+  const client = await getClient();
+
   try {
     await client.query('BEGIN');
 
     // 1. Fetch old data for audit
     const oldResult = await client.query(
-      `SELECT b.branch_id, b.branch_name, b.brand_id, b.operation_status, 
+      `SELECT b.branch_id, b.branch_name, b.brand_id, b.operation_status,
               b.created_at, b.updated_at,
               a.address_id, a.full_address, a.building_name, a.postal_code, a.is_primary
        FROM branch b
@@ -278,7 +280,7 @@ export async function PUT(
 // ---------- DELETE (soft delete branch and cascade to address) ----------
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
@@ -290,11 +292,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const id = parseInt(params.id);
+  const { id: idParam } = await params;
+  const id = parseInt(idParam);
 
   // Start transaction
-  const client = await (query as any).getClient();
-  
+  const client = await getClient();
+
+
   try {
     await client.query('BEGIN');
 

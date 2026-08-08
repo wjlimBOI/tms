@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      # Build-time placeholders only — never real secrets. `next build` and
+      # `prisma generate` need these present so module-scope reads of
+      # process.env don't throw; nothing in this workflow connects to a
+      # real database or sends real mail. Do not replace with real values.
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci_placeholder"
+      NEXTAUTH_SECRET: "ci-placeholder-secret-not-for-production-use"
+      NEXTAUTH_URL: "http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Reports lint findings without blocking the pipeline — the app has
+      # a large pre-existing lint backlog (see docs/audit-history.md /
+      # AGENTS.md's `any` policy) that's a separate cleanup effort, not
+      # something a first CI pass should gate on.
+      - name: Lint (report only, non-blocking)
+        run: npm run lint
+        continue-on-error: true

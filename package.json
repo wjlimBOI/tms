@@ -6,7 +6,7 @@
     "dev": "cross-env TAILWIND_DISABLE_WARNINGS=1 next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run"
   },
   "dependencies": {
