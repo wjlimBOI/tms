@@ -18,7 +18,7 @@ export default function PrivacyPage() {
     { id: 'section5', label: '5. Your Privacy Rights' },
     { id: 'section6', label: '6. DPO & Contact' },
     { id: 'section7', label: '7. Cookies & Tracking' },
-    { id: 'section8', label: '8. International Data Transfers' },
+    { id: 'section8', label: '8. Data Storage Location' },
     { id: 'section9', label: '9. Children\'s Privacy' },
     { id: 'section10', label: '10. Policy Updates' },
     { id: 'section11', label: '11. Compliance & Accountability' },
@@ -385,19 +385,11 @@ export default function PrivacyPage() {
 
           <hr className="my-12 border-slate-200" />
 
-          <SectionHeader id="section8" level={2} summary="Your data is stored in Singapore and may be transferred to Malaysia for regional operations, with appropriate safeguards.">
-            SECTION 8: INTERNATIONAL DATA TRANSFERS
+          <SectionHeader id="section8" level={2} summary="Your data is stored and processed within Singapore.">
+            SECTION 8: DATA STORAGE LOCATION
           </SectionHeader>
-          <p><strong>Data Storage Locations:</strong> Our primary data centre is located in Singapore. We may transfer your data to our regional counterpart in Malaysia for the purpose of operational support and business continuity.</p>
-          <p><strong>Transfer Mechanisms:</strong> Where we transfer personal data outside Singapore, we will ensure that the transfer complies with the PDPA by using appropriate safeguards, such as:</p>
-          <LegalList
-            items={[
-              <span key="8-1">Binding Corporate Rules (BCRs) or equivalent internal policies.</span>,
-              <span key="8-2">Standard contractual clauses approved by the PDPC.</span>,
-              <span key="8-3">Other legally recognised transfer mechanisms.</span>,
-            ]}
-          />
-          <p><strong>Recipient Countries:</strong> Data may be transferred to Malaysia (our regional counterpart) and, where necessary, to service providers located in other jurisdictions that provide an adequate level of protection.</p>
+          <p><strong>Data Storage Location:</strong> Your data is stored and processed within Singapore. We do not transfer your data outside Singapore for storage or processing.</p>
+          <p>In the limited event that a service provider engaged to support the Platform (e.g., for security monitoring) is located outside Singapore, any such transfer will comply with the PDPA through appropriate safeguards, such as standard contractual clauses approved by the PDPC or equivalent legally recognised transfer mechanisms.</p>
 
           <hr className="my-12 border-slate-200" />
 
@@ -483,7 +475,7 @@ export default function PrivacyPage() {
                 <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">Security Measures</td><td className="px-5 py-3">Field-level AES‑256‑GCM encryption for select sensitive data, TLS in transit, account lockout, login monitoring, incident response plan</td></tr>
                 <tr className="border-t border-slate-200"><td className="px-5 py-3">Data Subject Rights</td><td className="px-5 py-3">Access, Correction, Withdraw Consent, Portability, Lodge Complaint</td></tr>
                 <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">DPO Contact</td><td className="px-5 py-3">dpo@beautyone.com.sg</td></tr>
-                <tr className="border-t border-slate-200"><td className="px-5 py-3">International Transfers</td><td className="px-5 py-3">Primarily Singapore; may transfer to Malaysia under appropriate safeguards</td></tr>
+                <tr className="border-t border-slate-200"><td className="px-5 py-3">Data Storage Location</td><td className="px-5 py-3">Singapore</td></tr>
                 <tr className="border-t border-slate-200 bg-slate-50/50"><td className="px-5 py-3">Review Cycle</td><td className="px-5 py-3">Annual or as required by law or operational changes</td></tr>
               </tbody>
             </table>
