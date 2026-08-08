@@ -57,20 +57,20 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800"
+        className="w-full max-w-lg max-h-[80vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-200">
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-600" />
               Interested Contractors
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{tenderName}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{tenderName}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0"
+            className="text-slate-400 hover:text-slate-600 shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -80,19 +80,19 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
           {loading && (
             <div className="space-y-3 animate-pulse">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                <div key={i} className="h-14 bg-slate-100 rounded-lg" />
               ))}
             </div>
           )}
 
           {!loading && error && (
-            <p className="text-sm text-rose-600 dark:text-rose-400 text-center py-6">{error}</p>
+            <p className="text-sm text-rose-600 text-center py-6">{error}</p>
           )}
 
           {!loading && !error && interests.length === 0 && (
             <div className="text-center py-8">
-              <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">
                 No contractors have registered interest yet.
               </p>
             </div>
@@ -103,17 +103,17 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
               {interests.map((entry) => (
                 <li
                   key={entry.interest_id}
-                  className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50"
+                  className="p-3 rounded-lg border border-slate-200 bg-slate-50"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-sm text-slate-900 dark:text-white">
+                    <p className="font-medium text-sm text-slate-900">
                       {entry.full_name || entry.username || "Unnamed contractor"}
                     </p>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">
+                    <span className="text-[10px] text-slate-400 shrink-0">
                       {entry.created_at ? format(new Date(entry.created_at), "MMM dd, yyyy") : ""}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-slate-500">
                     {entry.company_name && (
                       <span className="inline-flex items-center gap-1">
                         <Building2 className="w-3 h-3" /> {entry.company_name}
@@ -131,7 +131,7 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
                     )}
                   </div>
                   {entry.interest_note && (
-                    <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 italic">
+                    <p className="mt-1.5 text-xs text-slate-600 italic">
                       &quot;{entry.interest_note}&quot;
                     </p>
                   )}
