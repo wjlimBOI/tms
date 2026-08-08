@@ -89,49 +89,70 @@ function renderEmail({
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="color-scheme" content="light dark">
+      <meta name="supported-color-schemes" content="light dark">
       <title>${escapeHtml(title)}</title>
       <style>
         @media only screen and (max-width: 600px) {
-          .container { width: 100% !important; }
+          .container { width: 100% !important; border-radius: 0 !important; }
           .content { padding-left: 20px !important; padding-right: 20px !important; }
           .button { display: block !important; width: 100% !important; text-align: center !important; box-sizing: border-box; }
         }
+        /* Dark-mode support for clients honoring prefers-color-scheme
+           (Apple Mail, iOS/Android Mail, Outlook mobile, Thunderbird).
+           Outlook.com's proprietary dark-mode hooks aren't covered here -
+           it falls back to the light design there, which still reads fine. */
+        @media (prefers-color-scheme: dark) {
+          .email-bg { background-color: #0b1220 !important; }
+          .container { border-color: #1f2937 !important; }
+          .body-bg { background-color: #0f172a !important; }
+          .email-title { color: #f1f5f9 !important; }
+          .email-text, .email-text p, .email-text span, .email-text div { color: #cbd5e1 !important; }
+          .footer-bg { background-color: #0a0f1a !important; border-top-color: #1f2937 !important; }
+          .footer-primary { color: #94a3b8 !important; }
+          .footer-secondary { color: #64748b !important; }
+        }
       </style>
     </head>
-    <body style="margin:0;padding:0;background-color:#f4f7fc;font-family:Arial,Helvetica,sans-serif;">
+    <body class="email-bg" style="margin:0;padding:0;background-color:#eef1f6;font-family:Arial,Helvetica,sans-serif;">
       <center style="width:100%;table-layout:fixed;">
-        <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" class="container" style="max-width:600px;width:100%;background-color:#ffffff;margin:20px auto;border:1px solid #e0e7ef;">
+        <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" class="container" style="max-width:600px;width:100%;background-color:#ffffff;margin:24px auto;border:1px solid #e0e7ef;border-radius:14px;overflow:hidden;">
 
           <!-- Header -->
           <tr>
-            <td bgcolor="#0f2b3d" style="background-color:#0f2b3d;padding:28px 24px;text-align:center;">
-              <img src="${logoSrc}" alt="Beauty One International" width="160" style="display:block;max-width:160px;width:100%;height:auto;margin:0 auto 12px auto;border:0;" />
-              <p style="color:#e2e8f0;font-size:12px;letter-spacing:1px;text-transform:uppercase;margin:0;">Tender Management System</p>
+            <td bgcolor="#0f2b3d" style="background-color:#0f2b3d;padding:32px 24px 26px;text-align:center;">
+              <img src="${logoSrc}" alt="Beauty One International" width="150" style="display:block;max-width:150px;width:100%;height:auto;margin:0 auto 16px auto;border:0;" />
+              <span style="display:inline-block;background-color:#123449;color:#5eead4;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 16px;border-radius:20px;">Tender Management System</span>
             </td>
           </tr>
 
-          <!-- Title -->
+          <!-- Accent divider -->
           <tr>
-            <td class="content" style="padding:28px 28px 0;text-align:center;">
-              <h1 style="font-size:20px;font-weight:600;color:#1a2c3e;margin:0;">${escapeHtml(title)}</h1>
+            <td style="line-height:0;font-size:0;">
+              <div style="height:3px;background-color:#0d9488;"></div>
             </td>
           </tr>
 
-          <!-- Body -->
+          <!-- Title + Body — own background, visually distinct from header/footer -->
           <tr>
-            <td class="content" style="padding:16px 28px 28px;font-size:15px;line-height:1.6;color:#334155;">
-              ${bodyHtml}
-              ${ctaHtml}
+            <td bgcolor="#ffffff" class="body-bg">
+              <div class="content" style="padding:30px 28px 0;text-align:center;">
+                <h1 class="email-title" style="font-size:20px;font-weight:600;color:#1a2c3e;margin:0;">${escapeHtml(title)}</h1>
+              </div>
+              <div class="content email-text" style="padding:16px 28px 30px;font-size:15px;line-height:1.6;color:#334155;">
+                ${bodyHtml}
+                ${ctaHtml}
+              </div>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td bgcolor="#f8fafc" style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 28px;text-align:center;">
-              <p style="margin:0 0 6px;font-size:12px;color:#64748b;">
+            <td bgcolor="#e9eef5" class="footer-bg" style="background-color:#e9eef5;border-top:1px solid #dbe3ee;padding:20px 28px;text-align:center;">
+              <p class="footer-primary" style="margin:0 0 6px;font-size:12px;color:#475569;">
                 This is an automated message — please do not reply.
               </p>
-              <p style="margin:0;font-size:12px;color:#64748b;">
+              <p class="footer-secondary" style="margin:0;font-size:11px;color:#94a3b8;">
                 © ${new Date().getFullYear()} Beauty One International Pte Ltd. All rights reserved.
               </p>
             </td>
@@ -541,7 +562,9 @@ export async function sendPasswordResetEmail(
     <p style="margin:0 0 14px;">An administrator has reset your password for the Tender Management System.</p>
     <p style="margin:0 0 14px;"><span style="font-weight:600;color:#334155;">Temporary Password:</span> <span style="font-family:monospace;">${escapeHtml(tempPassword)}</span></p>
     <p style="margin:0 0 14px;">Please set a new password using the button below.</p>
-    <p style="font-size:13px;color:#64748b;margin:0;">If you did not expect this, contact your administrator immediately.</p>
+    <div style="background-color:#fef2f2;border-left:4px solid #dc2626;border-radius:6px;padding:12px 16px;margin:0;text-align:left;">
+      <span style="font-size:13px;color:#b91c1c;font-weight:600;">If you did not expect this, contact your administrator immediately.</span>
+    </div>
   `;
 
   await transporter.sendMail({
@@ -567,7 +590,9 @@ export async function sendLoginAlertEmail(
     <p style="margin:0 0 14px;">A login to your TMS account was just recorded:</p>
     <p style="margin:0 0 6px;"><span style="font-weight:600;color:#334155;">IP Address:</span> ${escapeHtml(ipAddress)}</p>
     <p style="margin:0 0 14px;"><span style="font-weight:600;color:#334155;">Device/Browser:</span> ${escapeHtml(userAgent)}</p>
-    <p style="font-size:13px;color:#64748b;margin:0;">If this wasn't you, contact your administrator immediately.</p>
+    <div style="background-color:#fef2f2;border-left:4px solid #dc2626;border-radius:6px;padding:12px 16px;margin:0;text-align:left;">
+      <span style="font-size:13px;color:#b91c1c;font-weight:600;">If this wasn't you, contact your administrator immediately.</span>
+    </div>
   `;
 
   await transporter.sendMail({
