@@ -77,12 +77,12 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-full w-full sm:w-[480px] lg:w-[560px] bg-white/95 dark:bg-[#0a1228]/95 backdrop-blur-xl shadow-2xl z-50 border-l border-white/20 dark:border-cyan-500/30 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full sm:w-[480px] lg:w-[560px] bg-white/95 backdrop-blur-xl shadow-2xl z-50 border-l border-white/20 flex flex-col"
           >
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-white/10">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">BQ Details</h2>
-              <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition">
-                <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center justify-between p-5 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">BQ Details</h2>
+              <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 transition">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -90,9 +90,9 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: {
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
               {loading ? (
                 <div className="space-y-4 animate-pulse">
-                  <div className="h-6 bg-gray-200 dark:bg-white/10 rounded w-3/4" />
-                  <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-1/2" />
-                  <div className="h-32 bg-gray-200 dark:bg-white/10 rounded" />
+                  <div className="h-6 bg-gray-200 rounded w-3/4" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  <div className="h-32 bg-gray-200 rounded" />
                 </div>
               ) : bqDetail ? (
                 <>
@@ -101,29 +101,29 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getBQStatusStyles(bqDetail.submission.status).bg} ${getBQStatusStyles(bqDetail.submission.status).text}`}>
                         {getBQStatusLabel(bqDetail.submission.status)}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">#{bqDetail.submission.submission_id}</span>
+                      <span className="text-xs text-gray-500">#{bqDetail.submission.submission_id}</span>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">{bqDetail.submission.bq_name || bqDetail.submission.version_name || `BQ #${bqDetail.submission.submission_id}`}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{bqDetail.submission.job_site || bq.job_site} • {bq.contractor_username}</p>
+                    <h3 className="text-xl font-bold text-gray-900">{bqDetail.submission.bq_name || bqDetail.submission.version_name || `BQ #${bqDetail.submission.submission_id}`}</h3>
+                    <p className="text-sm text-gray-500 mt-1">{bqDetail.submission.job_site || bq.job_site} • {bq.contractor_username}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Total Cost</p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{formatCurrency(totalFromItems)}</p>
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-500">Total Cost</p>
+                      <p className="text-lg font-semibold text-gray-900">{formatCurrency(totalFromItems)}</p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Area</p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{bq.area_size || "—"}</p>
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-500">Area</p>
+                      <p className="text-lg font-semibold text-gray-900">{bq.area_size || "—"}</p>
                     </div>
                   </div>
 
                   {bqDetail.items && bqDetail.items.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bill of Quantities</h4>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Bill of Quantities</h4>
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-xs">
-                          <thead className="border-b border-gray-200 dark:border-white/10">
+                          <thead className="border-b border-gray-200">
                             <tr>
                               <th className="text-left py-2">Item</th>
                               <th className="text-left py-2">Description</th>
@@ -134,9 +134,9 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: {
                           </thead>
                           <tbody>
                             {bqDetail.items.map((item) => (
-                              <tr key={item.line_item_id} className="border-b border-gray-100 dark:border-white/5">
-                                <td className="py-2 text-gray-500 dark:text-gray-400">{item.item_no || "—"}</td>
-                                <td className="py-2 text-gray-700 dark:text-gray-300">{item.description}</td>
+                              <tr key={item.line_item_id} className="border-b border-gray-100">
+                                <td className="py-2 text-gray-500">{item.item_no || "—"}</td>
+                                <td className="py-2 text-gray-700">{item.description}</td>
                                 <td className="text-right py-2">{item.quantity} {item.unit}</td>
                                 <td className="text-right py-2">{formatCurrency(item.unit_price)}</td>
                                 <td className="text-right py-2">{formatCurrency(item.amount)}</td>
@@ -153,12 +153,12 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: {
               )}
             </div>
             {bqDetail && (
-              <div className="p-5 border-t border-gray-200 dark:border-white/10 flex items-center justify-end gap-2">
+              <div className="p-5 border-t border-gray-200 flex items-center justify-end gap-2">
                 {bqDetail.submission.status === "Submitted" && (
                   <>
                     <button
                       onClick={() => onSetStatus(bqDetail.submission.submission_id, "rejected")}
-                      className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800/70 transition"
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-100 text-amber-800 hover:bg-amber-200 transition"
                     >
                       Reject
                     </button>
@@ -173,7 +173,7 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: {
                 {(bqDetail.submission.status === "Approved" || bqDetail.submission.status === "Rejected") && (
                   <button
                     onClick={() => onSetStatus(bqDetail.submission.submission_id, "revert")}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700/70 transition"
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
                   >
                     Revert to Submitted
                   </button>
@@ -193,17 +193,17 @@ const CollapsibleGroup = ({ title, status, count, children, defaultOpen = true }
   const statusStyles = getBQStatusStyles(status);
 
   return (
-    <div className="mb-4 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden bg-white/40 dark:bg-[#0a1228]/40 backdrop-blur-sm">
+    <div className="mb-4 rounded-xl border border-gray-200 overflow-hidden bg-white/40 backdrop-blur-sm">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center gap-3">
           <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${statusStyles.bg} ${statusStyles.text} ${statusStyles.border}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${statusStyles.dot}`} />
             {title}
           </span>
-          <span className="text-sm text-gray-500 dark:text-gray-400">{count} BQ{count !== 1 ? 's' : ''}</span>
+          <span className="text-sm text-gray-500">{count} BQ{count !== 1 ? 's' : ''}</span>
         </div>
         <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@ const CollapsibleGroup = ({ title, status, count, children, defaultOpen = true }
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-gray-200 dark:border-white/10">
+            <div className="border-t border-gray-200">
               {children}
             </div>
           </motion.div>
@@ -233,8 +233,8 @@ const CollapsibleGroup = ({ title, status, count, children, defaultOpen = true }
 // ------------------------- Loading Skeleton -----------------
 const LoadingSkeleton = () => (
   <div className="space-y-4 animate-pulse">
-    <div className="h-12 bg-gray-200 dark:bg-white/10 rounded-xl w-full max-w-md" />
-    <div className="h-64 bg-gray-200 dark:bg-white/10 rounded-2xl" />
+    <div className="h-12 bg-gray-200 rounded-xl w-full max-w-md" />
+    <div className="h-64 bg-gray-200 rounded-2xl" />
   </div>
 );
 
@@ -424,11 +424,11 @@ export default function AdminTenderBQsPage() {
   if (error) return <ErrorState message={error} onRetry={() => router.push("/admin/bq-by-tender")} />;
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0a1228] dark:to-[#0f1630]">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Animated background blobs */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
 
       <div className="relative z-10 py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -436,16 +436,16 @@ export default function AdminTenderBQsPage() {
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">BQs</h1>
-                <p className="text-sm text-gray-500 dark:text-cyan-300/70 mt-1">Manage and audit Bills of Quantities across tenders</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">BQs</h1>
+                <p className="text-sm text-gray-500 mt-1">Manage and audit Bills of Quantities across tenders</p>
               </div>
               <div className="w-full sm:w-72" ref={dropdownRef}>
-                <label className="block text-xs font-medium text-gray-500 dark:text-cyan-300/70 mb-1">Select Tender</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Select Tender</label>
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setTenderDropdownOpen(!tenderDropdownOpen)}
-                    className="w-full rounded-lg border border-gray-300 dark:border-cyan-500/30 bg-white/80 dark:bg-[#0f1630]/80 backdrop-blur-sm px-3 py-1.5 text-left text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500/50 transition flex items-center justify-between shadow-sm text-sm"
+                    className="w-full rounded-lg border border-gray-300 bg-white/80 backdrop-blur-sm px-3 py-1.5 text-left text-gray-900 focus:ring-2 focus:ring-cyan-500/50 transition flex items-center justify-between shadow-sm text-sm"
                   >
                     <span className="flex-1 pr-2 truncate" title={selectedTender ? `${selectedTender.tender_name} — ${selectedTender.branch_name} (${selectedTender.brand_name})` : ""}>
                       {selectedTender
@@ -458,7 +458,7 @@ export default function AdminTenderBQsPage() {
                   </button>
 
                   {tenderDropdownOpen && (
-                    <div className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded-lg border border-gray-200 dark:border-cyan-500/30 bg-white dark:bg-[#0f1630] shadow-lg">
+                    <div className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
                       {tenders.map((tender) => (
                         <button
                           key={tender.tender_id}
@@ -466,7 +466,7 @@ export default function AdminTenderBQsPage() {
                             setSelectedTenderId(tender.tender_id);
                             setTenderDropdownOpen(false);
                           }}
-                          className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition whitespace-normal break-words"
+                          className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition whitespace-normal break-words"
                         >
                           {tender.tender_name || `Tender #${tender.tender_id}`} — {tender.branch_name} ({tender.brand_name})
                         </button>
@@ -485,7 +485,7 @@ export default function AdminTenderBQsPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                     statusFilter === "All"
                       ? "bg-cyan-600 text-white shadow-md"
-                      : "bg-white/60 dark:bg-[#0f1630]/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                      : "bg-white/60 text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   All
@@ -495,7 +495,7 @@ export default function AdminTenderBQsPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                     statusFilter === "Draft"
                       ? "bg-amber-600 text-white shadow-md"
-                      : "bg-white/60 dark:bg-[#0f1630]/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                      : "bg-white/60 text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   Draft
@@ -505,7 +505,7 @@ export default function AdminTenderBQsPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                     statusFilter === "Submitted"
                       ? "bg-emerald-600 text-white shadow-md"
-                      : "bg-white/60 dark:bg-[#0f1630]/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                      : "bg-white/60 text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   Submitted
@@ -515,7 +515,7 @@ export default function AdminTenderBQsPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                     statusFilter === "Approved"
                       ? "bg-teal-600 text-white shadow-md"
-                      : "bg-white/60 dark:bg-[#0f1630]/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                      : "bg-white/60 text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   Approved
@@ -525,7 +525,7 @@ export default function AdminTenderBQsPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                     statusFilter === "Rejected"
                       ? "bg-rose-600 text-white shadow-md"
-                      : "bg-white/60 dark:bg-[#0f1630]/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                      : "bg-white/60 text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   Rejected
@@ -541,7 +541,7 @@ export default function AdminTenderBQsPage() {
                     placeholder="Search by BQ name, contractor, or location..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full rounded-xl border border-gray-300 dark:border-cyan-500/30 bg-white/70 dark:bg-[#0f1630]/70 backdrop-blur-sm pl-9 pr-4 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-cyan-500/50"
+                    className="w-full rounded-xl border border-gray-300 bg-white/70 backdrop-blur-sm pl-9 pr-4 py-2 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-cyan-500/50"
                   />
                 </div>
               </div>
@@ -552,8 +552,8 @@ export default function AdminTenderBQsPage() {
           {loading ? (
             <LoadingSkeleton />
           ) : filteredBqs.length === 0 ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 bg-white/40 dark:bg-[#0a1228]/40 backdrop-blur-sm rounded-2xl border border-dashed border-gray-300 dark:border-cyan-500/30">
-              <p className="text-gray-500 dark:text-cyan-300/70">No BQs match your filters.</p>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 bg-white/40 backdrop-blur-sm rounded-2xl border border-dashed border-gray-300">
+              <p className="text-gray-500">No BQs match your filters.</p>
             </motion.div>
           ) : (
             <div className="space-y-3">
@@ -564,16 +564,16 @@ export default function AdminTenderBQsPage() {
                   <CollapsibleGroup key={status} title={getBQStatusLabel(status)} status={status} count={statusBQs.length} defaultOpen={status === "Submitted"}>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50/50 dark:bg-white/5">
+                        <thead className="bg-gray-50/50">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-cyan-300 whitespace-nowrap">ID</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-cyan-300 whitespace-nowrap">BQ Name / Location</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-cyan-300 whitespace-nowrap">Contractor</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-cyan-300 whitespace-nowrap">Version</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-cyan-300 whitespace-nowrap">Total Cost</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-cyan-300 whitespace-nowrap">Date</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-cyan-300 whitespace-nowrap">Last Updated</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-cyan-300 whitespace-nowrap">Actions</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">ID</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">BQ Name / Location</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Contractor</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Version</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Total Cost</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Date</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Last Updated</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 whitespace-nowrap">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -583,30 +583,30 @@ export default function AdminTenderBQsPage() {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               whileHover={{ backgroundColor: "rgba(0,0,0,0.02)" }}
-                              className="border-b border-gray-200 dark:border-white/5 cursor-pointer group"
+                              className="border-b border-gray-200 cursor-pointer group"
                               onClick={() => openDrawer(bq)}
                             >
-                              <td className="px-4 py-3 text-gray-500 dark:text-white/70 font-mono text-xs whitespace-nowrap">{bq.submission_id}</td>
+                              <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{bq.submission_id}</td>
                               <td className="px-4 py-3">
                                 <div className="flex flex-col">
-                                  <span className="text-gray-700 dark:text-white/80 font-medium break-words" title={getBQDisplayName(bq)}>
+                                  <span className="text-gray-700 font-medium break-words" title={getBQDisplayName(bq)}>
                                     {getBQDisplayName(bq)}
                                   </span>
-                                  <span className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 break-words" title={bq.job_site}>
+                                  <span className="text-xs text-gray-400 mt-0.5 break-words" title={bq.job_site}>
                                     {bq.job_site}
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-4 py-3 text-gray-700 dark:text-white/80 whitespace-nowrap">{bq.contractor_username}</td>
-                              <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap">{bq.version_name || `Round ${bq.round_no}`}</td>
-                              <td className="px-4 py-3 font-mono text-gray-900 dark:text-white whitespace-nowrap">{formatCurrency(bq.total_cost)}</td>
-                              <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap">{formatShortDate(bq.bq_date)}</td>
-                              <td className="px-4 py-3 text-gray-500 dark:text-white/70 text-xs whitespace-nowrap">{formatDateTime(bq.updated_at)}</td>
+                              <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{bq.contractor_username}</td>
+                              <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{bq.version_name || `Round ${bq.round_no}`}</td>
+                              <td className="px-4 py-3 font-mono text-gray-900 whitespace-nowrap">{formatCurrency(bq.total_cost)}</td>
+                              <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatShortDate(bq.bq_date)}</td>
+                              <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatDateTime(bq.updated_at)}</td>
                               <td className="px-4 py-3 text-center">
                                 <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={(e) => { e.stopPropagation(); openDrawer(bq); }}
-                                    className="bg-cyan-100 dark:bg-cyan-900/50 text-cyan-800 dark:text-cyan-200 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-cyan-200 dark:hover:bg-cyan-800/70 transition whitespace-nowrap"
+                                    className="bg-cyan-100 text-cyan-800 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-cyan-200 transition whitespace-nowrap"
                                   >
                                     Inspect
                                   </button>
@@ -614,13 +614,13 @@ export default function AdminTenderBQsPage() {
                                     <>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); setBqStatus(bq.submission_id, "approved"); }}
-                                        className="bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-teal-200 dark:hover:bg-teal-800/70 transition whitespace-nowrap"
+                                        className="bg-teal-100 text-teal-800 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-teal-200 transition whitespace-nowrap"
                                       >
                                         Approve
                                       </button>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); setBqStatus(bq.submission_id, "rejected"); }}
-                                        className="bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-amber-200 dark:hover:bg-amber-800/70 transition whitespace-nowrap"
+                                        className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-amber-200 transition whitespace-nowrap"
                                       >
                                         Reject
                                       </button>
@@ -629,14 +629,14 @@ export default function AdminTenderBQsPage() {
                                   {(bq.status === "Approved" || bq.status === "Rejected") && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); setBqStatus(bq.submission_id, "revert"); }}
-                                      className="bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700/70 transition whitespace-nowrap"
+                                      className="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-gray-200 transition whitespace-nowrap"
                                     >
                                       Revert
                                     </button>
                                   )}
                                   <button
                                     onClick={(e) => { e.stopPropagation(); confirmDelete(bq.submission_id); }}
-                                    className="bg-rose-100 dark:bg-rose-900/50 text-rose-800 dark:text-rose-200 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-rose-200 dark:hover:bg-rose-800/70 transition whitespace-nowrap"
+                                    className="bg-rose-100 text-rose-800 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-rose-200 transition whitespace-nowrap"
                                   >
                                     Delete
                                   </button>
@@ -662,9 +662,9 @@ export default function AdminTenderBQsPage() {
 
 // ------------------------- Error State -----------------
 const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
-  <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-[#0a1228]">
-    <div className="bg-red-100 dark:bg-red-500/20 border border-red-300 dark:border-red-500/50 rounded-2xl p-8 text-center max-w-md">
-      <p className="text-red-700 dark:text-red-200">{message}</p>
+  <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+    <div className="bg-red-100 border border-red-300 rounded-2xl p-8 text-center max-w-md">
+      <p className="text-red-700">{message}</p>
       <button onClick={onRetry} className="mt-4 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition">
         Back to Tenders
       </button>
