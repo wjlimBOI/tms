@@ -198,16 +198,16 @@ function SortableItemRow({
   return (
     <div ref={setNodeRef} style={style}>
       <div
-        className="flex flex-wrap sm:flex-nowrap items-start sm:items-center gap-3 py-3 border-b border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+        className="flex flex-wrap sm:flex-nowrap items-start sm:items-center gap-3 py-3 border-b border-gray-200 hover:bg-gray-50 transition-colors"
         style={{ paddingLeft: `${indent}px` }}
       >
-        <div className="w-16 text-xs text-gray-500 dark:text-gray-400 font-mono self-center">
+        <div className="w-16 text-xs text-gray-500 font-mono self-center">
           {itemNumber}
         </div>
         <div
           {...listeners}
           {...attributes}
-          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 px-1 self-center text-lg"
+          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 px-1 self-center text-lg"
           title="Drag to reorder"
         >
           ⋮⋮
@@ -217,7 +217,7 @@ function SortableItemRow({
             type="text"
             value={item.description}
             onChange={(e) => onUpdate(item.item_id, "description", e.target.value)}
-            className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400 focus:border-transparent"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Description"
           />
         </div>
@@ -230,7 +230,7 @@ function SortableItemRow({
               const val = e.target.value === "" ? null : parseFloat(e.target.value);
               onUpdate(item.item_id, "quantity", val);
             }}
-            className="w-24 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white text-right focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+            className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 text-right focus:ring-2 focus:ring-blue-500"
             placeholder="Qty"
           />
           <input
@@ -241,7 +241,7 @@ function SortableItemRow({
               const storedCode = getCodeFromDisplay(e.target.value);
               onUpdate(item.item_id, "unit", storedCode);
             }}
-            className="w-24 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+            className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
             placeholder="Unit"
           />
           <input
@@ -253,7 +253,7 @@ function SortableItemRow({
               const val = e.target.value === "" ? null : parseFloat(e.target.value);
               onUpdate(item.item_id, "rate", val);
             }}
-            className="w-28 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white text-right focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+            className="w-28 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 text-right focus:ring-2 focus:ring-blue-500"
             placeholder="Rate"
             aria-label="Reference rate"
           />
@@ -263,7 +263,7 @@ function SortableItemRow({
             disabled={marketCheck.status === "loading" || !item.description.trim()}
             title="Compare against rates used elsewhere in the app"
             aria-label="Compare rate against market data"
-            className="px-2.5 py-2 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2.5 py-2 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {marketCheck.status === "loading" ? "…" : "📊"}
           </button>
@@ -272,14 +272,14 @@ function SortableItemRow({
           {level === 0 && (
             <button
               onClick={() => onAddSub(item.item_id)}
-              className="px-3 py-1.5 rounded-md text-xs font-medium bg-green-50 text-green-700 dark:bg-green-500/20 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-500/30 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded-md text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors flex items-center gap-1"
             >
               ➕ Sub
             </button>
           )}
           <button
             onClick={() => onDelete(item.item_id)}
-            className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-50 text-red-700 dark:bg-red-500/20 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/30 transition-colors flex items-center gap-1"
+            className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 transition-colors flex items-center gap-1"
           >
             🗑️ Delete
           </button>
@@ -288,14 +288,14 @@ function SortableItemRow({
 
       {marketCheck.status !== "idle" && (
         <div
-          className="text-xs px-3 py-2 mb-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+          className="text-xs px-3 py-2 mb-2 rounded-lg bg-gray-50 border border-gray-200"
           style={{ marginLeft: `${indent}px` }}
         >
           {marketCheck.status === "loading" && (
-            <span className="text-gray-500 dark:text-gray-400">Checking market rate…</span>
+            <span className="text-gray-500">Checking market rate…</span>
           )}
           {marketCheck.status === "error" && (
-            <span className="text-red-600 dark:text-red-400">
+            <span className="text-red-600">
               Couldn't check market rate.{" "}
               <button onClick={checkMarketRate} className="underline hover:no-underline">
                 Retry
@@ -305,13 +305,13 @@ function SortableItemRow({
           {marketCheck.status === "done" && (
             <div className="flex flex-wrap items-center gap-2">
               {marketCheck.marketStats!.count === 0 && marketCheck.referenceStats!.count === 0 ? (
-                <span className="text-gray-500 dark:text-gray-400">
+                <span className="text-gray-500">
                   No historical data found for this description yet.
                 </span>
               ) : (
                 <>
                   {marketCheck.marketStats!.count > 0 && (
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className="text-gray-700">
                       Bid rates from {marketCheck.marketStats!.count} contractor submission
                       {marketCheck.marketStats!.count === 1 ? "" : "s"}: avg{" "}
                       <strong>{marketCheck.marketStats!.avg!.toFixed(2)}</strong> (
@@ -319,7 +319,7 @@ function SortableItemRow({
                     </span>
                   )}
                   {marketCheck.referenceStats!.count > 0 && (
-                    <span className="text-gray-500 dark:text-gray-400">
+                    <span className="text-gray-500">
                       Reference rates on {marketCheck.referenceStats!.count} other template
                       {marketCheck.referenceStats!.count === 1 ? "" : "s"}: avg{" "}
                       {marketCheck.referenceStats!.avg!.toFixed(2)}
@@ -912,31 +912,31 @@ export default function BQTemplateEditPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-gray-600 dark:text-cyan-300/70">Loading BQ template editor…</p>
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-600">Loading BQ template editor…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a1228] py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
+        <div className="bg-white backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
           <div className="flex flex-wrap justify-between items-center gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                 Edit BQ Template: {tenderName}
               </h1>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-white/60 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 Drag ⋮⋮ to reorder. Changes auto‑save.
               </p>
             </div>
             <div className="flex gap-2 sm:gap-3">
-              <label className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white cursor-pointer transition-colors">
+              <label className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-colors">
                 {uploading ? "Uploading..." : "📤 Upload Excel"}
                 <input
                   type="file"
@@ -948,7 +948,7 @@ export default function BQTemplateEditPage() {
               </label>
               <button
                 onClick={exportToExcel}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors"
               >
                 📥 Export Excel
               </button>
@@ -957,13 +957,13 @@ export default function BQTemplateEditPage() {
                   setTempSelectedCategories([...enabledCategoryIds]);
                   setShowCategoryModal(true);
                 }}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/30 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
               >
                 Manage Categories
               </button>
               <button
                 onClick={() => router.push(`/admin/tenders/${tenderId}/bq-template`)}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white/80 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
               >
                 ← Back to Simple View
               </button>
@@ -972,14 +972,14 @@ export default function BQTemplateEditPage() {
         </div>
 
         {/* Find & Reuse an Existing Item */}
-        <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
+        <div className="bg-white backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
           <label
             htmlFor="item-search"
-            className="block text-sm font-semibold text-gray-800 dark:text-white mb-1"
+            className="block text-sm font-semibold text-gray-800 mb-1"
           >
             🔎 Find &amp; Reuse an Existing Item
           </label>
-          <p className="text-xs text-gray-500 dark:text-white/50 mb-3">
+          <p className="text-xs text-gray-500 mb-3">
             Search items already used on other tenders' BQ templates and add them straight into
             this one. Matches are ranked by relevance and how often each item has been reused.
           </p>
@@ -989,13 +989,13 @@ export default function BQTemplateEditPage() {
             value={searchQuery}
             onChange={(e) => handleSearchQueryChange(e.target.value)}
             placeholder="e.g. ceramic tile flooring"
-            className="w-full border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
           />
           {searchStatus === "loading" && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Searching…</p>
+            <p className="text-xs text-gray-500 mt-2">Searching…</p>
           )}
           {searchStatus === "error" && (
-            <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+            <p className="text-xs text-red-600 mt-2">
               Couldn't search right now.{" "}
               <button onClick={() => runItemSearch(searchQuery)} className="underline hover:no-underline">
                 Retry
@@ -1003,7 +1003,7 @@ export default function BQTemplateEditPage() {
             </p>
           )}
           {searchStatus === "done" && searchResults.length === 0 && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">No matching items found.</p>
+            <p className="text-xs text-gray-500 mt-2">No matching items found.</p>
           )}
           {searchResults.length > 0 && (
             <div className="mt-3 space-y-2 max-h-72 overflow-y-auto">
@@ -1012,11 +1012,11 @@ export default function BQTemplateEditPage() {
                 return (
                   <div
                     key={key}
-                    className="flex flex-wrap items-center justify-between gap-2 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 border border-gray-200 rounded-lg px-3 py-2"
                   >
                     <div>
-                      <p className="text-sm text-gray-800 dark:text-white">{r.description}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-gray-800">{r.description}</p>
+                      <p className="text-xs text-gray-500">
                         {r.category_name} · {getDisplayFromCode(r.unit)} · used on {r.usage_count} tender
                         {r.usage_count === 1 ? "" : "s"}
                         {r.avg_rate !== null && <> · avg rate {r.avg_rate.toFixed(2)}</>}
@@ -1025,7 +1025,7 @@ export default function BQTemplateEditPage() {
                     <button
                       onClick={() => handleAddFromSearch(r)}
                       disabled={addingResultKey === key}
-                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/30 transition-colors disabled:opacity-50 whitespace-nowrap"
+                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50 whitespace-nowrap"
                     >
                       {addingResultKey === key ? "Adding…" : "+ Add"}
                     </button>
@@ -1037,24 +1037,24 @@ export default function BQTemplateEditPage() {
         </div>
 
         {/* Pricing Summary — whole-BQ auto scan */}
-        <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
+        <div className="bg-white backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
           <div className="flex items-center justify-between gap-3 mb-2">
-            <h2 className="text-sm font-semibold text-gray-800 dark:text-white flex items-center gap-1.5">
+            <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
               📈 Pricing Summary
             </h2>
             <button
               onClick={fetchRateSummary}
               disabled={rateSummary.status === "loading"}
-              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+              className="text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
             >
               {rateSummary.status === "loading" ? "Refreshing…" : "🔄 Refresh"}
             </button>
           </div>
           {rateSummary.status === "loading" && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">Scanning item rates…</p>
+            <p className="text-xs text-gray-500">Scanning item rates…</p>
           )}
           {rateSummary.status === "error" && (
-            <p className="text-xs text-red-600 dark:text-red-400">
+            <p className="text-xs text-red-600">
               Couldn't generate a pricing summary.{" "}
               <button onClick={fetchRateSummary} className="underline hover:no-underline">
                 Retry
@@ -1063,9 +1063,9 @@ export default function BQTemplateEditPage() {
           )}
           {rateSummary.status === "done" && rateSummary.data && (
             <>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{rateSummary.data.summary}</p>
+              <p className="text-sm text-gray-700">{rateSummary.data.summary}</p>
               {rateSummary.data.aiGenerated && (
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">AI-generated summary</p>
+                <p className="text-[10px] text-gray-400 mt-1">AI-generated summary</p>
               )}
               {(rateSummary.data.flaggedHigh.length > 0 || rateSummary.data.flaggedLow.length > 0) && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -1096,15 +1096,15 @@ export default function BQTemplateEditPage() {
         {/* Category Modal */}
         {showCategoryModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-[#0a1228] rounded-xl shadow-xl p-6 max-w-md w-full max-h-[80vh] overflow-auto border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+            <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full max-h-[80vh] overflow-auto border border-gray-200">
+              <h2 className="text-xl font-bold mb-4 text-gray-900">
                 Select Categories
               </h2>
               <div className="space-y-2">
                 {allCategories.map((cat) => (
                   <label
                     key={cat.category_id}
-                    className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded cursor-pointer transition-colors"
+                    className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -1118,22 +1118,22 @@ export default function BQTemplateEditPage() {
                           );
                         }
                       }}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     />
-                    <span className="text-gray-700 dark:text-gray-300">{cat.name}</span>
+                    <span className="text-gray-700">{cat.name}</span>
                   </label>
                 ))}
               </div>
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={handleSaveCategories}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
                 >
                   Save
                 </button>
                 <button
                   onClick={() => setShowCategoryModal(false)}
-                  className="flex-1 bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-800 dark:text-white py-2 rounded-lg transition-colors"
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
@@ -1149,16 +1149,16 @@ export default function BQTemplateEditPage() {
             return (
               <div
                 key={category.category_id}
-                className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-cyan-500/30 rounded-xl shadow-sm overflow-hidden"
+                className="bg-white backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm overflow-hidden"
               >
-                <div className="bg-gray-50 dark:bg-white/10 px-4 py-3 border-b border-gray-200 dark:border-white/10">
-                  <h3 className="font-semibold text-gray-800 dark:text-white text-base sm:text-lg">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-800 text-base sm:text-lg">
                     {category.name}
                   </h3>
                 </div>
                 <div className="p-2 sm:p-4">
                   {rootItems.length === 0 && (
-                    <div className="text-center text-gray-400 dark:text-white/40 py-4 text-sm">
+                    <div className="text-center text-gray-400 py-4 text-sm">
                       No items yet. Click "Add Main Item" below.
                     </div>
                   )}
@@ -1166,7 +1166,7 @@ export default function BQTemplateEditPage() {
 
                   {/* Add Main Item form */}
                   {newItemForm && newItemForm.parent_id === null && newItemForm.category_id === category.category_id && (
-                    <div className="flex flex-col sm:flex-row gap-3 py-3 mt-2 border-t border-gray-200 dark:border-white/10">
+                    <div className="flex flex-col sm:flex-row gap-3 py-3 mt-2 border-t border-gray-200">
                       <input
                         type="text"
                         placeholder="Description"
@@ -1174,7 +1174,7 @@ export default function BQTemplateEditPage() {
                         onChange={(e) =>
                           setNewItemForm({ ...newItemForm, description: e.target.value })
                         }
-                        className="flex-1 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                         autoFocus
                       />
                       <div className="flex gap-2">
@@ -1186,7 +1186,7 @@ export default function BQTemplateEditPage() {
                           onChange={(e) =>
                             setNewItemForm({ ...newItemForm, quantity: e.target.value })
                           }
-                          className="w-24 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white text-right focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                          className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 text-right focus:ring-2 focus:ring-blue-500"
                         />
                         <input
                           type="text"
@@ -1196,7 +1196,7 @@ export default function BQTemplateEditPage() {
                           onChange={(e) =>
                             setNewItemForm({ ...newItemForm, unitDisplay: e.target.value })
                           }
-                          className="w-24 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                          className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                         />
                         <input
                           type="number"
@@ -1208,19 +1208,19 @@ export default function BQTemplateEditPage() {
                           onChange={(e) =>
                             setNewItemForm({ ...newItemForm, rate: e.target.value })
                           }
-                          className="w-28 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white text-right focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                          className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 text-right focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={handleAddItem}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           Save
                         </button>
                         <button
                           onClick={() => setNewItemForm(null)}
-                          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-gray-500 dark:hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
+                          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           Cancel
                         </button>
@@ -1230,7 +1230,7 @@ export default function BQTemplateEditPage() {
 
                   {/* Sub‑item form */}
                   {newItemForm && newItemForm.parent_id !== null && newItemForm.category_id === category.category_id && (
-                    <div className="flex flex-col sm:flex-row gap-3 py-3 mt-2 pl-4 sm:pl-8 border-t border-gray-200 dark:border-white/10">
+                    <div className="flex flex-col sm:flex-row gap-3 py-3 mt-2 pl-4 sm:pl-8 border-t border-gray-200">
                       <input
                         type="text"
                         placeholder="Sub‑item description"
@@ -1238,7 +1238,7 @@ export default function BQTemplateEditPage() {
                         onChange={(e) =>
                           setNewItemForm({ ...newItemForm, description: e.target.value })
                         }
-                        className="flex-1 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                         autoFocus
                       />
                       <div className="flex gap-2">
@@ -1250,7 +1250,7 @@ export default function BQTemplateEditPage() {
                           onChange={(e) =>
                             setNewItemForm({ ...newItemForm, quantity: e.target.value })
                           }
-                          className="w-24 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white text-right focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                          className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 text-right focus:ring-2 focus:ring-blue-500"
                         />
                         <input
                           type="text"
@@ -1260,7 +1260,7 @@ export default function BQTemplateEditPage() {
                           onChange={(e) =>
                             setNewItemForm({ ...newItemForm, unitDisplay: e.target.value })
                           }
-                          className="w-24 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                          className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                         />
                         <input
                           type="number"
@@ -1272,19 +1272,19 @@ export default function BQTemplateEditPage() {
                           onChange={(e) =>
                             setNewItemForm({ ...newItemForm, rate: e.target.value })
                           }
-                          className="w-28 border border-gray-300 dark:border-white/20 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#1a1a2e] text-gray-900 dark:text-white text-right focus:ring-2 focus:ring-blue-500 dark:focus:ring-cyan-400"
+                          className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 text-right focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={handleAddItem}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           Save
                         </button>
                         <button
                           onClick={() => setNewItemForm(null)}
-                          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-gray-500 dark:hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
+                          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           Cancel
                         </button>
@@ -1306,7 +1306,7 @@ export default function BQTemplateEditPage() {
                             rate: "",
                           })
                         }
-                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline"
+                        className="inline-flex items-center gap-1 text-blue-600 text-sm font-medium hover:underline"
                       >
                         + Add Main Item
                       </button>
@@ -1319,14 +1319,14 @@ export default function BQTemplateEditPage() {
         </div>
 
         {visibleCategories.length === 0 && (
-          <div className="bg-white dark:bg-white/5 rounded-xl p-8 text-center">
-            <p className="text-gray-500 dark:text-white/50">
+          <div className="bg-white rounded-xl p-8 text-center">
+            <p className="text-gray-500">
               No categories selected. Click "Manage Categories" to add some.
             </p>
           </div>
         )}
 
-        <div className="mt-8 text-center text-xs sm:text-sm text-gray-500 dark:text-white/50 bg-gray-50 dark:bg-white/5 rounded-xl p-4">
+        <div className="mt-8 text-center text-xs sm:text-sm text-gray-500 bg-gray-50 rounded-xl p-4">
           💡 Drag the ⋮⋮ handle to reorder items. Item numbers auto‑update. Fields auto‑save.
         </div>
       </div>
