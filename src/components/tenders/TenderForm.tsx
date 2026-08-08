@@ -86,13 +86,13 @@ function DateTimeLocalInput({
   return (
     <div>
       {label && (
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        <label className="block text-sm font-medium text-slate-700 mb-1">
           {label} {required && <span className="text-rose-500">*</span>}
         </label>
       )}
       <div
         onClick={handleContainerClick}
-        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-within:border-indigo-500 dark:focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-500 dark:focus-within:ring-indigo-400 transition cursor-text"
+        className="w-full rounded-lg border border-slate-300 bg-white focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition cursor-text"
       >
         <input
           ref={inputRef}
@@ -100,7 +100,7 @@ function DateTimeLocalInput({
           name={name}
           value={value}
           onChange={onChange}
-          className="w-full px-3 py-2 bg-transparent text-slate-900 dark:text-white focus:outline-none [color-scheme:dark]"
+          className="w-full px-3 py-2 bg-transparent text-slate-900 focus:outline-none [color-scheme:light]"
         />
       </div>
     </div>
@@ -147,10 +147,10 @@ function BriefingDatesSection({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <label className="block text-sm font-semibold text-slate-700">
             Briefing Dates & Descriptions
           </label>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-400 mt-0.5">
             Add multiple briefing dates with optional descriptions
           </p>
         </div>
@@ -159,7 +159,7 @@ function BriefingDatesSection({
           onClick={addBriefingDate}
           variant="outline"
           size="sm"
-          className="flex items-center gap-1.5 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+          className="flex items-center gap-1.5 border-slate-300 hover:bg-slate-50"
         >
           <Plus className="w-4 h-4" />
           Add Briefing Date
@@ -167,9 +167,9 @@ function BriefingDatesSection({
       </div>
 
       {briefingDates.length === 0 && (
-        <div className="text-center py-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+        <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-lg">
           <Calendar className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-          <p className="text-sm text-slate-400 dark:text-slate-500">
+          <p className="text-sm text-slate-400">
             No briefing dates added yet. Click the button above to add one.
           </p>
         </div>
@@ -178,19 +178,19 @@ function BriefingDatesSection({
       {briefingDates.map((briefing, index) => (
         <div 
           key={briefing.id} 
-          className="relative p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700"
+          className="relative p-4 bg-slate-50 rounded-lg border border-slate-200"
         >
           <button
             type="button"
             onClick={() => removeBriefingDate(briefing.id!)}
-            className="absolute top-2 right-2 p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="absolute top-2 right-2 p-1 rounded-md hover:bg-slate-200 transition"
           >
-            <X className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" />
+            <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
           </button>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-slate-600 mb-1">
                 Briefing Date & Time {index === 0 && <span className="text-rose-500">*</span>}
               </label>
               <DateTimeLocalInput
@@ -202,7 +202,7 @@ function BriefingDatesSection({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-slate-600 mb-1">
                 Description (Optional)
               </label>
               <input
@@ -210,7 +210,7 @@ function BriefingDatesSection({
                 value={briefing.description}
                 onChange={(e) => updateBriefingDate(briefing.id!, "description", e.target.value)}
                 placeholder="e.g., Site walkthrough, Q&A session, etc."
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+                className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
               />
             </div>
           </div>
@@ -218,7 +218,7 @@ function BriefingDatesSection({
       ))}
 
       {errors.length > 0 && (
-        <div className="text-xs text-rose-600 dark:text-rose-400 space-y-0.5">
+        <div className="text-xs text-rose-600 space-y-0.5">
           {errors.map((error, i) => (
             <p key={i}>• {error}</p>
           ))}
@@ -591,7 +591,7 @@ export default function TenderForm({
 
   if (error) {
     return (
-      <div className="text-center py-8 text-red-600 dark:text-red-400">
+      <div className="text-center py-8 text-red-600">
         <p>{error}</p>
         <button
           onClick={() => window.location.reload()}
@@ -607,7 +607,7 @@ export default function TenderForm({
     return (
       <div className="text-center py-8">
         <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-slate-500 dark:text-slate-400">Loading form data…</p>
+        <p className="text-slate-500">Loading form data…</p>
       </div>
     );
   }
@@ -621,7 +621,7 @@ export default function TenderForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Branch */}
         <div className="relative">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">
             Branch <span className="text-rose-500">*</span>
           </label>
           <input
@@ -632,22 +632,22 @@ export default function TenderForm({
             onFocus={() => setShowBranchDropdown(true)}
             placeholder="Search branch…"
             required
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
           />
           {showBranchDropdown && filteredBranches.length > 0 && (
             <ul
               ref={branchDropdownRef}
-              className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto"
+              className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto"
             >
               {filteredBranches.map((branch) => (
                 <li
                   key={branch.branch_id}
                   onClick={() => handleSelectBranch(branch)}
-                  className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-900 dark:text-white"
+                  className="px-3 py-2 hover:bg-slate-100 cursor-pointer text-slate-900"
                 >
                   {formatBranchOption(branch.brand_name, branch.branch_name)}
                   {branch.building_name && branch.building_name !== branch.branch_name && (
-                    <span className="text-xs text-slate-400 dark:text-slate-500 ml-2">
+                    <span className="text-xs text-slate-400 ml-2">
                       ({branch.building_name})
                     </span>
                   )}
@@ -656,7 +656,7 @@ export default function TenderForm({
             </ul>
           )}
           <input type="hidden" name="branch_id" value={formData.branch_id} required />
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             {branches.find((b) => b.branch_id === parseInt(formData.branch_id))?.brand_name ||
               "Select a branch"}
             {branches.find((b) => b.branch_id === parseInt(formData.branch_id))?.building_name &&
@@ -668,7 +668,7 @@ export default function TenderForm({
 
         {/* Renovation Type */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">
             Renovation Type <span className="text-rose-500">*</span>
           </label>
           <select
@@ -676,7 +676,7 @@ export default function TenderForm({
             value={formData.renovation_type_id}
             onChange={handleChange}
             required
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
           >
             <option value="">Select type</option>
             {renovationTypes.map((t) => (
@@ -690,11 +690,11 @@ export default function TenderForm({
         {/* Tender Name */}
         <div className="md:col-span-2">
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <label className="block text-sm font-semibold text-slate-700">
               Tender Name <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 dark:text-slate-500">
+              <span className="text-xs text-slate-400">
                 {isNameManuallyEdited ? "✏️ Manually edited" : "🔄 Auto-generated"}
               </span>
             </div>
@@ -705,9 +705,9 @@ export default function TenderForm({
             value={formData.tender_name}
             onChange={handleChange}
             required
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
           />
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Auto‑generated – you can edit it.
           </p>
         </div>
@@ -715,13 +715,13 @@ export default function TenderForm({
         {/* Estimated Budget */}
         {showBudget && (
           <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1">
               Estimated Budget ($)
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-slate-500 dark:text-slate-400 sm:text-sm">$</span>
+                  <span className="text-slate-500 sm:text-sm">$</span>
                 </div>
                 <input
                   type="number"
@@ -729,7 +729,7 @@ export default function TenderForm({
                   name="estimated_budget"
                   value={formData.estimated_budget}
                   onChange={handleChange}
-                  className="pl-7 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+                  className="pl-7 w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
                   placeholder="0.00"
                 />
               </div>
@@ -739,22 +739,22 @@ export default function TenderForm({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="whitespace-nowrap border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="whitespace-nowrap border-slate-300 hover:bg-slate-50"
                   >
                     Calculate
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent className="h-[90vh] max-h-[90vh] top-[5vh] bottom-auto inset-x-0 rounded-t-2xl overflow-hidden border-t border-slate-200 dark:border-slate-800 shadow-2xl">
-                  <div className="flex flex-col h-full bg-white dark:bg-slate-950">
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-                      <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                <DrawerContent className="h-[90vh] max-h-[90vh] top-[5vh] bottom-auto inset-x-0 rounded-t-2xl overflow-hidden border-t border-slate-200 shadow-2xl">
+                  <div className="flex flex-col h-full bg-white">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 flex-shrink-0">
+                      <h2 className="text-xl font-semibold text-slate-900">
                         Budget Calculator
                       </h2>
                       <DrawerClose asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                          className="text-slate-500 hover:text-slate-700"
                         >
                           ✕
                         </Button>
@@ -763,7 +763,7 @@ export default function TenderForm({
                     <div className="flex-1 overflow-y-auto p-6">
                       <CapExCalculator onApply={handleBudgetCalculated} />
                     </div>
-                    <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-800 flex-shrink-0 bg-slate-50 dark:bg-slate-900/50">
+                    <div className="flex justify-end p-4 border-t border-slate-200 flex-shrink-0 bg-slate-50">
                       <DrawerClose asChild>
                         <Button variant="ghost">Cancel</Button>
                       </DrawerClose>
@@ -772,7 +772,7 @@ export default function TenderForm({
                 </DrawerContent>
               </Drawer>
             </div>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               Use the calculator to estimate based on brand and area.
             </p>
           </div>
@@ -780,7 +780,7 @@ export default function TenderForm({
 
         {/* Description */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">
             Description
           </label>
 
@@ -796,7 +796,7 @@ export default function TenderForm({
                 }
               }}
               placeholder='e.g. "minor project, no closure, night work only, 2 phases"'
-              className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition text-sm px-3 py-2"
+              className="flex-1 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition text-sm px-3 py-2"
             />
             <Button
               type="button"
@@ -804,13 +804,13 @@ export default function TenderForm({
               disabled={isGeneratingDescription}
               variant="outline"
               size="sm"
-              className="flex items-center gap-1.5 border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 whitespace-nowrap disabled:opacity-50"
+              className="flex items-center gap-1.5 border-indigo-300 text-indigo-600 hover:bg-indigo-50 whitespace-nowrap disabled:opacity-50"
             >
               <Sparkles className={`w-4 h-4 ${isGeneratingDescription ? "animate-pulse" : ""}`} />
               {isGeneratingDescription ? "Generating…" : "Generate with AI"}
             </Button>
           </div>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">
+          <p className="text-xs text-slate-400 mb-2">
             Type a short note about the project and generate a full description — you can edit it after.
           </p>
 
@@ -820,21 +820,21 @@ export default function TenderForm({
             rows={6}
             value={formData.tender_description}
             onChange={handleChange}
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition resize-y min-h-[140px]"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-y min-h-[140px]"
             placeholder="Describe the scope of work, key requirements, site conditions, special instructions, etc."
           />
-          <div className="text-right text-xs text-slate-400 dark:text-slate-500 mt-1">
+          <div className="text-right text-xs text-slate-400 mt-1">
             {formData.tender_description?.length || 0} characters
           </div>
         </div>
       </div>
 
       {/* Timeline */}
-      <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
-        <h3 className="text-md font-semibold text-slate-800 dark:text-white/90 mb-4">Timeline</h3>
+      <div className="border-t border-slate-200 pt-6">
+        <h3 className="text-md font-semibold text-slate-800 mb-4">Timeline</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="tender_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+            <label htmlFor="tender_date" className="block font-semibold mb-1 text-slate-700">
               Tender Start
             </label>
             <input
@@ -843,12 +843,12 @@ export default function TenderForm({
               name="tender_date"
               value={formData.tender_date}
               onChange={handleChange}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
             />
           </div>
 
           <div>
-            <label htmlFor="closing_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+            <label htmlFor="closing_date" className="block font-semibold mb-1 text-slate-700">
               Closing Date
             </label>
             <input
@@ -857,12 +857,12 @@ export default function TenderForm({
               name="closing_date"
               value={formData.closing_date}
               onChange={handleChange}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
             />
           </div>
 
           <div>
-            <label htmlFor="renovation_start_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+            <label htmlFor="renovation_start_date" className="block font-semibold mb-1 text-slate-700">
               Renovation Start
             </label>
             <input
@@ -871,12 +871,12 @@ export default function TenderForm({
               name="renovation_start_date"
               value={formData.renovation_start_date}
               onChange={handleChange}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
             />
           </div>
 
           <div>
-            <label htmlFor="renovation_end_date" className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
+            <label htmlFor="renovation_end_date" className="block font-semibold mb-1 text-slate-700">
               Renovation End
             </label>
             <input
@@ -885,17 +885,17 @@ export default function TenderForm({
               name="renovation_end_date"
               value={formData.renovation_end_date}
               onChange={handleChange}
-              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
             />
           </div>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+        <p className="text-xs text-slate-500 mt-3">
           All dates and times are in your local time zone.
         </p>
       </div>
 
       {/* Briefing Dates Section */}
-      <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
+      <div className="border-t border-slate-200 pt-6">
         <BriefingDatesSection
           briefingDates={briefingDates}
           onChange={setBriefingDates}
@@ -904,8 +904,8 @@ export default function TenderForm({
       </div>
 
       {/* Project Manager */}
-      <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
-        <h3 className="text-md font-semibold text-slate-800 dark:text-white/90 mb-4">Project Manager</h3>
+      <div className="border-t border-slate-200 pt-6">
+        <h3 className="text-md font-semibold text-slate-800 mb-4">Project Manager</h3>
         <ProjectManagerSelect
           value={formData.project_manager_id ? parseInt(formData.project_manager_id) : null}
           onChange={handlePMChange}
@@ -914,7 +914,7 @@ export default function TenderForm({
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Full Name
             </label>
             <input
@@ -923,11 +923,11 @@ export default function TenderForm({
               value={formData.project_manager_name}
               onChange={handleChange}
               placeholder="e.g. Mr. Jack Puan"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Email
             </label>
             <input
@@ -936,11 +936,11 @@ export default function TenderForm({
               value={formData.project_manager_email}
               onChange={handleChange}
               placeholder="e.g. jack@company.com"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Phone / Mobile
             </label>
             <input
@@ -949,28 +949,28 @@ export default function TenderForm({
               value={formData.project_manager_phone}
               onChange={handleChange}
               placeholder="e.g. 8139 0348"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
             />
           </div>
         </div>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+        <p className="text-xs text-slate-400 mt-2">
           Auto‑filled – you can edit it.
         </p>
       </div>
 
       {/* Form Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+      <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
         <button
           type="button"
           onClick={() => window.history.back()}
-          className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 transition"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          className="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">
