@@ -7,13 +7,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle, ArrowLeft, FileCheck, X } from "lucide-react";
 import TenderForm from "@/components/tenders/TenderForm";
 import { ROLE_IDS } from "@/lib/roles";
-
-interface AlertData {
-  type: "success" | "error" | "warning" | "info";
-  title: string;
-  message: string;
-  details?: string;
-}
+import AlertModal, { AlertModalData } from "@/components/ui/AlertModal";
 
 export default function CreateProjectPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -23,7 +17,7 @@ export default function CreateProjectPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdTender, setCreatedTender] = useState<{ id: number; name: string } | null>(null);
   const [showAlertModal, setShowAlertModal] = useState(false);
-  const [alertData, setAlertData] = useState<AlertData | null>(null);
+  const [alertData, setAlertData] = useState<AlertModalData | null>(null);
 
   useEffect(() => {
     if (sessionStatus === "unauthenticated") router.push("/login");
@@ -31,67 +25,6 @@ export default function CreateProjectPage() {
     if (sessionStatus === "authenticated" && !roleIds.includes(ROLE_IDS.ADMIN)) router.push("/");
   }, [session, sessionStatus, router]);
 
-  const renderAlertModal = () => {
-    if (!showAlertModal || !alertData) return null;
-    const { type, title, message, details } = alertData;
-    let bgColor, borderColor, icon;
-    switch (type) {
-      case "success":
-        bgColor = "bg-emerald-50";
-        borderColor = "border-emerald-500";
-        icon = "✅";
-        break;
-      case "error":
-        bgColor = "bg-red-50";
-        borderColor = "border-red-500";
-        icon = "⚠️";
-        break;
-      case "warning":
-        bgColor = "bg-amber-50";
-        borderColor = "border-amber-500";
-        icon = "⚠️";
-        break;
-      default:
-        bgColor = "bg-blue-50";
-        borderColor = "border-blue-500";
-        icon = "ℹ️";
-        break;
-    }
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div className={`w-full max-w-md ${bgColor} border-l-4 ${borderColor} rounded-2xl shadow-2xl p-6`}>
-          <div className="flex items-start gap-4">
-            <span className="text-3xl">{icon}</span>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900">{title}</h3>
-              <p className="text-sm text-gray-700 mt-1">{message}</p>
-              {details && <p className="text-xs text-gray-600 mt-2">{details}</p>}
-            </div>
-            <button
-              onClick={() => {
-                setShowAlertModal(false);
-                setAlertData(null);
-              }}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => {
-                setShowAlertModal(false);
-                setAlertData(null);
-              }}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const handleSubmit = async (formData: any) => {
     setIsSubmitting(true);
@@ -175,7 +108,13 @@ export default function CreateProjectPage() {
 
   return (
     <>
-      {renderAlertModal()}
+      <AlertModal
+        alert={showAlertModal ? alertData : null}
+        onClose={() => {
+          setShowAlertModal(false);
+          setAlertData(null);
+        }}
+      />
 
       {showSuccessModal && createdTender && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">

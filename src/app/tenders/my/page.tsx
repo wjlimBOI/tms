@@ -9,14 +9,7 @@ import Link from "next/link";
 import { format, isAfter, parseISO, differenceInDays } from "date-fns";
 import { getBrandColor } from "@/lib/brandColors";
 import { getTenderStatusBadgeStyle, getTenderStatusLabel } from "@/lib/statusColors";
-
-// ---- Alert Modal State ----
-interface AlertState {
-  type: "success" | "error" | "warning" | "info";
-  title: string;
-  message: string;
-  details?: string;
-}
+import AlertModal, { AlertModalData } from "@/components/ui/AlertModal";
 
 interface MyTender {
   tender_id: number;
@@ -42,7 +35,7 @@ export default function MyTendersListPage() {
   const [filteredTenders, setFilteredTenders] = useState<MyTender[]>([]);
 
   // ---- Alert modal state ----
-  const [alert, setAlert] = useState<AlertState | null>(null);
+  const [alert, setAlert] = useState<AlertModalData | null>(null);
 
   useEffect(() => {
     if (sessionStatus === "unauthenticated") {
@@ -117,65 +110,6 @@ export default function MyTendersListPage() {
     return differenceInDays(closing, today);
   };
 
-  // ---- Alert Modal renderer ----
-  const renderAlertModal = () => {
-    if (!alert) return null;
-    const { type, title, message, details } = alert;
-    let bgColor, borderColor, icon;
-    switch (type) {
-      case "success":
-        bgColor = "bg-emerald-50";
-        borderColor = "border-emerald-500";
-        icon = "✅";
-        break;
-      case "error":
-        bgColor = "bg-red-50";
-        borderColor = "border-red-500";
-        icon = "⚠️";
-        break;
-      case "warning":
-        bgColor = "bg-amber-50";
-        borderColor = "border-amber-500";
-        icon = "⚠️";
-        break;
-      case "info":
-      default:
-        bgColor = "bg-blue-50";
-        borderColor = "border-blue-500";
-        icon = "ℹ️";
-        break;
-    }
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div className={`w-full max-w-md ${bgColor} border-l-4 ${borderColor} rounded-2xl shadow-2xl p-6`}>
-          <div className="flex items-start gap-4">
-            <span className="text-3xl">{icon}</span>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900">{title}</h3>
-              <p className="text-sm text-gray-700 mt-1">{message}</p>
-              {details && <p className="text-xs text-gray-600 mt-2">{details}</p>}
-            </div>
-            <button
-              onClick={() => setAlert(null)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => setAlert(null)}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // Loading skeleton
   if (sessionStatus === "loading" || loading) {
@@ -207,7 +141,7 @@ export default function MyTendersListPage() {
   if (error && tenders.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-        {renderAlertModal()}
+        <AlertModal alert={alert} onClose={() => setAlert(null)} />
         <div className="bg-red-100 border border-red-300 rounded-2xl p-8 text-center max-w-md">
           <p className="text-red-800">{error}</p>
           <button onClick={fetchMyTenders} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
@@ -226,7 +160,7 @@ export default function MyTendersListPage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gray-50">
-      {renderAlertModal()}
+      <AlertModal alert={alert} onClose={() => setAlert(null)} />
 
       <div className="relative z-10 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

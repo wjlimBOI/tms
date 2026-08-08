@@ -35,6 +35,7 @@ import { getDlpStatusBadgeStyle, getDlpStatusLabel } from "@/lib/statusColors";
 import { SignaturePad } from "@/components/tenders/SignaturePad";
 import { CompanyStampUpload } from "@/components/tenders/CompanyStampUpload";
 import TenderMessagesPanel from "@/components/tenders/TenderMessagesPanel";
+import AlertModal, { AlertModalData } from "@/components/ui/AlertModal";
 
 const PrintDateCleanup = dynamic(() => import("@/components/PrintDateCleanup"), { ssr: false });
 
@@ -99,15 +100,6 @@ interface TenderData {
   stage: number;
   stage_updated_at?: string;
 }
-
-// ========== Alert Modal State ==========
-interface AlertState {
-  type: "success" | "error" | "warning" | "info";
-  title: string;
-  message: string;
-  details?: string;
-}
-
 
 // ========== STAGE HELPERS ==========
 const STAGES = ["Upcoming", "Open", "Closed", "Awarded"];
@@ -233,7 +225,7 @@ export default function TenderDocumentPage() {
   const readOnly = true;
 
   // ---- Alert modal state ----
-  const [alert, setAlert] = useState<AlertState | null>(null);
+  const [alert, setAlert] = useState<AlertModalData | null>(null);
 
   // ---- Extension request state ----
   const [showExtensionModal, setShowExtensionModal] = useState(false);
@@ -535,66 +527,6 @@ export default function TenderDocumentPage() {
   };
   const handlePrint = () => window.print();
 
-  // ---- Alert Modal ----
-  const renderAlertModal = () => {
-    if (!alert) return null;
-    const { type, title, message, details } = alert;
-    let bgColor, borderColor, icon;
-    switch (type) {
-      case "success":
-        bgColor = "bg-emerald-50";
-        borderColor = "border-emerald-500";
-        icon = "✅";
-        break;
-      case "error":
-        bgColor = "bg-red-50";
-        borderColor = "border-red-500";
-        icon = "⚠️";
-        break;
-      case "warning":
-        bgColor = "bg-amber-50";
-        borderColor = "border-amber-500";
-        icon = "⚠️";
-        break;
-      case "info":
-      default:
-        bgColor = "bg-blue-50";
-        borderColor = "border-blue-500";
-        icon = "ℹ️";
-        break;
-    }
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div className={`w-full max-w-md ${bgColor} border-l-4 ${borderColor} rounded-2xl shadow-2xl p-6`}>
-          <div className="flex items-start gap-4">
-            <span className="text-3xl">{icon}</span>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900">{title}</h3>
-              <p className="text-sm text-gray-700 mt-1">{message}</p>
-              {details && <p className="text-xs text-gray-600 mt-2">{details}</p>}
-            </div>
-            <button
-              onClick={() => setAlert(null)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => setAlert(null)}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // ---- loading & error states ----
   if (sessionStatus === "loading" || loading) {
     return (
@@ -738,7 +670,7 @@ export default function TenderDocumentPage() {
   // ========== JSX ==========
   return (
     <div className="min-h-screen bg-white text-slate-900 print:bg-white">
-      {renderAlertModal()}
+      <AlertModal alert={alert} onClose={() => setAlert(null)} />
       <PrintDateCleanup />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 print:py-0">
         {/* COVER PAGE (print only) */}
