@@ -84,75 +84,75 @@ export const BQRow = memo(function BQRow({
   const indentStyle = { marginLeft: `${depth * 1.5}rem` };
 
   return (
-    <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+    <tr className="hover:bg-gray-50">
       {!readOnly && onToggleSelect && (
-        <td className="border border-gray-200 dark:border-gray-700 p-2 text-center w-8">
+        <td className="border border-gray-200 p-2 text-center w-8">
           <input
             type="checkbox"
             checked={selected}
             onChange={() => onToggleSelect(localItem.line_item_id)}
-            className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+            className="rounded border-gray-300"
           />
         </td>
       )}
-      <td className="border border-gray-200 dark:border-gray-700 p-2 text-center font-mono text-gray-800 dark:text-gray-200">
+      <td className="border border-gray-200 p-2 text-center font-mono text-gray-800">
         {localItem.item_no}
       </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2">
+      <td className="border border-gray-200 p-2">
         <input
           type="text"
           value={localItem.location || ""}
           onChange={(e) => handleChange("location", e.target.value)}
-          className="w-full min-w-[100px] bg-transparent text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-cyan-400 rounded"
+          className="w-full min-w-[100px] bg-transparent text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
           style={indentStyle}
           disabled={readOnly}
         />
       </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2">
+      <td className="border border-gray-200 p-2">
         <textarea
           ref={textareaRef}
           rows={1}
           value={localItem.description || ""}
           onChange={(e) => handleChange("description", e.target.value)}
           onInput={handleDescriptionInput}
-          className="w-full min-w-[300px] bg-transparent text-gray-800 dark:text-gray-200 resize-y focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-cyan-400 rounded"
+          className="w-full min-w-[300px] bg-transparent text-gray-800 resize-y focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
           style={{ minHeight: "2.5rem" }}
           disabled={readOnly}
         />
       </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2">
+      <td className="border border-gray-200 p-2">
         <input
           type="text"
           value={localItem.specifications || ""}
           onChange={(e) => handleChange("specifications", e.target.value)}
-          className="w-full min-w-[150px] bg-transparent text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-cyan-400 rounded"
+          className="w-full min-w-[150px] bg-transparent text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
           disabled={readOnly}
         />
       </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2">
+      <td className="border border-gray-200 p-2">
         <input
           type="text"
           value={localItem.brand || ""}
           onChange={(e) => handleChange("brand", e.target.value)}
-          className="w-full min-w-[80px] bg-transparent text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-cyan-400 rounded"
+          className="w-full min-w-[80px] bg-transparent text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
           disabled={readOnly}
         />
       </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2">
+      <td className="border border-gray-200 p-2">
         <input
           type="number"
           step="any"
           value={localItem.quantity}
           onChange={(e) => handleChange("quantity", parseFloat(e.target.value) || 0)}
-          className="w-20 text-right bg-transparent text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-cyan-400 rounded"
+          className="w-20 text-right bg-transparent text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
           disabled={readOnly}
         />
       </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2">
+      <td className="border border-gray-200 p-2">
         <select
           value={localItem.unit}
           onChange={(e) => handleChange("unit", e.target.value)}
-          className="w-24 bg-transparent border border-gray-300 dark:border-gray-600 rounded px-1 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-cyan-400"
+          className="w-24 bg-transparent border border-gray-300 rounded px-1 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
           disabled={readOnly}
         >
           {units.map((unit) => (
@@ -162,36 +162,36 @@ export const BQRow = memo(function BQRow({
           ))}
         </select>
       </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2">
+      <td className="border border-gray-200 p-2">
         <div className="flex items-center gap-1">
-          <span className="text-gray-500 dark:text-gray-400 select-none">$</span>
+          <span className="text-gray-500 select-none">$</span>
           <input
             type="number"
             step="any"
             value={localItem.unit_price}
             onChange={(e) => handleChange("unit_price", parseFloat(e.target.value) || 0)}
-            className="w-24 text-right bg-transparent text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-cyan-400 rounded"
+            className="w-24 text-right bg-transparent text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
             disabled={readOnly}
           />
         </div>
       </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2">
+      <td className="border border-gray-200 p-2">
         <div className="flex items-center gap-1">
-          <span className="text-gray-500 dark:text-gray-400 select-none">$</span>
+          <span className="text-gray-500 select-none">$</span>
           <input
             type="number"
             step="any"
             value={localItem.discount}
             onChange={(e) => handleChange("discount", parseFloat(e.target.value) || 0)}
-            className="w-20 text-right bg-transparent text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-cyan-400 rounded"
+            className="w-20 text-right bg-transparent text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
             disabled={readOnly}
           />
         </div>
        </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono whitespace-nowrap text-gray-800 dark:text-gray-200">
+      <td className="border border-gray-200 p-2 text-right font-mono whitespace-nowrap text-gray-800">
         {formatCurrency(localItem.amount)}
        </td>
-      <td className="border border-gray-200 dark:border-gray-700 p-2 text-center whitespace-nowrap">
+      <td className="border border-gray-200 p-2 text-center whitespace-nowrap">
         {!readOnly && (
           <>
             {onAddSubItem && (
@@ -199,7 +199,7 @@ export const BQRow = memo(function BQRow({
                 onClick={() =>
                   onAddSubItem(localItem.line_item_id, localItem.category_id)
                 }
-                className="bg-blue-500 dark:bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 dark:hover:bg-blue-700 mr-1 transition-colors"
+                className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 mr-1 transition-colors"
                 title="Add sub‑item"
               >
                 + Sub
@@ -207,7 +207,7 @@ export const BQRow = memo(function BQRow({
             )}
             <button
               onClick={() => onDelete(localItem.line_item_id)}
-              className="bg-red-600 dark:bg-red-700 text-white px-2 py-1 rounded text-xs hover:bg-red-700 dark:hover:bg-red-800 transition-colors"
+              className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 transition-colors"
               title="Delete item"
             >
               Delete
