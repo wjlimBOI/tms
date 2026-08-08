@@ -64,12 +64,12 @@ export default function ExtensionSettings() {
   }
 
   if (error) {
-    return <div className="text-red-500 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">{error}</div>;
+    return <div className="text-red-500 p-4 bg-red-50 rounded-lg">{error}</div>;
   }
 
   if (settings.length === 0) {
     return (
-      <div className="text-slate-500 dark:text-slate-400 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-lg text-center">
+      <div className="text-slate-500 p-4 bg-slate-50 rounded-lg text-center">
         No extension settings configured. Please contact your administrator.
       </div>
     );
@@ -79,23 +79,23 @@ export default function ExtensionSettings() {
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left border-collapse">
         <thead>
-          <tr className="border-b border-slate-200 dark:border-slate-700">
-            <th className="py-2 px-3 font-semibold text-slate-600 dark:text-slate-300">Role</th>
-            <th className="py-2 px-3 font-semibold text-slate-600 dark:text-slate-300 text-center">Is Approver</th>
-            <th className="py-2 px-3 font-semibold text-slate-600 dark:text-slate-300 text-center">Is CC</th>
+          <tr className="border-b border-slate-200">
+            <th className="py-2 px-3 font-semibold text-slate-600">Role</th>
+            <th className="py-2 px-3 font-semibold text-slate-600 text-center">Is Approver</th>
+            <th className="py-2 px-3 font-semibold text-slate-600 text-center">Is CC</th>
           </tr>
         </thead>
         <tbody>
           {settings.map((item) => (
-            <tr key={item.id} className="border-b border-slate-100 dark:border-slate-800">
-              <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-200">{item.role_name}</td>
+            <tr key={item.id} className="border-b border-slate-100">
+              <td className="py-2 px-3 font-medium text-slate-800">{item.role_name}</td>
               <td className="py-2 px-3 text-center">
                 <input
                   type="checkbox"
                   checked={item.is_approver}
                   onChange={(e) => updateSetting(item.id, "is_approver", e.target.checked)}
                   disabled={saving}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
               </td>
               <td className="py-2 px-3 text-center">
@@ -104,14 +104,14 @@ export default function ExtensionSettings() {
                   checked={item.is_cc}
                   onChange={(e) => updateSetting(item.id, "is_cc", e.target.checked)}
                   disabled={saving}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+      <p className="text-xs text-slate-400 mt-2">
         Tip: At least one role must be an approver to receive extension requests.
       </p>
     </div>
