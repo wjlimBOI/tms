@@ -114,18 +114,18 @@ const getStageName = (stage: number): string => {
 // component below) — these always show the static text/print-friendly
 // display rather than an editable input.
 const renderStaticOrInput = (value: string, placeholder?: string) => (
-  <span className="block text-slate-800 dark:text-white py-1 text-sm sm:text-base print:border-b print:border-black print:pb-1 print:min-w-[200px]">
+  <span className="block text-slate-800 py-1 text-sm sm:text-base print:border-b print:border-black print:pb-1 print:min-w-[200px]">
     {value || placeholder || "—"}
   </span>
 );
 
 const renderStaticTextarea = (value: string, placeholder?: string) => (
-  <div className="text-slate-800 dark:text-white py-1 whitespace-pre-wrap text-sm sm:text-base print:border-b print:border-black print:pb-1">
+  <div className="text-slate-800 py-1 whitespace-pre-wrap text-sm sm:text-base print:border-b print:border-black print:pb-1">
     {value || placeholder || "—"}
   </div>
 );
 
-const singleLineLabelClass = "font-bold block mb-1 text-slate-800 dark:text-white text-sm sm:text-base";
+const singleLineLabelClass = "font-bold block mb-1 text-slate-800 text-sm sm:text-base";
 
 const SingleLineInput = memo(
   ({
@@ -159,7 +159,7 @@ const FillableAddress = memo(
     placeholder?: string;
   }) => (
     <div className="print-field-row flex flex-col space-y-1 w-full mt-4 print:mt-6">
-      <label className="text-xs font-bold text-slate-800 dark:text-white uppercase print:text-black print:text-xs">{label}</label>
+      <label className="text-xs font-bold text-slate-800 uppercase print:text-black print:text-xs">{label}</label>
       {renderStaticTextarea(value, placeholder)}
       <div className="hidden print:block">
         <div className="w-full print-address-line" style={{ height: "18pt", marginBottom: "2pt" }} />
@@ -534,23 +534,23 @@ export default function TenderDocumentPage() {
     let bgColor, borderColor, icon;
     switch (type) {
       case "success":
-        bgColor = "bg-emerald-50 dark:bg-emerald-900/20";
+        bgColor = "bg-emerald-50";
         borderColor = "border-emerald-500";
         icon = "✅";
         break;
       case "error":
-        bgColor = "bg-red-50 dark:bg-red-900/20";
+        bgColor = "bg-red-50";
         borderColor = "border-red-500";
         icon = "⚠️";
         break;
       case "warning":
-        bgColor = "bg-amber-50 dark:bg-amber-900/20";
+        bgColor = "bg-amber-50";
         borderColor = "border-amber-500";
         icon = "⚠️";
         break;
       case "info":
       default:
-        bgColor = "bg-blue-50 dark:bg-blue-900/20";
+        bgColor = "bg-blue-50";
         borderColor = "border-blue-500";
         icon = "ℹ️";
         break;
@@ -561,13 +561,13 @@ export default function TenderDocumentPage() {
           <div className="flex items-start gap-4">
             <span className="text-3xl">{icon}</span>
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{message}</p>
-              {details && <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{details}</p>}
+              <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+              <p className="text-sm text-gray-700 mt-1">{message}</p>
+              {details && <p className="text-xs text-gray-600 mt-2">{details}</p>}
             </div>
             <button
               onClick={() => setAlert(null)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-gray-500 hover:text-gray-700"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -577,7 +577,7 @@ export default function TenderDocumentPage() {
           <div className="mt-4 flex justify-end">
             <button
               onClick={() => setAlert(null)}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition"
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition"
             >
               Got it
             </button>
@@ -590,15 +590,15 @@ export default function TenderDocumentPage() {
   // ---- loading & error states ----
   if (sessionStatus === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center dark:bg-slate-950 dark:text-white">
+      <div className="min-h-screen flex items-center justify-center">
         Loading tender document...
       </div>
     );
   }
   if (error || !tender) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 dark:bg-slate-950">
-        <div className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-6 rounded-xl max-w-md">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="bg-red-100 text-red-800 p-6 rounded-xl max-w-md">
           <p className="font-bold">Error</p>
           <p>{error || "Tender not found"}</p>
           <button onClick={() => router.back()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded">
@@ -681,18 +681,18 @@ export default function TenderDocumentPage() {
     lines.push(`<div><span class='font-semibold'>• Anticipated Award of Contract:</span> To be confirmed</div>`);
 
     EXTRA_DATE_NOTES.forEach((note) => {
-      const className = note.includes("*") ? "text-amber-700 dark:text-amber-500 mt-2" : "text-slate-700 dark:text-gray-300 mt-2";
+      const className = note.includes("*") ? "text-amber-700 mt-2" : "text-slate-700 mt-2";
       lines.push(`<div class='${className}'>${note}</div>`);
     });
 
-    return `<div class='grid grid-cols-1 gap-2 mt-2 text-slate-800 dark:text-gray-200'>${lines.join("")}</div>`;
+    return `<div class='grid grid-cols-1 gap-2 mt-2 text-slate-800'>${lines.join("")}</div>`;
   };
 
   // ========== TENDER ENQUIRIES (clause 4) ==========
   const renderTenderEnquiries = () => (
     <div className="critical-clause mb-3 break-inside-avoid-page">
-      <div className="font-bold text-slate-800 dark:text-white">4) TENDER ENQUIRIES</div>
-      <div className="ml-4 text-slate-700 dark:text-gray-300 space-y-1">
+      <div className="font-bold text-slate-800">4) TENDER ENQUIRIES</div>
+      <div className="ml-4 text-slate-700 space-y-1">
         <p>Any enquiries regarding the Tender Documents should be referred to in writing to:</p>
         <p>
           <strong>{pmName}</strong>
@@ -720,8 +720,8 @@ export default function TenderDocumentPage() {
 
   const renderTerminologies = () => (
     <div className="mb-2 break-inside-avoid-page">
-      <div className="font-bold text-slate-800 dark:text-white">2) TERMINOLOGIES</div>
-      <div className="ml-4 text-slate-700 dark:text-gray-300">
+      <div className="font-bold text-slate-800">2) TERMINOLOGIES</div>
+      <div className="ml-4 text-slate-700">
         The Terms “Company” in the contract shall mean {clientName}.
       </div>
     </div>
@@ -729,7 +729,7 @@ export default function TenderDocumentPage() {
 
   // ========== JSX ==========
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white print:bg-white">
+    <div className="min-h-screen bg-white text-slate-900 print:bg-white">
       {renderAlertModal()}
       <PrintDateCleanup />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 print:py-0">
@@ -767,11 +767,11 @@ export default function TenderDocumentPage() {
         </div>
 
         {/* ACTION BAR */}
-        <div className="print:hidden flex flex-wrap items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="print:hidden flex flex-wrap items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+              className="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-medium uppercase tracking-wide">Back</span>
@@ -780,7 +780,7 @@ export default function TenderDocumentPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-slate-300 rounded hover:bg-slate-100 transition-colors"
             >
               <Printer className="w-4 h-4" />
               Print
@@ -788,7 +788,7 @@ export default function TenderDocumentPage() {
             {isAdmin && (
               <Link
                 href={`/admin/tenders/${id}`}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-blue-500 dark:border-blue-400 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-400 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-blue-500 rounded hover:bg-blue-50 text-blue-700 transition-colors"
               >
                 <Pencil className="w-4 h-4" />
                 Edit Tender
@@ -798,7 +798,7 @@ export default function TenderDocumentPage() {
               <>
                 <Link
                   href={`/tenders/${id}/edit`}
-                  className="flex items-center gap-2 px-5 py-2 text-sm font-bold uppercase tracking-wide bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded transition-colors shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-bold uppercase tracking-wide bg-slate-900 hover:bg-slate-800 text-white rounded transition-colors shadow-sm"
                 >
                   <FileSignature className="w-4 h-4" />
                   Fill in Tender
@@ -807,7 +807,7 @@ export default function TenderDocumentPage() {
                 {canRequestExtension() && (
                   <button
                     onClick={() => setShowExtensionModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-blue-500 dark:border-blue-400 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-400 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-blue-500 rounded hover:bg-blue-50 text-blue-700 transition-colors"
                   >
                     <Clock className="w-4 h-4" />
                     Request Extension
@@ -815,24 +815,24 @@ export default function TenderDocumentPage() {
                 )}
               </>
             ) : isContractor ? (
-              <div className="px-4 py-2 text-sm border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded">
+              <div className="px-4 py-2 text-sm border border-amber-200 bg-amber-50 text-amber-800 rounded">
                 Status: <span className="font-mono">{tender.status_label}</span> — Not open for submission
               </div>
             ) : null}
 
             {/* Show extension status if any */}
             {extensionStatus && extensionStatus.status === "Pending" && (
-              <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-700">
+              <span className="text-xs text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
                 Extension Request Pending
               </span>
             )}
             {extensionStatus && extensionStatus.status === "Approved" && (
-              <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
+              <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
                 Extension Approved
               </span>
             )}
             {extensionStatus && extensionStatus.status === "Rejected" && (
-              <span className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full border border-red-200 dark:border-red-700">
+              <span className="text-xs text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-200">
                 Extension Rejected
               </span>
             )}
@@ -841,29 +841,29 @@ export default function TenderDocumentPage() {
 
         {/* ===== STAGE MANAGEMENT SECTION ===== */}
         {tender && (
-          <div className="print:hidden mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="print:hidden mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Workflow:</span>
+                <span className="text-sm font-medium text-slate-600">Workflow:</span>
                 <div className="flex items-center gap-1">
                   {STAGES.map((label, idx) => {
                     const currentStage = tender.stage ?? 0;
                     const isComplete = idx < currentStage;
                     const isActive = idx === currentStage;
-                    let dotColor = "bg-slate-300 dark:bg-slate-600";
+                    let dotColor = "bg-slate-300";
                     if (isComplete) dotColor = "bg-emerald-500";
                     else if (isActive) dotColor = "bg-blue-500";
                     return (
                       <div key={idx} className="flex items-center">
                         <div className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
                         {idx < STAGES.length - 1 && (
-                          <div className={`w-6 h-0.5 ${isComplete ? "bg-emerald-400" : "bg-slate-300 dark:bg-slate-600"}`} />
+                          <div className={`w-6 h-0.5 ${isComplete ? "bg-emerald-400" : "bg-slate-300"}`} />
                         )}
                       </div>
                     );
                   })}
                 </div>
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
                   {getStageName(tender.stage ?? 0)}
                 </span>
               </div>
@@ -894,18 +894,18 @@ export default function TenderDocumentPage() {
         {/* --- Extension Request Modal --- */}
         {showExtensionModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm print:hidden">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-6">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Request Time Extension</h2>
+                <Clock className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-bold text-slate-900">Request Time Extension</h2>
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+              <p className="text-sm text-slate-600 mb-4">
                 You are requesting an extension for <strong>{tender.tender_name}</strong>. Current closing date:{" "}
                 <strong>{formatTenderDateTime(tender.closing_date)}</strong>.
               </p>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Additional Days Required
                   </label>
                   <input
@@ -913,31 +913,31 @@ export default function TenderDocumentPage() {
                     min="1"
                     value={extensionDays}
                     onChange={(e) => setExtensionDays(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Reason for Extension</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Reason for Extension</label>
                   <textarea
                     rows={3}
                     value={extensionReason}
                     onChange={(e) => setExtensionReason(e.target.value)}
                     placeholder="Please provide a detailed reason..."
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   onClick={() => setShowExtensionModal(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleExtensionSubmit}
                   disabled={isSubmittingExtension}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
                   {isSubmittingExtension ? "Submitting..." : "Submit Request"}
                 </button>
@@ -950,8 +950,8 @@ export default function TenderDocumentPage() {
         <div className="flex flex-col md:flex-row gap-8 print:block">
           {/* Sidebar */}
           <aside className="hidden md:block w-64 flex-shrink-0 sticky top-24 self-start print:hidden">
-            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-2xl border border-slate-200/50 dark:border-slate-800/50 p-4 shadow-lg">
-              <h3 className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-3">Contents</h3>
+            <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200/50 p-4 shadow-lg">
+              <h3 className="text-xs font-semibold uppercase text-slate-500 mb-3">Contents</h3>
               <nav className="space-y-1">
                 {[
                   { id: "project-team", label: "Project Team" },
@@ -966,8 +966,8 @@ export default function TenderDocumentPage() {
                     onClick={() => scrollTo(item.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
                       activeSection === item.id
-                        ? "bg-cyan-50 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 font-medium"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        ? "bg-cyan-50 text-cyan-700 font-medium"
+                        : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
                     {item.label}
@@ -981,15 +981,15 @@ export default function TenderDocumentPage() {
             {/* SCREEN HEADER - UPDATED with new title format */}
             <div className="print:hidden mb-8">
               <div className="text-center">
-                <p className="text-5xl sm:text-6xl font-extrabold uppercase tracking-wider text-slate-800 dark:text-white">
+                <p className="text-5xl sm:text-6xl font-extrabold uppercase tracking-wider text-slate-800">
                   TENDER DOCUMENT
                 </p>
-                <p className="text-lg font-medium text-slate-600 dark:text-slate-400 mt-1">Tender Reference: {tenderRef}</p>
+                <p className="text-lg font-medium text-slate-600 mt-1">Tender Reference: {tenderRef}</p>
                 <hr className="border-t-2 border-amber-600 w-24 mx-auto my-4" />
-                <div className="text-2xl sm:text-3xl font-light text-slate-800 dark:text-white">
+                <div className="text-2xl sm:text-3xl font-light text-slate-800">
                   <p>{displayTitle}</p>
                 </div>
-                <div className="text-base sm:text-lg font-medium text-slate-600 dark:text-slate-300 mt-2">
+                <div className="text-base sm:text-lg font-medium text-slate-600 mt-2">
                   <p>Location:</p>
                   <p className="whitespace-pre-line">{displayAddress}</p>
                 </div>
@@ -999,66 +999,66 @@ export default function TenderDocumentPage() {
             {/* PROJECT TEAM */}
             <div
               id="project-team-card"
-              className="border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/30 rounded-xl p-4 sm:p-6 lg:p-8 shadow-sm print:border-none print:bg-white print:shadow-none"
+              className="border border-slate-200/80 bg-slate-50/30 rounded-xl p-4 sm:p-6 lg:p-8 shadow-sm print:border-none print:bg-white print:shadow-none"
             >
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-6 print:text-xl print:mb-6">PROJECT TEAM</h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-6 print:text-xl print:mb-6">PROJECT TEAM</h2>
               <div className="project-team-grid-wrapper grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 print:grid-cols-2 print:gap-4">
                 <div className="space-y-4 print:space-y-2">
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Company
                     </label>
-                    <span className="text-sm sm:text-base font-semibold text-slate-800 dark:text-white print:text-[10.5pt] print:font-normal">
+                    <span className="text-sm sm:text-base font-semibold text-slate-800 print:text-[10.5pt] print:font-normal">
                       {clientName}
                     </span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Address
                     </label>
-                    <span className="text-sm sm:text-base text-slate-800 dark:text-white print:text-[10.5pt]">
+                    <span className="text-sm sm:text-base text-slate-800 print:text-[10.5pt]">
                       {companyAddress}
                     </span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Attention
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black break-words">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black break-words">
                       {pmName}
                     </span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Email
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black break-words">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black break-words">
                       {pmEmail}
                     </span>
                   </div>
                 </div>
                 <div className="space-y-4 print:space-y-2">
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Mobile
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black">
                       {pmPhone}
                     </span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Telephone
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black">
                       {companyTel}
                     </span>
                   </div>
                   <div className="flex flex-col space-y-1 print:space-y-0.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-800 dark:text-white uppercase print:text-black print:font-bold print:text-[9pt]">
+                    <label className="text-xs font-bold tracking-wider text-slate-800 uppercase print:text-black print:font-bold print:text-[9pt]">
                       Fax
                     </label>
-                    <span className="text-sm sm:text-base text-slate-700 dark:text-gray-300 print:text-[10.5pt] print:text-black">
+                    <span className="text-sm sm:text-base text-slate-700 print:text-[10.5pt] print:text-black">
                       {companyFax}
                     </span>
                   </div>
@@ -1072,11 +1072,11 @@ export default function TenderDocumentPage() {
               ref={(el) => {
                 sectionsRef.current["critical-considerations"] = el;
               }}
-              className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden print:border-none print:bg-white print:shadow-none bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl overflow-hidden print:border-none print:bg-white print:shadow-none bg-white/60 backdrop-blur-sm"
             >
               <button
                 onClick={() => setAccordionOpen(!accordionOpen)}
-                className="w-full flex justify-between items-center p-4 font-bold text-lg text-slate-800 dark:text-white print:hidden"
+                className="w-full flex justify-between items-center p-4 font-bold text-lg text-slate-800 print:hidden"
               >
                 <span>SCHEDULE OF CRITICAL PROJECT CONSIDERATIONS</span>
                 <span className="ml-4">{accordionOpen ? "▲" : "▼"}</span>
@@ -1090,7 +1090,7 @@ export default function TenderDocumentPage() {
                     if (clause.title === "2) CRITICAL DATES") {
                       return (
                         <div key={idx} className="critical-clause mb-3 break-inside-avoid-page">
-                          <div className="font-bold text-slate-800 dark:text-white">2) CRITICAL DATES</div>
+                          <div className="font-bold text-slate-800">2) CRITICAL DATES</div>
                           <div className="ml-4" dangerouslySetInnerHTML={{ __html: generateCriticalDatesHtml(tender) }} />
                         </div>
                       );
@@ -1103,8 +1103,8 @@ export default function TenderDocumentPage() {
                         .replace(/<date>/g, closingDate);
                       return (
                         <div key={idx} className="critical-clause mb-3 break-inside-avoid-page">
-                          <div className="font-bold text-slate-800 dark:text-white">3) SUBMISSION OF TENDER</div>
-                          <div className="ml-4 text-slate-700 dark:text-gray-300" style={{ whiteSpace: "pre-wrap" }}>
+                          <div className="font-bold text-slate-800">3) SUBMISSION OF TENDER</div>
+                          <div className="ml-4 text-slate-700" style={{ whiteSpace: "pre-wrap" }}>
                             {description}
                           </div>
                         </div>
@@ -1115,8 +1115,8 @@ export default function TenderDocumentPage() {
                     }
                     return (
                       <div key={idx} className="critical-clause mb-3 break-inside-avoid-page">
-                        <div className="font-bold text-slate-800 dark:text-white">{clause.title}</div>
-                        <div className="ml-4 text-slate-700 dark:text-gray-300 whitespace-pre-wrap">{clause.description}</div>
+                        <div className="font-bold text-slate-800">{clause.title}</div>
+                        <div className="ml-4 text-slate-700 whitespace-pre-wrap">{clause.description}</div>
                       </div>
                     );
                   })}
@@ -1130,13 +1130,13 @@ export default function TenderDocumentPage() {
               ref={(el) => {
                 sectionsRef.current["scope-terms"] = el;
               }}
-              className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
             >
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-xl">SCOPE OF CONTRACT</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-xl">SCOPE OF CONTRACT</h2>
               {scopeClauses.map((clause, i) => (
                 <div key={i} className="mb-3 break-inside-avoid-page">
-                  <div className="font-bold text-slate-800 dark:text-white">{clause.title}</div>
-                  <div className="ml-4 text-slate-700 dark:text-gray-300">{clause.description}</div>
+                  <div className="font-bold text-slate-800">{clause.title}</div>
+                  <div className="ml-4 text-slate-700">{clause.description}</div>
                 </div>
               ))}
             </div>
@@ -1144,9 +1144,9 @@ export default function TenderDocumentPage() {
             {/* Agreed and Confirmed By */}
             <div
               id="agreed-confirmed-by-section"
-              className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
             >
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-xl">Agreed and Confirmed By</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-xl">Agreed and Confirmed By</h2>
               <div className="space-y-4">
                 <SingleLineInput label="Name of Contractor / Tenderer" value={agreedName} onChange={setAgreedName} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -1165,9 +1165,9 @@ export default function TenderDocumentPage() {
             {/* TERMS AND CONDITIONS */}
             <div
               id="terms-conditions-tender"
-              className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
             >
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-xl print-section-heading">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-xl print-section-heading">
                 TERMS AND CONDITIONS OF TENDER
               </h2>
               <div className="space-y-3 text-sm">
@@ -1177,8 +1177,8 @@ export default function TenderDocumentPage() {
                   }
                   return (
                     <div key={i} className="mb-2 break-inside-avoid-page">
-                      <div className="font-bold text-slate-800 dark:text-white">{term.header}</div>
-                      <div className="ml-4 text-slate-700 dark:text-gray-300">{term.text}</div>
+                      <div className="font-bold text-slate-800">{term.header}</div>
+                      <div className="ml-4 text-slate-700">{term.text}</div>
                     </div>
                   );
                 })}
@@ -1191,25 +1191,25 @@ export default function TenderDocumentPage() {
               ref={(el) => {
                 sectionsRef.current["form-of-tender"] = el;
               }}
-              className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+              className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
             >
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-2xl">FORM OF TENDER</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-2xl">FORM OF TENDER</h2>
               <div className="space-y-3 text-sm">
-                <p className="font-medium text-slate-700 dark:text-gray-300">
+                <p className="font-medium text-slate-700">
                   <strong>To:</strong> {clientName}
                   <br />
                   <strong style={{ whiteSpace: "pre-line" }}>{fixedAddress}</strong>
                 </p>
-                <p className="text-slate-700 dark:text-gray-300">Dear Sir / Madam</p>
-                <p className="text-slate-700 dark:text-gray-300">
+                <p className="text-slate-700">Dear Sir / Madam</p>
+                <p className="text-slate-700">
                   1. Having inspected the site, and examined the Tender Documents, we submit a total sum quoted for Singapore
                   Dollars:
                 </p>
-                <div className="my-3 p-3 bg-slate-50 dark:bg-slate-800 rounded print:bg-transparent print:p-0">
-                  <p className="font-semibold text-slate-800 dark:text-white flex flex-wrap items-center gap-2">
+                <div className="my-3 p-3 bg-slate-50 rounded print:bg-transparent print:p-0">
+                  <p className="font-semibold text-slate-800 flex flex-wrap items-center gap-2">
                     <span>TOTAL LUMP SUM</span>
                     {readOnly ? (
-                      <span className="inline-block w-36 sm:w-44 text-right text-slate-800 dark:text-white text-sm sm:text-base print:inline-block print:w-[110pt] print:text-right print:border-b print:border-black print:pb-1">
+                      <span className="inline-block w-36 sm:w-44 text-right text-slate-800 text-sm sm:text-base print:inline-block print:w-[110pt] print:text-right print:border-b print:border-black print:pb-1">
                         {lumpSumRaw || "—"}
                       </span>
                     ) : (
@@ -1217,14 +1217,14 @@ export default function TenderDocumentPage() {
                         type="text"
                         value={lumpSumRaw}
                         onChange={handleLumpSumChange}
-                        className="w-36 sm:w-44 border-b border-gray-400 dark:border-gray-500 bg-transparent text-right px-1 focus:outline-none focus:border-cyan-500 text-sm sm:text-base text-black dark:text-white print:inline-block print:w-[110pt] print:border-b print:border-black print:text-right"
+                        className="w-36 sm:w-44 border-b border-gray-400 bg-transparent text-right px-1 focus:outline-none focus:border-cyan-500 text-sm sm:text-base text-black print:inline-block print:w-[110pt] print:border-b print:border-black print:text-right"
                         placeholder="0.00"
                       />
                     )}
                     <span>SGD</span>
                   </p>
                   {amountInWords && (
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 italic">{amountInWords} Singapore Dollars</p>
+                    <p className="mt-2 text-sm text-slate-600 italic">{amountInWords} Singapore Dollars</p>
                   )}
                   <div className="hidden print:block mt-4">
                     <div className="print-address-line" style={{ height: "18pt", marginBottom: "2pt" }} />
@@ -1232,7 +1232,7 @@ export default function TenderDocumentPage() {
                   </div>
                 </div>
                 {FORM_OF_TENDER_ITEMS.map((text, i) => (
-                  <p key={i} className="text-slate-700 dark:text-gray-300">
+                  <p key={i} className="text-slate-700">
                     {text}
                   </p>
                 ))}
@@ -1249,9 +1249,9 @@ export default function TenderDocumentPage() {
             >
               <div
                 id="main-tenderer-sign-off"
-                className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+                className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
               >
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 print:text-lg">Main Tenderer Sign‑Off</h3>
+                <h3 className="text-xl font-bold text-slate-800 mb-4 print:text-lg">Main Tenderer Sign‑Off</h3>
                 <div className="space-y-4 mt-4">
                   <SingleLineInput
                     label="Full Name"
@@ -1294,9 +1294,9 @@ export default function TenderDocumentPage() {
 
               <div
                 id="witness-sign-off-panel"
-                className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+                className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
               >
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 print:text-lg">Independent Witness Sign‑Off</h3>
+                <h3 className="text-xl font-bold text-slate-800 mb-4 print:text-lg">Independent Witness Sign‑Off</h3>
                 <div className="space-y-4 mt-4">
                   <SingleLineInput
                     label="Full Name of Witness"
@@ -1330,11 +1330,11 @@ export default function TenderDocumentPage() {
             >
               <div
                 id="contractors-declaration-section"
-                className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm"
+                className="border border-slate-200 rounded-xl p-6 print:border-none print:bg-white print:shadow-none print:p-0 bg-white/60 backdrop-blur-sm"
               >
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 print:text-xl">CONTRACTOR'S DECLARATION</h2>
-                <p className="text-sm text-slate-600 dark:text-gray-400 mt-1">Tenderer's Confirmation of Comprehension of Tender Document</p>
-                <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                <h2 className="text-2xl font-bold text-slate-800 mb-4 print:text-xl">CONTRACTOR'S DECLARATION</h2>
+                <p className="text-sm text-slate-600 mt-1">Tenderer's Confirmation of Comprehension of Tender Document</p>
+                <p className="text-sm text-slate-600 mb-4">
                   This page confirms understanding and irrevocable acceptance of the Tender Documents and Drawings.
                 </p>
                 <div className="space-y-4">
@@ -1348,7 +1348,7 @@ export default function TenderDocumentPage() {
                     value={declaration.onBehalfOf}
                     onChange={(val) => setDeclaration((p) => ({ ...p, onBehalfOf: val }))}
                   />
-                  <p className="italic text-slate-700 dark:text-gray-300">have fully examined the Tender Documents and irrevocably agree.</p>
+                  <p className="italic text-slate-700">have fully examined the Tender Documents and irrevocably agree.</p>
                   <div className="space-y-4">
                     <SingleLineInput
                       label="Name of Tenderer"
@@ -1387,42 +1387,42 @@ export default function TenderDocumentPage() {
 
               {/* RELEVANT PROJECT EXPERIENCE */}
               <div id="relevant-experience-table-section" className="mt-6 print:mt-4">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white tracking-wide mb-2 uppercase print:text-base">
+                <h3 className="text-xl font-bold text-slate-800 tracking-wide mb-2 uppercase print:text-base">
                   RELEVANT PROJECT EXPERIENCE
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 print:hidden">Provide at least 5 projects of similar nature.</p>
+                <p className="text-xs text-slate-500 mb-4 print:hidden">Provide at least 5 projects of similar nature.</p>
                 <div className="overflow-x-auto print:overflow-visible">
-                  <table className="w-full text-left border-collapse print:border-collapse border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-left border-collapse print:border-collapse border border-slate-200">
                     <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 divide-x divide-slate-200 dark:divide-slate-800 print:bg-transparent print:border-b">
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
+                      <tr className="bg-slate-50 border-b border-slate-200 divide-x divide-slate-200 print:bg-transparent print:border-b">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Project Name
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Value (SGD)
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Date
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Designer
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-slate-100">
                       {projectRows.map((row) => (
-                        <tr key={row.id} className="divide-x divide-slate-100 dark:divide-slate-800 print:border-none">
+                        <tr key={row.id} className="divide-x divide-slate-100 print:border-none">
                           <td className="p-3 print:border print:border-slate-300">
-                            <span className="text-slate-800 dark:text-white">{row.projectName}</span>
+                            <span className="text-slate-800">{row.projectName}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            <span className="text-slate-800 dark:text-white">{row.value}</span>
+                            <span className="text-slate-800">{row.value}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            <span className="text-slate-800 dark:text-white">{row.date}</span>
+                            <span className="text-slate-800">{row.date}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            <span className="text-slate-800 dark:text-white">{row.designer}</span>
+                            <span className="text-slate-800">{row.designer}</span>
                           </td>
                         </tr>
                       ))}
@@ -1433,44 +1433,44 @@ export default function TenderDocumentPage() {
 
               {/* CURRENT PROJECT COMMITMENT */}
               <div id="current-commitment-table-section" className="mt-6 print:mt-4">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white tracking-wide mb-2 uppercase print:text-base">
+                <h3 className="text-xl font-bold text-slate-800 tracking-wide mb-2 uppercase print:text-base">
                   CURRENT PROJECT COMMITMENT
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 print:hidden">
+                <p className="text-xs text-slate-500 mb-4 print:hidden">
                   Provide particulars of projects presently engaged in.
                 </p>
                 <div className="overflow-x-auto print:overflow-visible">
-                  <table className="w-full text-left border-collapse print:border-collapse border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-left border-collapse print:border-collapse border border-slate-200">
                     <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 divide-x divide-slate-200 dark:divide-slate-800 print:bg-transparent print:border-b">
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
+                      <tr className="bg-slate-50 border-b border-slate-200 divide-x divide-slate-200 print:bg-transparent print:border-b">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Project Name
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Value (SGD)
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Percentage Completed
                         </th>
-                        <th className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
+                        <th className="p-3 text-xs font-bold text-slate-600 uppercase text-center print:border print:border-slate-300 print:bg-gray-50">
                           Designer
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-slate-100">
                       {commitmentRows.map((row) => (
-                        <tr key={row.id} className="divide-x divide-slate-100 dark:divide-slate-800 print:border-none">
+                        <tr key={row.id} className="divide-x divide-slate-100 print:border-none">
                           <td className="p-3 print:border print:border-slate-300">
-                            <span className="text-slate-800 dark:text-white">{row.projectName}</span>
+                            <span className="text-slate-800">{row.projectName}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            <span className="text-slate-800 dark:text-white">{row.value}</span>
+                            <span className="text-slate-800">{row.value}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            <span className="text-slate-800 dark:text-white">{row.percentage}</span>
+                            <span className="text-slate-800">{row.percentage}</span>
                           </td>
                           <td className="p-3 print:border print:border-slate-300">
-                            <span className="text-slate-800 dark:text-white">{row.designer}</span>
+                            <span className="text-slate-800">{row.designer}</span>
                           </td>
                         </tr>
                       ))}
@@ -1486,7 +1486,7 @@ export default function TenderDocumentPage() {
         <div className="fixed bottom-6 right-6 z-50 md:hidden print:hidden">
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-3 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-full shadow-lg transition-all duration-300"
+            className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-full shadow-lg transition-all duration-300"
           >
             <Printer className="w-5 h-5" />
             <span className="text-sm font-medium">Print / PDF</span>
