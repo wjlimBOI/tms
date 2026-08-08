@@ -8,71 +8,71 @@ datasource db {
 }
 
 model tender {
-  tender_id                 Int                         @id @default(autoincrement())
-  branch_id                 Int
-  renovation_type_id        Int
-  status_id                 Int
-  created_by                Int
-  tender_name               String                      @db.VarChar(150)
-  tender_description        String?
-  tender_date               DateTime?                   @db.Timestamp(6)
-  closing_date              DateTime?                   @db.Timestamp(6)
-  renovation_start_date     DateTime?                   @db.Timestamp(6)
-  renovation_end_date       DateTime?                   @db.Timestamp(6)
-  download_start            DateTime?                   @db.Timestamp(6)
-  download_end              DateTime?                   @db.Timestamp(6)
-  briefing_date             DateTime?                   @db.Timestamp(6)
-  submission_start          DateTime?                   @db.Timestamp(6)
-  submission_end            DateTime?                   @db.Timestamp(6)
-  estimated_budget          Decimal?                    @db.Decimal(15, 2)
-  is_deleted                Boolean                     @default(false)
-  deleted_at                DateTime?                   @db.Timestamp(6)
-  created_at                DateTime                    @default(now()) @db.Timestamp(6)
-  updated_at                DateTime                    @default(now()) @updatedAt @db.Timestamp(6)
-  project_manager_id        Int?
-  stage                     Int?                        @default(0)
-  stage_updated_at          DateTime?                   @default(now()) @db.Timestamp(6)
-  handover_date             DateTime?                   @map("handover_date") @db.Date
-  liquidated_damages_rate   Int?                        @default(5000)
-  defect_liability_months   Int?                        @default(12)
-  contract_sum              Decimal?                    @default(0) @db.Decimal
-  clauses                   Json?
-  contract_template_id      Int?
-  project_manager_name      String?                     @db.VarChar(150)
-  project_manager_email     String?                     @db.VarChar(150)
-  project_manager_phone     String?                     @db.VarChar(50)
-  bq_template_items         bq_template_items[]
-  calendar_events           calendar_events[]
-  email_notification_log    email_notification_log[]
-  negotiation_log           negotiation_log[]
-  past_project              past_project[]
-  reno_comparison           reno_comparison?
-  resubmission_request      resubmission_request[]
-  branch                    branch                      @relation(fields: [branch_id], references: [branch_id], onDelete: NoAction, onUpdate: NoAction)
-  users                     users                       @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  project_managers          project_managers?           @relation(fields: [project_manager_id], references: [id], onUpdate: NoAction)
-  renovation_type           renovation_type             @relation(fields: [renovation_type_id], references: [type_id], onDelete: NoAction, onUpdate: NoAction)
-  tender_status             tender_status               @relation(fields: [status_id], references: [status_id], onDelete: NoAction, onUpdate: NoAction)
-  contract_template         contract_template?          @relation(fields: [contract_template_id], references: [template_id], onUpdate: NoAction)
-  tender_acknowledgments    tender_acknowledgment[]
-  tender_award              tender_award?
-  tender_contractor         tender_contractor[]
-  tender_document           tender_document[]
-  tender_extension_requests tender_extension_requests[]
-  tender_interest           tender_interest[]
-  tender_requests           tender_requests[]
-  tender_submission         tender_submission[]
-  tender_work_category      tender_work_category[]
-  tender_briefing_dates     tender_briefing_dates[]
+  tender_id                       Int                         @id @default(autoincrement())
+  branch_id                       Int
+  renovation_type_id              Int
+  status_id                       Int
+  created_by                      Int
+  tender_name                     String                      @db.VarChar(150)
+  tender_description              String?
+  tender_date                     DateTime?                   @db.Timestamp(6)
+  closing_date                    DateTime?                   @db.Timestamp(6)
+  renovation_start_date           DateTime?                   @db.Timestamp(6)
+  renovation_end_date             DateTime?                   @db.Timestamp(6)
+  download_start                  DateTime?                   @db.Timestamp(6)
+  download_end                    DateTime?                   @db.Timestamp(6)
+  briefing_date                   DateTime?                   @db.Timestamp(6)
+  submission_start                DateTime?                   @db.Timestamp(6)
+  submission_end                  DateTime?                   @db.Timestamp(6)
+  estimated_budget                Decimal?                    @db.Decimal(15, 2)
+  is_deleted                      Boolean                     @default(false)
+  deleted_at                      DateTime?                   @db.Timestamp(6)
+  created_at                      DateTime                    @default(now()) @db.Timestamp(6)
+  updated_at                      DateTime                    @default(now()) @updatedAt @db.Timestamp(6)
+  project_manager_id              Int?
+  handover_date                   DateTime?                   @map("handover_date") @db.Date
+  liquidated_damages_rate         Int?                        @default(5000)
+  defect_liability_months         Int?                        @default(12)
+  contract_sum                    Decimal?                    @default(0) @db.Decimal
+  clauses                         Json?
+  project_manager_name            String?                     @db.VarChar(150)
+  project_manager_email           String?                     @db.VarChar(150)
+  project_manager_phone           String?                     @db.VarChar(50)
+  stage                           Int?                        @default(0)
+  stage_updated_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  contract_template_id            Int?
+  handover_by                     Int?
+  handover_notes                  String?
+  dlp_reminder_sent_at            DateTime?                   @db.Timestamp(6)
+  expected_handover_date          DateTime?                   @db.Date
+  bq_template_items               bq_template_items[]
+  calendar_events                 calendar_events[]
+  email_notification_log          email_notification_log[]
+  negotiation_log                 negotiation_log[]
+  past_project                    past_project[]
+  reno_comparison                 reno_comparison?
+  resubmission_request            resubmission_request[]
+  branch                          branch                      @relation(fields: [branch_id], references: [branch_id], onDelete: NoAction, onUpdate: NoAction)
+  users                           users                       @relation(fields: [created_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_tender_handover_byTousers users?                      @relation("tender_handover_byTousers", fields: [handover_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  project_managers                project_managers?           @relation(fields: [project_manager_id], references: [id], onUpdate: NoAction)
+  renovation_type                 renovation_type             @relation(fields: [renovation_type_id], references: [type_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_status                   tender_status               @relation(fields: [status_id], references: [status_id], onDelete: NoAction, onUpdate: NoAction)
+  tender_acknowledgments          tender_acknowledgment[]
+  tender_award                    tender_award?
+  tender_contractor               tender_contractor[]
+  tender_document                 tender_document[]
+  tender_extension_requests       tender_extension_requests[]
+  tender_interest                 tender_interest[]
+  tender_message                  tender_message[]
+  tender_requests                 tender_requests[]
+  tender_submission               tender_submission[]
+  tender_work_category            tender_work_category[]
 
   @@index([is_deleted], map: "idx_tender_is_deleted")
   @@index([is_deleted, status_id], map: "idx_tender_status_lookup")
 }
 
-// Versioned standard contract terms (F8). New tenders get `clauses` populated
-// explicitly from the active template at creation time — see
-// src/app/api/tenders/route.ts POST. `content` mirrors tender.clauses' shape:
-// { critical: [...], scope: [...], terms: [...] }.
 model contract_template {
   template_id    Int      @id @default(autoincrement())
   name           String   @db.VarChar(150)
@@ -82,31 +82,22 @@ model contract_template {
   content        Json
   created_at     DateTime @default(now()) @db.Timestamp(6)
   updated_at     DateTime @default(now()) @db.Timestamp(6)
-  tender         tender[]
 }
 
 model branch {
-  branch_id        Int              @id @default(autoincrement())
+  branch_id        Int       @id @default(autoincrement())
   brand_id         Int
-  branch_name      String           @db.VarChar(100)
-  is_deleted       Boolean          @default(false)
-  deleted_at       DateTime?        @db.Timestamp(6)
-  created_at       DateTime         @default(now()) @db.Timestamp(6)
-  updated_at       DateTime         @default(now()) @db.Timestamp(6)
-  address          String?
-  operation_status String           @default("Open") @db.VarChar(50)
-  brand            brand            @relation(fields: [brand_id], references: [brand_id], onDelete: NoAction, onUpdate: NoAction)
+  branch_name      String    @db.VarChar(100)
+  is_deleted       Boolean   @default(false)
+  deleted_at       DateTime? @db.Timestamp(6)
+  created_at       DateTime  @default(now()) @db.Timestamp(6)
+  updated_at       DateTime  @default(now()) @db.Timestamp(6)
+  operation_status String    @default("Open") @db.VarChar(50)
+  brand            brand     @relation(fields: [brand_id], references: [brand_id], onDelete: NoAction, onUpdate: NoAction)
   tenders          tender[]
-  branch_address   branch_address[]
 
   @@index([operation_status], map: "idx_branch_operation_status")
 }
-
-// The 5 models below (access_windows, branch_address, tender_briefing_dates,
-// tender_cc_recipients, tender_default_timings) were live tables used via
-// raw SQL (`@/lib/db`) but entirely absent from this schema — real F5 schema
-// drift beyond the tender.stage case the original audit named. Added
-// 2026-08-06 via `prisma db pull` diff against the live DB.
 
 model access_windows {
   id             Int       @id @default(autoincrement())
@@ -116,7 +107,6 @@ model access_windows {
   can_view_until DateTime? @db.Timestamptz(6)
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
   updated_at     DateTime? @default(now()) @db.Timestamptz(6)
-  roles          roles     @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model branch_address {
@@ -127,22 +117,24 @@ model branch_address {
   postal_code   String?   @db.VarChar(10)
   city          String?   @default("Singapore") @db.VarChar(100)
   country       String?   @default("Singapore") @db.VarChar(100)
-  latitude      Decimal?
-  longitude     Decimal?
+  latitude      Decimal?  @db.Decimal(10, 7)
+  longitude     Decimal?  @db.Decimal(10, 7)
   is_primary    Boolean?  @default(true)
   created_at    DateTime? @default(now()) @db.Timestamp(6)
   updated_at    DateTime? @default(now()) @db.Timestamp(6)
-  branch        branch    @relation(fields: [branch_id], references: [branch_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([branch_id, is_primary], map: "unique_primary_branch_address")
 }
 
 model tender_briefing_dates {
   id            Int       @id @default(autoincrement())
   tender_id     Int
-  briefing_date DateTime
+  briefing_date DateTime  @db.Timestamp(6)
   description   String?
   created_at    DateTime? @default(now()) @db.Timestamp(6)
   updated_at    DateTime? @default(now()) @db.Timestamp(6)
-  tender        tender    @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([tender_id], map: "idx_tender_briefing_dates_tender_id")
 }
 
 model tender_cc_recipients {
@@ -161,7 +153,6 @@ model tender_default_timings {
   default_closing_time     DateTime? @db.Time(6)
   default_submission_start DateTime? @db.Time(6)
   default_submission_end   DateTime? @db.Time(6)
-  users                    users?    @relation(fields: [updated_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model brand {
@@ -272,20 +263,24 @@ model approval_requests {
 }
 
 model audit_log {
-  audit_id   Int       @id @default(autoincrement())
+  audit_id   BigInt    @id @default(autoincrement())
   table_name String    @db.VarChar(100)
   record_id  Int
   action     String    @db.VarChar(20)
   old_data   Json?
   new_data   Json?
   changed_by Int?
-  changed_at DateTime? @default(now()) @db.Timestamp(6)
+  changed_at DateTime? @default(now()) @db.Timestamptz(6)
   ip_address String?   @db.Inet
   user_agent String?
+  request_id Int?
+  details    Json?
+  chain_hash String?   @db.VarChar(64)
   users      users?    @relation(fields: [changed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([changed_at], map: "idx_audit_log_changed_at")
   @@index([table_name, record_id], map: "idx_audit_log_record")
+  @@index([table_name, record_id], map: "idx_audit_log_table_record")
 }
 
 model auth_refresh_token {
@@ -503,9 +498,9 @@ model notifications {
   link            String?  @db.VarChar(500)
   is_read         Boolean  @default(false)
   created_at      DateTime @default(now()) @db.Timestamp(6)
-  users           users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  users           users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([user_id, is_read, created_at])
+  @@index([user_id, is_read, created_at(sort: Desc)], map: "idx_notifications_user_unread")
 }
 
 model password_reset_tokens {
@@ -521,18 +516,14 @@ model password_reset_tokens {
   @@index([user_id], map: "idx_password_reset_tokens_user_id")
 }
 
-// ============================================
-// NEW: password history for reuse prevention
-// ============================================
 model password_history {
   id            Int      @id @default(autoincrement())
   user_id       Int
   password_hash String   @db.VarChar(255)
   created_at    DateTime @default(now()) @db.Timestamp(6)
+  user          users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
-  user users @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-
-  @@index([user_id, created_at], name: "idx_password_history_user_created")
+  @@index([user_id, created_at], map: "idx_password_history_user_created")
 }
 
 model past_project {
@@ -646,9 +637,6 @@ model review_comment {
   submission_review     submission_review @relation(fields: [review_id], references: [review_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-// CANONICAL RBAC (plural family) — the roles/permissions model actually wired
-// into login (src/lib/auth.ts) and session.user.roleIds. Use this for all new
-// authorization code. See docs/rbac.md.
 model role_permissions {
   role_id       Int
   permission_id Int
@@ -659,7 +647,6 @@ model role_permissions {
   @@id([role_id, permission_id])
 }
 
-// CANONICAL RBAC (plural family) — see docs/rbac.md.
 model roles {
   role_id                   Int                         @id @default(autoincrement())
   role_name                 String                      @unique @db.VarChar(100)
@@ -670,10 +657,9 @@ model roles {
   sort_order                Int?                        @default(999)
   approval_chains           approval_chains[]
   role_permissions          role_permissions[]
+  tender_extension_settings tender_extension_settings[]
   user_roles                user_roles[]
   users                     users[]
-  tender_extension_settings tender_extension_settings[]
-  access_windows            access_windows[]
 }
 
 model spending_facts {
@@ -906,7 +892,6 @@ model user_profile {
   users        users    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-// CANONICAL RBAC (plural family) — see docs/rbac.md.
 model user_roles {
   user_id                             Int
   role_id                             Int
@@ -919,42 +904,30 @@ model user_roles {
   @@id([user_id, role_id])
 }
 
-// ============================================
-// UPDATED USERS MODEL WITH LOCKOUT & HISTORY
-// ============================================
 model users {
-  user_id              Int       @id @default(autoincrement())
-  role_id              Int
-  username             String    @unique @db.VarChar(100)
-  email                String    @unique @db.VarChar(150)
-  password_hash        String    @db.VarChar(255)
-  is_active            Boolean   @default(true)
-  is_approved          Boolean   @default(false)
-  is_deleted           Boolean   @default(false)
-  last_login           DateTime? @db.Timestamp(6)
-  deleted_at           DateTime? @db.Timestamp(6)
-  created_at           DateTime  @default(now()) @db.Timestamp(6)
-  updated_at           DateTime  @default(now()) @db.Timestamp(6)
-  access_start_date    DateTime? @db.Date
-  access_end_date      DateTime? @db.Date
-  is_team_member       Boolean?  @default(false)
-  employee_code        String?   @db.VarChar(50)
-  job_title            String?   @db.VarChar(100)
-  must_change_password Boolean?  @default(true)
-  dashboard_layout     Json?
-  password_changed_at  DateTime? @db.Timestamp(6)
-
-  // ===== NEW FIELDS: Account lockout =====
-  failed_login_attempts Int?      @default(0)
-  locked_until          DateTime? @db.Timestamp(6)
-  last_failed_attempt   DateTime? @db.Timestamp(6)
-  // ========================================
-
-  // ===== NEW RELATION: password history =====
-  password_history password_history[]
-  notifications     notifications[]
-
-  // ------------------ Existing relations ------------------
+  user_id                                                                 Int                           @id @default(autoincrement())
+  role_id                                                                 Int
+  username                                                                String                        @unique @db.VarChar(100)
+  email                                                                   String                        @unique @db.VarChar(150)
+  password_hash                                                           String                        @db.VarChar(255)
+  is_active                                                               Boolean                       @default(true)
+  is_approved                                                             Boolean                       @default(false)
+  is_deleted                                                              Boolean                       @default(false)
+  last_login                                                              DateTime?                     @db.Timestamp(6)
+  deleted_at                                                              DateTime?                     @db.Timestamp(6)
+  created_at                                                              DateTime                      @default(now()) @db.Timestamp(6)
+  updated_at                                                              DateTime                      @default(now()) @db.Timestamp(6)
+  access_start_date                                                       DateTime?                     @db.Date
+  access_end_date                                                         DateTime?                     @db.Date
+  is_team_member                                                          Boolean?                      @default(false)
+  employee_code                                                           String?                       @db.VarChar(50)
+  job_title                                                               String?                       @db.VarChar(100)
+  must_change_password                                                    Boolean?                      @default(true)
+  dashboard_layout                                                        Json?
+  failed_login_attempts                                                   Int?                          @default(0)
+  last_failed_attempt                                                     DateTime?                     @db.Timestamp(6)
+  locked_until                                                            DateTime?                     @db.Timestamp(6)
+  password_changed_at                                                     DateTime?                     @db.Timestamp(6)
   approval_history                                                        approval_history[]
   approval_requests                                                       approval_requests[]
   audit_log                                                               audit_log[]
@@ -964,36 +937,41 @@ model users {
   email_notification_log                                                  email_notification_log[]
   interest_document                                                       interest_document[]
   login_history                                                           login_history[]
-  negotiation_log_negotiation_log_contractor_idTousers                    negotiation_log[]           @relation("negotiation_log_contractor_idTousers")
-  negotiation_log_negotiation_log_logged_byTousers                        negotiation_log[]           @relation("negotiation_log_logged_byTousers")
+  negotiation_log_negotiation_log_contractor_idTousers                    negotiation_log[]             @relation("negotiation_log_contractor_idTousers")
+  negotiation_log_negotiation_log_logged_byTousers                        negotiation_log[]             @relation("negotiation_log_logged_byTousers")
+  notification_event_settings                                             notification_event_settings[]
+  notifications                                                           notifications[]
+  password_history                                                        password_history[]
   password_reset_tokens                                                   password_reset_tokens[]
   past_project_upload                                                     past_project_upload[]
   reno_comparison                                                         reno_comparison[]
   reno_comparison_item                                                    reno_comparison_item[]
-  resubmission_request_resubmission_request_contractor_idTousers          resubmission_request[]      @relation("resubmission_request_contractor_idTousers")
-  resubmission_request_resubmission_request_requested_byTousers           resubmission_request[]      @relation("resubmission_request_requested_byTousers")
+  resubmission_request_resubmission_request_contractor_idTousers          resubmission_request[]        @relation("resubmission_request_contractor_idTousers")
+  resubmission_request_resubmission_request_requested_byTousers           resubmission_request[]        @relation("resubmission_request_requested_byTousers")
   review_comment                                                          review_comment[]
-  submission_review_submission_review_granted_access_toTousers            submission_review[]         @relation("submission_review_granted_access_toTousers")
-  submission_review_submission_review_reviewed_byTousers                  submission_review[]         @relation("submission_review_reviewed_byTousers")
+  submission_review_submission_review_granted_access_toTousers            submission_review[]           @relation("submission_review_granted_access_toTousers")
+  submission_review_submission_review_reviewed_byTousers                  submission_review[]           @relation("submission_review_reviewed_byTousers")
   tender                                                                  tender[]
+  tender_tender_handover_byTousers                                        tender[]                      @relation("tender_handover_byTousers")
   tender_acknowledgments                                                  tender_acknowledgment[]
-  tender_award_tender_award_awarded_byTousers                             tender_award[]              @relation("tender_award_awarded_byTousers")
-  tender_award_tender_award_winning_contractor_idTousers                  tender_award[]              @relation("tender_award_winning_contractor_idTousers")
-  tender_contractor_tender_contractor_approved_byTousers                  tender_contractor[]         @relation("tender_contractor_approved_byTousers")
-  tender_contractor_tender_contractor_contractor_idTousers                tender_contractor[]         @relation("tender_contractor_contractor_idTousers")
+  tender_award_tender_award_awarded_byTousers                             tender_award[]                @relation("tender_award_awarded_byTousers")
+  tender_award_tender_award_winning_contractor_idTousers                  tender_award[]                @relation("tender_award_winning_contractor_idTousers")
+  tender_contractor_tender_contractor_approved_byTousers                  tender_contractor[]           @relation("tender_contractor_approved_byTousers")
+  tender_contractor_tender_contractor_contractor_idTousers                tender_contractor[]           @relation("tender_contractor_contractor_idTousers")
   tender_document                                                         tender_document[]
   tender_document_download                                                tender_document_download[]
-  tender_extension_requests_tender_extension_requests_approved_byTousers  tender_extension_requests[] @relation("tender_extension_requests_approved_byTousers")
-  tender_extension_requests_tender_extension_requests_requested_byTousers tender_extension_requests[] @relation("tender_extension_requests_requested_byTousers")
-  tender_interest_tender_interest_approved_byTousers                      tender_interest[]           @relation("tender_interest_approved_byTousers")
-  tender_interest_tender_interest_contractor_idTousers                    tender_interest[]           @relation("tender_interest_contractor_idTousers")
+  tender_extension_requests_tender_extension_requests_approved_byTousers  tender_extension_requests[]   @relation("tender_extension_requests_approved_byTousers")
+  tender_extension_requests_tender_extension_requests_requested_byTousers tender_extension_requests[]   @relation("tender_extension_requests_requested_byTousers")
+  tender_interest_tender_interest_approved_byTousers                      tender_interest[]             @relation("tender_interest_approved_byTousers")
+  tender_interest_tender_interest_contractor_idTousers                    tender_interest[]             @relation("tender_interest_contractor_idTousers")
+  tender_message_tender_message_contractor_idTousers                      tender_message[]              @relation("tender_message_contractor_idTousers")
+  tender_message_tender_message_sender_idTousers                          tender_message[]              @relation("tender_message_sender_idTousers")
   tender_requests                                                         tender_requests[]
   tender_submission                                                       tender_submission[]
   user_profile                                                            user_profile?
-  tender_default_timings                                                  tender_default_timings[]
-  user_roles_user_roles_assigned_byTousers                                user_roles[]                @relation("user_roles_assigned_byTousers")
-  user_roles_user_roles_user_idTousers                                    user_roles[]                @relation("user_roles_user_idTousers")
-  roles                                                                   roles                       @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+  user_roles_user_roles_assigned_byTousers                                user_roles[]                  @relation("user_roles_assigned_byTousers")
+  user_roles_user_roles_user_idTousers                                    user_roles[]                  @relation("user_roles_user_idTousers")
+  roles                                                                   roles                         @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([is_active, is_deleted], map: "idx_users_active")
 }
@@ -1039,4 +1017,28 @@ model tender_extension_settings {
   created_at  DateTime? @default(now()) @db.Timestamp(6)
   updated_at  DateTime? @default(now()) @db.Timestamp(6)
   roles       roles     @relation(fields: [role_id], references: [role_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model notification_event_settings {
+  event_type    String   @id @db.VarChar(50)
+  label         String   @db.VarChar(150)
+  email_enabled Boolean  @default(true)
+  updated_at    DateTime @default(now()) @db.Timestamp(6)
+  updated_by    Int?
+  users         users?   @relation(fields: [updated_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model tender_message {
+  message_id                                Int      @id @default(autoincrement())
+  tender_id                                 Int
+  contractor_id                             Int
+  sender_id                                 Int
+  is_announcement                           Boolean  @default(false)
+  body                                      String
+  created_at                                DateTime @default(now()) @db.Timestamp(6)
+  users_tender_message_contractor_idTousers users    @relation("tender_message_contractor_idTousers", fields: [contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_tender_message_sender_idTousers     users    @relation("tender_message_sender_idTousers", fields: [sender_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  tender                                    tender   @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([tender_id, contractor_id, created_at], map: "idx_tender_message_thread")
 }
