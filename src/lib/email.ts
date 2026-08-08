@@ -89,8 +89,8 @@ function renderEmail({
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="color-scheme" content="light dark">
-      <meta name="supported-color-schemes" content="light dark">
+      <meta name="color-scheme" content="light">
+      <meta name="supported-color-schemes" content="light">
       <title>${escapeHtml(title)}</title>
       <style>
         @media only screen and (max-width: 600px) {
@@ -98,23 +98,9 @@ function renderEmail({
           .content { padding-left: 20px !important; padding-right: 20px !important; }
           .button { display: block !important; width: 100% !important; text-align: center !important; box-sizing: border-box; }
         }
-        /* Dark-mode support for clients honoring prefers-color-scheme
-           (Apple Mail, iOS/Android Mail, Outlook mobile, Thunderbird).
-           Outlook.com's proprietary dark-mode hooks aren't covered here -
-           it falls back to the light design there, which still reads fine. */
-        @media (prefers-color-scheme: dark) {
-          .email-bg { background-color: #0b1220 !important; }
-          .container { border-color: #1f2937 !important; }
-          .body-bg { background-color: #0f172a !important; }
-          .email-title { color: #f1f5f9 !important; }
-          .email-text, .email-text p, .email-text span, .email-text div { color: #cbd5e1 !important; }
-          .footer-bg { background-color: #0a0f1a !important; border-top-color: #1f2937 !important; }
-          .footer-primary { color: #94a3b8 !important; }
-          .footer-secondary { color: #64748b !important; }
-        }
       </style>
     </head>
-    <body class="email-bg" style="margin:0;padding:0;background-color:#eef1f6;font-family:Arial,Helvetica,sans-serif;">
+    <body style="margin:0;padding:0;background-color:#eef1f6;font-family:Arial,Helvetica,sans-serif;">
       <center style="width:100%;table-layout:fixed;">
         <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" class="container" style="max-width:600px;width:100%;background-color:#ffffff;margin:24px auto;border:1px solid #e0e7ef;border-radius:14px;overflow:hidden;">
 
@@ -135,11 +121,11 @@ function renderEmail({
 
           <!-- Title + Body — own background, visually distinct from header/footer -->
           <tr>
-            <td bgcolor="#ffffff" class="body-bg">
+            <td bgcolor="#ffffff">
               <div class="content" style="padding:30px 28px 0;text-align:center;">
-                <h1 class="email-title" style="font-size:20px;font-weight:700;color:#1a2c3e;margin:0;">${escapeHtml(title)}</h1>
+                <h1 style="font-size:20px;font-weight:700;color:#1a2c3e;margin:0;">${escapeHtml(title)}</h1>
               </div>
-              <div class="content email-text" style="padding:16px 28px 30px;font-size:15px;line-height:1.6;color:#334155;">
+              <div class="content" style="padding:16px 28px 30px;font-size:15px;line-height:1.6;color:#334155;">
                 ${bodyHtml}
                 ${ctaHtml}
               </div>
@@ -148,11 +134,11 @@ function renderEmail({
 
           <!-- Footer -->
           <tr>
-            <td bgcolor="#e9eef5" class="footer-bg" style="background-color:#e9eef5;border-top:1px solid #dbe3ee;padding:20px 28px;text-align:center;">
-              <p class="footer-primary" style="margin:0 0 6px;font-size:12px;color:#475569;">
+            <td bgcolor="#e9eef5" style="background-color:#e9eef5;border-top:1px solid #dbe3ee;padding:20px 28px;text-align:center;">
+              <p style="margin:0 0 6px;font-size:12px;color:#475569;">
                 This is an automated message — please do not reply.
               </p>
-              <p class="footer-secondary" style="margin:0;font-size:11px;color:#94a3b8;">
+              <p style="margin:0;font-size:11px;color:#94a3b8;">
                 © ${new Date().getFullYear()} Beauty One International Pte Ltd. All rights reserved.
               </p>
             </td>
