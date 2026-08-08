@@ -54,16 +54,18 @@ describe("autoOpenScheduledTenders", () => {
     expect(updateParams).toEqual([42]);
   });
 
-  it("emails recipients with newStage 1 when a tender auto-opens", async () => {
+  it("emails recipients and creates an in-app notification with newStage 1 when a tender auto-opens", async () => {
     queryMock
       .mockResolvedValueOnce({ rows: [{ status_id: 42 }] })
       .mockResolvedValueOnce({ rows: [{ tender_id: 7, tender_name: "Test Tender" }] })
-      .mockResolvedValueOnce({ rows: [{ email: "fmrd@example.com", name: "FM RD" }] });
+      .mockResolvedValueOnce({ rows: [{ user_id: 3, email: "fmrd@example.com", name: "FM RD" }] })
+      .mockResolvedValueOnce({ rows: [] }); // notifyUsers INSERT
 
     await autoOpenScheduledTenders();
 
     await vi.waitFor(() => {
       expect(sendStageNotificationEmailMock).toHaveBeenCalledTimes(1);
+      expect(queryMock).toHaveBeenCalledTimes(4);
     });
     expect(sendStageNotificationEmailMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -73,6 +75,9 @@ describe("autoOpenScheduledTenders", () => {
         newStage: 1,
       })
     );
+    const [insertSql, insertParams] = queryMock.mock.calls[3];
+    expect(insertSql).toMatch(/INSERT INTO notifications/);
+    expect(insertParams).toEqual([3, "Tender moved to Open", expect.stringContaining("Test Tender"), "/tenders/7"]);
   });
 });
 
@@ -98,16 +103,18 @@ describe("autoCloseExpiredTenders", () => {
     expect(updateParams).toEqual([5]);
   });
 
-  it("emails recipients with newStage 2 when a tender auto-closes", async () => {
+  it("emails recipients and creates an in-app notification with newStage 2 when a tender auto-closes", async () => {
     queryMock
       .mockResolvedValueOnce({ rows: [{ status_id: 5 }] })
       .mockResolvedValueOnce({ rows: [{ tender_id: 9, tender_name: "Closing Tender" }] })
-      .mockResolvedValueOnce({ rows: [{ email: "financegm@example.com", name: "Finance GM" }] });
+      .mockResolvedValueOnce({ rows: [{ user_id: 4, email: "financegm@example.com", name: "Finance GM" }] })
+      .mockResolvedValueOnce({ rows: [] }); // notifyUsers INSERT
 
     await autoCloseExpiredTenders();
 
     await vi.waitFor(() => {
       expect(sendStageNotificationEmailMock).toHaveBeenCalledTimes(1);
+      expect(queryMock).toHaveBeenCalledTimes(4);
     });
     expect(sendStageNotificationEmailMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -116,6 +123,9 @@ describe("autoCloseExpiredTenders", () => {
         newStage: 2,
       })
     );
+    const [insertSql, insertParams] = queryMock.mock.calls[3];
+    expect(insertSql).toMatch(/INSERT INTO notifications/);
+    expect(insertParams[0]).toBe(4);
   });
 });
 

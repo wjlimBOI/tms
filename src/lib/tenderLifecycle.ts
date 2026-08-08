@@ -1,8 +1,10 @@
 import { query } from "@/lib/db";
 import { sendStageNotificationEmail } from "@/lib/email";
+import { notifyUsers } from "@/lib/notifications";
 import { ROLE_IDS } from "@/lib/roles";
 
 const STAGE_NOTIFY_ROLES = [ROLE_IDS.FM_REGIONAL_DIRECTOR, ROLE_IDS.FINANCE_GENERAL_MANAGER];
+const STAGE_NAMES = ["Upcoming", "Open", "Closed", "Awarded"];
 
 async function notifyAutoTransition(
   tenders: { tender_id: number; tender_name: string }[],
@@ -11,9 +13,12 @@ async function notifyAutoTransition(
 ): Promise<void> {
   try {
     const usersRes = await query(
-      `SELECT email, name FROM users WHERE role_id = ANY($1) AND is_active = true`,
+      `SELECT user_id, email, name FROM users WHERE role_id = ANY($1) AND is_active = true`,
       [STAGE_NOTIFY_ROLES]
     );
+    const recipientIds = usersRes.rows.map((r) => r.user_id);
+    const stageName = STAGE_NAMES[newStage] || `Stage ${newStage}`;
+
     for (const tender of tenders) {
       for (const recipient of usersRes.rows) {
         await sendStageNotificationEmail({
@@ -27,6 +32,14 @@ async function notifyAutoTransition(
           console.error(`Auto-transition email failed for tender ${tender.tender_id} -> ${recipient.email}:`, err);
         });
       }
+      await notifyUsers(
+        recipientIds,
+        `Tender moved to ${stageName}`,
+        `"${tender.tender_name}" has been moved to ${stageName} by ${performedBy}.`,
+        `/tenders/${tender.tender_id}`
+      ).catch((err) => {
+        console.error(`Auto-transition in-app notification failed for tender ${tender.tender_id}:`, err);
+      });
     }
   } catch (err) {
     console.error("Auto-transition notification lookup failed:", err);

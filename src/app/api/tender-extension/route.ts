@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { logInsert } from "@/lib/audit";
 import { sendExtensionRequestEmail } from "@/lib/email";
+import { notifyUsers } from "@/lib/notifications";
 import { ROLE_IDS } from "@/lib/roles";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 
@@ -148,9 +149,9 @@ export async function POST(req: Request) {
     const finalApproverRoles = approverRoleIds.length > 0 ? approverRoleIds : [6];
     const finalCcRoles = ccRoleIds.length > 0 ? ccRoleIds : [10, 8];
 
-    // Get approver and CC email addresses
+    // Get approver and CC user info
     const usersQuery = `
-      SELECT u.email, u.username FROM users u
+      SELECT u.user_id, u.email, u.username FROM users u
       JOIN user_roles ur ON u.user_id = ur.user_id
       WHERE ur.role_id = ANY($1) AND u.is_active = true
     `;
@@ -173,6 +174,14 @@ export async function POST(req: Request) {
       ccEmails: ccUsers.rows.map(r => r.email),
       requestId,
     });
+
+    const allRecipientIds = [...new Set([...approvers.rows, ...ccUsers.rows].map((r) => r.user_id))];
+    await notifyUsers(
+      allRecipientIds,
+      "Tender extension request",
+      `${requesterName} requested a ${requested_days}-day extension for "${tender.tender_name}".`,
+      `/admin/tenders/${tender.tender_id}/extensions/${requestId}`
+    );
   } catch (emailError) {
     console.error("Failed to send extension notification email:", emailError);
     // Do not fail the request – just log the error

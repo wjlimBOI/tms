@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query, getClient } from "@/lib/db";
 import { sendStageNotificationEmail } from "@/lib/email";
+import { notifyUsers } from "@/lib/notifications";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
@@ -254,6 +255,16 @@ export async function PUT(
             console.error(`Failed to send stage email to ${recipient.email}:`, err);
           });
         }
+
+        const stageName = ['Upcoming', 'Open', 'Closed', 'Awarded'][nextStage] || `Stage ${nextStage}`;
+        await notifyUsers(
+          usersRes.rows.map((r) => r.user_id),
+          `Tender moved to ${stageName}`,
+          `"${tender.tender_name}" has been moved to ${stageName} by ${performedBy}.`,
+          `/tenders/${tenderId}`
+        ).catch((err: any) => {
+          console.error(`Failed to create in-app notification for tender ${tenderId}:`, err);
+        });
       }
     }
 

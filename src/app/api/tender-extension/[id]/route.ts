@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { logUpdate } from "@/lib/audit";
 import { sendExtensionDecisionEmail } from "@/lib/email";
+import { notifyUsers } from "@/lib/notifications";
 import { ROLE_IDS } from "@/lib/roles";
 
 // GET – fetch a single extension request (unchanged)
@@ -134,7 +135,7 @@ export async function PUT(
     req
   );
 
-  // 6. Send email notification to the requester
+  // 6. Send email + in-app notification to the requester
   try {
     const userRes = await query(
       `SELECT email, username FROM users WHERE user_id = $1`,
@@ -152,6 +153,12 @@ export async function PUT(
         proposedClosing: oldData.proposed_closing_date,
         tenderId: oldData.tender_id,
       });
+      await notifyUsers(
+        [oldData.requested_by],
+        `Extension request ${status.toLowerCase()}`,
+        `Your extension request for "${tenderName}" was ${status.toLowerCase()}.`,
+        `/tenders/${oldData.tender_id}`
+      );
     }
   } catch (emailError) {
     console.error("Failed to send decision email:", emailError);
