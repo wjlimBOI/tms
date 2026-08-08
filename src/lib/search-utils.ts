@@ -125,7 +125,7 @@ export function highlightMatches(text: string, keywords: string[]): string {
   if (!text || keywords.length === 0) return text;
   const escaped = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const regex = new RegExp(escaped.join('|'), 'gi');
-  return text.replace(regex, match => `<mark class="bg-yellow-300/70 dark:bg-yellow-500/60 text-gray-900 dark:text-white px-0.5 rounded">${match}</mark>`);
+  return text.replace(regex, match => `<mark class="bg-yellow-300/70 text-gray-900 px-0.5 rounded">${match}</mark>`);
 }
 
 // ---------- FUSE ----------

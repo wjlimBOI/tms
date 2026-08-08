@@ -53,7 +53,7 @@ function DrawerContent({
         {...props}
       >
         {/* Only show the drag handle for bottom drawers */}
-        <div className="mx-auto mt-4 hidden h-1 w-[100px] shrink-0 rounded-full bg-slate-300 dark:bg-slate-600 group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
+        <div className="mx-auto mt-4 hidden h-1 w-[100px] shrink-0 rounded-full bg-slate-300 group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
         {children}
       </DrawerPrimitive.Content>
     </DrawerPortal>

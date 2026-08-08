@@ -10,10 +10,10 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
           <span>© {currentYear} Beauty One International Pte Ltd. All rights reserved.</span>
           <div className="flex items-center gap-4">
-            <Link href="/privacy" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
+            <Link href="/privacy" className="hover:text-cyan-600 transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
+            <Link href="/terms" className="hover:text-cyan-600 transition-colors">
               Terms of Service
             </Link>
           </div>

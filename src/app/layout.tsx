@@ -15,7 +15,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en">
-      <body className="bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col">
+      <body className="bg-gray-50 min-h-screen flex flex-col">
         <RootProviders session={session}>
           <Navbar />
           <main className="flex-1">

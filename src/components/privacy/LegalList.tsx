@@ -12,7 +12,7 @@ export function LegalList({ items, variant = 'disc' }: LegalListProps) {
   return (
     <ul className={listClass}>
       {items.map((item, idx) => (
-        <li key={idx} className="text-slate-700 dark:text-slate-300 leading-relaxed">
+        <li key={idx} className="text-slate-700 leading-relaxed">
           {item}
         </li>
       ))}

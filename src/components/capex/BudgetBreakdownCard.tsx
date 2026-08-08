@@ -86,11 +86,11 @@ export function BudgetBreakdownCard({
           return (
             <div
               key={item.key}
-              className={`flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 last:border-0 ${
-                isSelected ? 'bg-cyan-50 dark:bg-cyan-900/20 -mx-2 px-2 rounded' : ''
+              className={`flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 border-b border-slate-100 pb-2 last:border-0 ${
+                isSelected ? 'bg-cyan-50 -mx-2 px-2 rounded' : ''
               }`}
             >
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.label}</span>
+              <span className="text-sm font-medium text-slate-700">{item.label}</span>
               <div className="flex items-center gap-3">
                 {item.editable ? (
                   isEditing ? (
@@ -110,7 +110,7 @@ export function BudgetBreakdownCard({
                 ) : (
                   <span className="text-xs text-slate-500 w-28 text-right">{formatPercent(item.percent)}</span>
                 )}
-                <span className="font-mono font-medium text-slate-900 dark:text-white w-28 text-right">
+                <span className="font-mono font-medium text-slate-900 w-28 text-right">
                   {formatCurrency(item.value)}
                 </span>
               </div>
