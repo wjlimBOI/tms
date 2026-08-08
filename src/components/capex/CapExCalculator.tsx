@@ -165,9 +165,9 @@ export function CapExCalculator({
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200 dark:border-slate-800 shadow-md">
+      <Card className="border-slate-200 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
-          <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Budget Calculator</CardTitle>
+          <CardTitle className="text-lg font-semibold text-slate-900">Budget Calculator</CardTitle>
           <Button
             variant="outline"
             size="sm"
@@ -178,7 +178,7 @@ export function CapExCalculator({
                 setIsEditingConstraints(true);
               }
             }}
-            className="gap-1 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"
+            className="gap-1 text-slate-600 border-slate-300"
           >
             {isEditingConstraints ? (
               <>
@@ -194,7 +194,7 @@ export function CapExCalculator({
         <CardContent className="grid gap-4 sm:grid-cols-2">
           {/* Brand */}
           <div>
-            <Label className="text-slate-700 dark:text-slate-300">Brand</Label>
+            <Label className="text-slate-700">Brand</Label>
             <select
               value={input.brand}
               onChange={(e) => setBrand(e.target.value as BrandKey)}
@@ -208,7 +208,7 @@ export function CapExCalculator({
 
           {/* Area */}
           <div>
-            <Label className="text-slate-700 dark:text-slate-300">Area (sqft)</Label>
+            <Label className="text-slate-700">Area (sqft)</Label>
             <div className="flex gap-2">
               <select
                 value=""
@@ -233,7 +233,7 @@ export function CapExCalculator({
 
           {/* CR */}
           <div>
-            <Label className="text-slate-700 dark:text-slate-300">Consultation Rooms (CR)</Label>
+            <Label className="text-slate-700">Consultation Rooms (CR)</Label>
             {isEditingConstraints && editableConstraints ? (
               <div className="flex items-center gap-2">
                 <Input
@@ -272,7 +272,7 @@ export function CapExCalculator({
 
           {/* TR */}
           <div>
-            <Label className="text-slate-700 dark:text-slate-300">Treatment Rooms (TR)</Label>
+            <Label className="text-slate-700">Treatment Rooms (TR)</Label>
             {isEditingConstraints && editableConstraints ? (
               <div className="flex items-center gap-2">
                 <Input
@@ -312,7 +312,7 @@ export function CapExCalculator({
           {/* Open TR */}
           {showOpenTR && (
             <div>
-              <Label className="text-slate-700 dark:text-slate-300">Open Treatment Rooms</Label>
+              <Label className="text-slate-700">Open Treatment Rooms</Label>
               {isEditingConstraints && editableConstraints ? (
                 <div className="flex items-center gap-2">
                   <Input
@@ -353,7 +353,7 @@ export function CapExCalculator({
           {/* Shampoo */}
           {showShampoo && (
             <div>
-              <Label className="text-slate-700 dark:text-slate-300">Shampoo Stations</Label>
+              <Label className="text-slate-700">Shampoo Stations</Label>
               {isEditingConstraints && editableConstraints ? (
                 <div className="flex items-center gap-2">
                   <Input
@@ -394,7 +394,7 @@ export function CapExCalculator({
           {/* Brand-specific fields */}
           {showBlueSpirit && (
             <div>
-              <Label className="text-slate-700 dark:text-slate-300">Blue Spirit Beds</Label>
+              <Label className="text-slate-700">Blue Spirit Beds</Label>
               {isEditingConstraints && editableConstraints ? (
                 <div className="flex items-center gap-2">
                   <Input
@@ -434,7 +434,7 @@ export function CapExCalculator({
 
           {showMaleBed && (
             <div>
-              <Label className="text-slate-700 dark:text-slate-300">Male Beds</Label>
+              <Label className="text-slate-700">Male Beds</Label>
               {isEditingConstraints && editableConstraints ? (
                 <div className="flex items-center gap-2">
                   <Input
@@ -474,7 +474,7 @@ export function CapExCalculator({
 
           {showMealPlan && (
             <div>
-              <Label className="text-slate-700 dark:text-slate-300">Meal Plan Tables</Label>
+              <Label className="text-slate-700">Meal Plan Tables</Label>
               {isEditingConstraints && editableConstraints ? (
                 <div className="flex items-center gap-2">
                   <Input
@@ -515,8 +515,8 @@ export function CapExCalculator({
           {/* Total Beds */}
           {showTotalBeds && (
             <div className="sm:col-span-2">
-              <Label className="text-slate-700 dark:text-slate-300">Total Beds / Seats</Label>
-              <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <Label className="text-slate-700">Total Beds / Seats</Label>
+              <div className="text-sm font-medium text-slate-700">
                 {constraints?.minTotalBeds} – {constraints?.maxTotalBeds}
                 {isEditingConstraints && (
                   <span className="ml-2 text-xs text-muted-foreground">(editable in backend rules)</span>
@@ -530,9 +530,9 @@ export function CapExCalculator({
       {/* Capacity Validation */}
       {result && (
         <>
-          <Card className="border-slate-200 dark:border-slate-800 shadow-md">
+          <Card className="border-slate-200 shadow-md">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Capacity Validation</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900">Capacity Validation</CardTitle>
             </CardHeader>
             <CardContent>
               {constraints ? (
@@ -560,7 +560,7 @@ export function CapExCalculator({
           <div className="space-y-4">
             {/* Dropdown to choose budget type */}
             <div className="flex items-center gap-3">
-              <Label className="text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">Apply Budget Type:</Label>
+              <Label className="text-slate-700 font-medium whitespace-nowrap">Apply Budget Type:</Label>
               <select
                 value={selectedBudgetType}
                 onChange={(e) => setSelectedBudgetType(e.target.value)}
@@ -570,7 +570,7 @@ export function CapExCalculator({
                   <option key={type.key} value={type.key}>{type.label}</option>
                 ))}
               </select>
-              <span className="text-sm font-mono font-semibold text-slate-900 dark:text-white">
+              <span className="text-sm font-mono font-semibold text-slate-900">
                 ${selectedAmount.toLocaleString()}
               </span>
             </div>
@@ -585,10 +585,10 @@ export function CapExCalculator({
           </div>
 
           {onApply && (
-            <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex justify-end pt-4 border-t border-slate-200">
               <Button
                 onClick={handleApply}
-                className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white"
+                className="bg-slate-900 hover:bg-slate-800 text-white"
               >
                 Apply to Tender
               </Button>
