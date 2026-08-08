@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
+import { hasRole, hasPermission } from "@/lib/permissions";
 
 async function getDefaultTimings() {
   const result = await query(
@@ -68,16 +69,9 @@ export async function GET(req: NextRequest) {
 
   const userRoleIds = (session.user as any).roleIds || [];
   const userId = (session.user as any).id;
-  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
-    const permCheck = await query(
-      `SELECT 1 FROM role_permissions rp
-       JOIN permissions p ON rp.permission_id = p.permission_id
-       WHERE rp.role_id = (SELECT role_id FROM users WHERE user_id = $1)
-       AND p.permission_code = 'manage_tender_timings'
-       LIMIT 1`,
-      [userId]
-    );
-    if (permCheck.rows.length === 0) {
+  if (!hasRole(userRoleIds, ROLE_IDS.ADMIN)) {
+    const allowed = await hasPermission(userId, userRoleIds, "Tender Management", "manage_tender_timings");
+    if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }
@@ -99,16 +93,9 @@ export async function PUT(req: NextRequest) {
 
   const userRoleIds = (session.user as any).roleIds || [];
   const userId = (session.user as any).id;
-  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
-    const permCheck = await query(
-      `SELECT 1 FROM role_permissions rp
-       JOIN permissions p ON rp.permission_id = p.permission_id
-       WHERE rp.role_id = (SELECT role_id FROM users WHERE user_id = $1)
-       AND p.permission_code = 'manage_tender_timings'
-       LIMIT 1`,
-      [userId]
-    );
-    if (permCheck.rows.length === 0) {
+  if (!hasRole(userRoleIds, ROLE_IDS.ADMIN)) {
+    const allowed = await hasPermission(userId, userRoleIds, "Tender Management", "manage_tender_timings");
+    if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }

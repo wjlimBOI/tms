@@ -10,6 +10,8 @@ import {
   CalendarEventCreateInput 
 } from "@/lib/validation";
 import { logInsert, logAuthEvent } from "@/lib/audit";
+import { hasRole, hasPermission } from "@/lib/permissions";
+import { ROLE_IDS } from "@/lib/roles";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');
@@ -26,6 +28,11 @@ export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
+  const roleIds = (session.user as any).roleIds || [];
+  const canViewSchedule = hasRole(roleIds, ROLE_IDS.ADMIN) || (await hasPermission((session.user as any).id, roleIds, "calendar", "view_project_schedule"));
+  if (!canViewSchedule) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }
 
   try {
@@ -99,6 +106,11 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
+  const roleIds = (session.user as any).roleIds || [];
+  const canManageSchedule = hasRole(roleIds, ROLE_IDS.ADMIN) || (await hasPermission((session.user as any).id, roleIds, "calendar", "view_project_schedule"));
+  if (!canManageSchedule) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }
 
   try {

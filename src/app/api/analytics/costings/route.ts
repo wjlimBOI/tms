@@ -4,24 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { parsePagination, paginationMeta } from '@/lib/pagination';
-
-// ------------------------------------------------------------------
-// Permission helper
-// ------------------------------------------------------------------
-async function hasPermission(userId: number, permissionCode: string): Promise<boolean> {
-  const [resource, action] = permissionCode.includes(':')
-    ? permissionCode.split(':')
-    : [permissionCode, permissionCode];
-  const res = await query(
-    `SELECT 1
-     FROM user_roles ur
-     JOIN role_permissions rp ON rp.role_id = ur.role_id
-     JOIN permissions p ON p.permission_id = rp.permission_id
-     WHERE ur.user_id = $1 AND p.resource = $2 AND p.action = $3`,
-    [userId, resource, action]
-  );
-  return (res.rowCount ?? 0) > 0;
-}
+import { hasRole, hasPermission } from '@/lib/permissions';
+import { ROLE_IDS } from '@/lib/roles';
 
 // ------------------------------------------------------------------
 // Helper to get overall summary (unchanged)
@@ -64,8 +48,9 @@ export async function GET(request: NextRequest) {
   if (!userId) {
     return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
   }
+  const roleIds = (session.user as any).roleIds || [];
 
-  const canView = await hasPermission(userId, 'costings:view');
+  const canView = hasRole(roleIds, ROLE_IDS.ADMIN) || (await hasPermission(userId, roleIds, 'costings', 'view'));
   if (!canView) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

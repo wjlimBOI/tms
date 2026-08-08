@@ -73,3 +73,34 @@ Until this is run, every tender-messaging route will fail at runtime (the
 table doesn't exist yet) even though the code compiles and type-checks
 cleanly, for the same reason as the DLP migration above. Remove this section
 once the migration has been applied and verified.
+
+## NOT YET APPLIED — seed `costings:view` permission (added 2026-08-08)
+
+Part of the incremental `hasPermission()` adoption pass (see `docs/rbac.md`
+"Still open"). `src/app/api/analytics/costings/route.ts` has always gated
+itself on a `costings:view` permission that was never actually created as a
+row in `permissions` — the route has been unreachable by anyone, including
+Admin, since it was written. This data-only fix seeds the permission and
+maps it to Admin by default; other roles can then be granted it through the
+existing Role Permissions matrix in `admin/security` (no code change needed
+for that — the matrix already lists every row in `permissions` generically).
+
+```sql
+INSERT INTO permissions (resource, action, description)
+VALUES ('costings', 'view', 'View cost analytics dashboard')
+ON CONFLICT (resource, action) DO NOTHING;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 1, permission_id FROM permissions WHERE resource = 'costings' AND action = 'view'
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+```
+
+No `prisma db pull` needed for this one — `permissions`/`role_permissions`
+are already fully represented in `schema.prisma`; this is pure data, not a
+schema change. `src/app/api/analytics/costings/route.ts` already has an
+explicit `hasRole(roleIds, ROLE_IDS.ADMIN) ||` bypass alongside the
+permission check, so Admin access doesn't strictly depend on this seed
+running — but the Role Permissions matrix will show `costings:view` as
+ungranted to everyone (including Admin) until it does, and no other role
+can be granted it without this row existing. Remove this section once
+applied and verified.

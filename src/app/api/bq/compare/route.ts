@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
+import { hasRole, hasPermission } from "@/lib/permissions";
+import { ROLE_IDS } from "@/lib/roles";
 import { z } from "zod";
 
 const querySchema = z.object({
@@ -20,18 +22,6 @@ function normalizeDescription(desc: string): string {
     .toLowerCase()
     .replace(/[.,;:]+$/g, '')
     .replace(/\s+/g, ' ');
-}
-
-async function canViewCostComparison(userId: number): Promise<boolean> {
-  const rows = await prisma.$queryRaw`
-    SELECT 1
-    FROM user_roles ur
-    JOIN role_permissions rp ON rp.role_id = ur.role_id
-    JOIN permissions p ON p.permission_id = rp.permission_id
-    WHERE ur.user_id = ${userId} AND p.action = 'view_cost_comparison'
-    LIMIT 1
-  ` as any[];
-  return rows.length > 0;
 }
 
 export async function OPTIONS(request: NextRequest) {
@@ -53,7 +43,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!(await canViewCostComparison(session.user.id))) {
+  const roleIds = (session.user as any).roleIds || [];
+  const canView = hasRole(roleIds, ROLE_IDS.ADMIN) || (await hasPermission(session.user.id, roleIds, "BQ", "view_cost_comparison"));
+  if (!canView) {
     return NextResponse.json(
       { error: "Forbidden" },
       { status: 403, headers: corsHeaders }

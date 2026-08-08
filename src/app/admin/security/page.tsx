@@ -129,7 +129,7 @@ function sortRoles(roles: Role[]): Role[] {
 // ============================================================
 // Tender Timings Component (with refresh fix)
 // ============================================================
-function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
+function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]; isAdmin: boolean }) {
   const toast = useNotify();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -143,9 +143,7 @@ function TenderTimings({ userPermissions }: { userPermissions: string[] }) {
     default_submission_end: "",
   });
 
-  const hasPermission = userPermissions.some(
-    (p) => p === "manage_tender_timings" || p === "admin"
-  );
+  const hasPermission = isAdmin || userPermissions.includes("manage_tender_timings");
 
   const fetchTimings = async () => {
     setLoading(true);
@@ -550,22 +548,16 @@ export default function SecurityDashboard() {
 
     const fetchPermissions = async () => {
       try {
-        const res = await fetch("/api/admin/permissions/user");
+        const res = await fetch("/api/user/permissions");
         if (res.ok) {
           const data = await res.json();
-          setUserPermissions(data.map((p: any) => p.permission_code));
+          setUserPermissions(data.permissions || []);
         } else {
-          if (userRole === 1) {
-            setUserPermissions(["admin", "manage_tender_timings", "manage_roles", "manage_permissions"]);
-          } else {
-            setUserPermissions([]);
-          }
+          setUserPermissions([]);
         }
       } catch (e) {
         console.error(e);
-        if (userRole === 1) {
-          setUserPermissions(["admin", "manage_tender_timings"]);
-        }
+        setUserPermissions([]);
       }
     };
     fetchPermissions();
@@ -584,9 +576,7 @@ export default function SecurityDashboard() {
     }
   };
 
-  const canViewTimings = userPermissions.some(
-    (p) => p === "manage_tender_timings" || p === "admin"
-  );
+  const canViewTimings = isAdmin || userPermissions.includes("manage_tender_timings");
 
   if (loading || status === "loading") {
     return (
@@ -649,7 +639,7 @@ export default function SecurityDashboard() {
                 />
               </div>
 
-              {activeSubTab === "timings" && canViewTimings && <TenderTimings userPermissions={userPermissions} />}
+              {activeSubTab === "timings" && canViewTimings && <TenderTimings userPermissions={userPermissions} isAdmin={isAdmin} />}
               {activeSubTab === "cc" && <CCSettings />}
             </>
           )}

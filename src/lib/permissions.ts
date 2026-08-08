@@ -223,6 +223,36 @@ export async function canAccessTenderMessages(
   return { allowed: false, isStaff: false };
 }
 
+// ========== PERMISSION MATRIX (permissions/role_permissions tables) ==========
+// Pure resource/action check, driven by the real permissions/role_permissions
+// tables — not a ROLE_IDS shortcut. Deliberately does NOT auto-bypass Admin:
+// several permissions in this system aren't mapped to any role yet (e.g.
+// manage_tender_timings), so baking in a blanket Admin bypass here would
+// mask that and make the matrix lie about who actually has access. Callers
+// that want "Admin always passes regardless of table state" should combine
+// explicitly: `hasRole(roleIds, ROLE_IDS.ADMIN) || await hasPermission(...)`.
+// See docs/rbac.md "Still open" — this is deliberately incremental: existing
+// ROLE_IDS checks elsewhere in the app are untouched, this only backs the
+// permissions this system already has real consumers for.
+export async function hasPermission(
+  userId: number,
+  roleIds: number | number[],
+  resource: string,
+  action: string
+): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (roles.length === 0) return false;
+
+  const result = await pool.query(
+    `SELECT 1 FROM role_permissions rp
+     JOIN permissions p ON p.permission_id = rp.permission_id
+     WHERE rp.role_id = ANY($1) AND p.resource = $2 AND p.action = $3
+     LIMIT 1`,
+    [roles, resource, action]
+  );
+  return result.rows.length > 0;
+}
+
 // ========== DRAFT TENDER VISIBILITY ==========
 export async function canViewDraftTender(roleIds: number | number[]): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
