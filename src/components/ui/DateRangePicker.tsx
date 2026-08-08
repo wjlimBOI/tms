@@ -199,13 +199,13 @@ export default function DateRangePicker({
 
   return (
     <div className="relative" ref={containerRef}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
         {label}
-        {required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div
         ref={buttonRef}
-        className="w-full rounded-lg border border-gray-300 dark:border-cyan-500/30 bg-white dark:bg-white/5 text-gray-900 dark:text-white cursor-pointer px-3 py-2 focus:border-blue-500 dark:focus:border-cyan-400 focus:ring-1 focus:ring-blue-500 dark:focus:ring-cyan-400 transition"
+        className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
         onClick={toggleOpen}
         role="button"
         tabIndex={0}
@@ -214,8 +214,8 @@ export default function DateRangePicker({
         <span
           className={
             !startDateStr && !endDateStr
-              ? "text-gray-400 dark:text-white/40"
-              : "text-gray-900 dark:text-white"
+              ? "text-gray-400"
+              : "text-gray-900"
           }
         >
           {displayText()}
@@ -227,7 +227,7 @@ export default function DateRangePicker({
           <div
             ref={dropdownRef}
             style={dropdownStyle}
-            className="bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-cyan-500/30 rounded-xl shadow-xl"
+            className="bg-white border border-gray-200 rounded-xl shadow-xl"
           >
             <style>
               {`
@@ -298,11 +298,11 @@ export default function DateRangePicker({
                 fixedWeeks
               />
             </div>
-            <div className="sticky bottom-0 bg-inherit border-t border-gray-200 dark:border-cyan-500/30 p-2 flex justify-end">
+            <div className="sticky bottom-0 bg-inherit border-t border-gray-200 p-2 flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="px-3 py-1 text-sm bg-blue-600 dark:bg-cyan-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-cyan-700 transition"
+                className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 Done
               </button>
