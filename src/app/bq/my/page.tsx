@@ -51,7 +51,7 @@ interface SubmissionDetail {
   canEdit: boolean;
 }
 
-const ROLE_CONTRACTOR = 13;
+const ROLE_CONTRACTOR = 22; // Contractor is role_id 22, not 13 (13 is Legal Team) — see docs/rbac.md
 const ROLE_ADMIN = 1;
 const ITEMS_PER_PAGE = 12;
 
