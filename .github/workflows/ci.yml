@@ -20,6 +20,13 @@ jobs:
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci_placeholder"
       NEXTAUTH_SECRET: "ci-placeholder-secret-not-for-production-use"
       NEXTAUTH_URL: "http://localhost:3000"
+      # `next build` runs with NODE_ENV=production internally, which trips
+      # src/lib/rate-limit.ts's fail-fast startup guard if these are unset —
+      # that guard exists specifically so a real production deploy can't
+      # silently run without rate limiting; CI needs placeholders to build
+      # at all, same reasoning as the vars above.
+      UPSTASH_REDIS_REST_URL: "https://ci-placeholder.upstash.io"
+      UPSTASH_REDIS_REST_TOKEN: "ci-placeholder-token-not-for-production-use"
     steps:
       - uses: actions/checkout@v4
 

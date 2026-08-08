@@ -15,6 +15,23 @@ const redis = redisUrl && redisToken
   ? new Redis({ url: redisUrl, token: redisToken })
   : null;
 
+// Fail fast at startup rather than silently running unprotected in
+// production — the bypass below is meant for local development, where no
+// Redis instance exists, not for a misconfigured production deploy. Without
+// this, checkRateLimit() would quietly return { success: true } for every
+// request forever, with no signal to anyone that login/password-reset/
+// AI-generation endpoints have zero rate limiting. Matches the same
+// fail-fast precedent already used in src/lib/db.ts for DB_SSL_CA_PATH.
+if (process.env.NODE_ENV === 'production' && !redis) {
+  throw new Error(
+    'UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are not set in production. ' +
+      'Rate limiting (login, password-reset, AI-generation endpoints) would silently ' +
+      'run unprotected otherwise. Configure Upstash Redis before deploying, or set ' +
+      'NODE_ENV to a non-production value if this is intentional (e.g. a staging ' +
+      'environment without Redis provisioned yet).'
+  );
+}
+
 const limiter = Ratelimit.slidingWindow(maxRequests, `${windowSeconds} s`);
 
 export const rateLimit = redis
@@ -25,11 +42,13 @@ export const isRateLimitEnabled = !!redis;
 
 /**
  * Check rate limit for an identifier (e.g., IP address).
- * In development (no Redis), we always allow the request.
+ * Bypassed only when Redis isn't configured — safe in development, and the
+ * module-load check above prevents this path from ever being reached
+ * silently in production.
  */
 export async function checkRateLimit(identifier: string) {
   if (!isRateLimitEnabled || !rateLimit) {
-    // Bypass in development – return a dummy success
+    // Bypass (dev/local only — see the production guard above)
     return {
       success: true,
       limit: maxRequests,
