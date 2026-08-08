@@ -9,7 +9,7 @@ export default function TermsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 print:py-6 print:px-4 print:bg-white print:text-black">
+    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 print:py-6 print:px-4 print:bg-white print:text-black">
       <div className="max-w-5xl mx-auto relative">
         {/* Print Button */}
         <div className="absolute top-0 right-0 z-10 print:hidden">
@@ -31,7 +31,7 @@ export default function TermsPage() {
           lastUpdated="19 June 2026"
         />
 
-        <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed prose-p:text-base md:prose-p:text-lg prose-a:text-cyan-600 dark:prose-a:text-cyan-400 prose-ul:space-y-2 prose-li:marker:text-slate-500 print:prose-p:text-black print:prose-headings:text-black print:prose-a:text-black print:prose-strong:text-black">
+        <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-base md:prose-p:text-lg prose-a:text-cyan-600 prose-ul:space-y-2 prose-li:marker:text-slate-500 print:prose-p:text-black print:prose-headings:text-black print:prose-a:text-black print:prose-strong:text-black">
 
           <p>Welcome to the TMS Project &amp; Cost Management System (the &quot;Platform&quot;), operated by Beauty One International Pte Ltd. (&quot;Company,&quot; &quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). By accessing or using the Platform, you agree to be bound by these Terms of Service (the &quot;Terms&quot;). If you do not agree to these Terms, please do not use the Platform.</p>
 
@@ -39,7 +39,7 @@ export default function TermsPage() {
             <strong>Important:</strong> These Terms constitute a legally binding agreement between you and Beauty One International Pte Ltd. regarding your use of the Platform. Please read them carefully. They are designed to be fair and transparent, in line with the guidelines of the Consumers Association of Singapore (CASE).
           </CalloutBox>
 
-          <hr className="my-12 border-slate-200 dark:border-slate-800" />
+          <hr className="my-12 border-slate-200" />
 
           <SectionHeader level={2} summary="By using the Platform, you accept these Terms and agree to comply with all applicable laws.">
             1. Acceptance of Terms
@@ -87,7 +87,7 @@ export default function TermsPage() {
           <SectionHeader level={2} summary="Our Privacy Policy explains how we handle your data – by using the Platform, you consent to those practices.">
             6. Privacy and Data Protection
           </SectionHeader>
-          <p>Our <a href="/privacy" className="text-cyan-600 dark:text-cyan-400 hover:underline">Privacy Policy</a> explains how we collect, use, and protect your data. By using the Platform, you consent to the data practices described in that policy.</p>
+          <p>Our <a href="/privacy" className="text-cyan-600 hover:underline">Privacy Policy</a> explains how we collect, use, and protect your data. By using the Platform, you consent to the data practices described in that policy.</p>
 
           <SectionHeader level={2} summary="The Platform is provided 'as is' without warranties of any kind.">
             7. Disclaimer of Warranties
@@ -142,15 +142,15 @@ export default function TermsPage() {
           <SectionHeader level={2} summary="Questions? Contact us at legal@beautyone.com.sg.">
             16. Contact Information
           </SectionHeader>
-          <div className="bg-white dark:bg-slate-900/60 p-6 rounded-lg border border-slate-200 dark:border-slate-700 my-6">
+          <div className="bg-white p-6 rounded-lg border border-slate-200 my-6">
             <p><strong>Beauty One International Pte Ltd.</strong><br />
             2 Venture Drive, #21-01, VISION EXCHANGE,<br />
             Singapore 608526<br />
             Email: legal@beautyone.com.sg</p>
           </div>
 
-          <div className="mt-14 p-5 bg-slate-100 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-            <p className="text-xs text-slate-600 dark:text-slate-300">
+          <div className="mt-14 p-5 bg-slate-100 rounded-lg border border-slate-200">
+            <p className="text-xs text-slate-600">
               <strong>Copyright © 2026 Beauty One International Pte Ltd.</strong> All rights reserved. Unauthorised reproduction or distribution, in whole or in part, is strictly prohibited.
             </p>
           </div>
