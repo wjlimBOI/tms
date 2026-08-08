@@ -102,7 +102,7 @@ function renderEmail({
     </head>
     <body style="margin:0;padding:0;background-color:#eef1f6;font-family:Arial,Helvetica,sans-serif;">
       <center style="width:100%;table-layout:fixed;">
-        <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" class="container" style="max-width:600px;width:100%;background-color:#ffffff;margin:24px auto;border:1px solid #e0e7ef;border-radius:14px;overflow:hidden;">
+        <table align="center" width="100%" cellpadding="0" cellspacing="0" border="0" class="container" style="max-width:600px;width:100%;background-color:#ffffff;margin:0 auto;border:1px solid #e0e7ef;border-radius:14px;overflow:hidden;">
 
           <!-- Header -->
           <tr>
