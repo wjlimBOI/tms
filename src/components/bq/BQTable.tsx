@@ -47,35 +47,35 @@ export function BQTable({
   };
 
   return (
-    <div className="border border-gray-200 dark:border-cyan-500/30 rounded-lg overflow-hidden shadow-sm dark:shadow-gray-800/30">
-      <div className="bg-gray-800 dark:bg-gray-800 text-white dark:text-white px-4 py-2 font-semibold text-lg">
+    <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-gray-800 text-white px-4 py-2 font-semibold text-lg">
         {category.category_name}
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse text-sm">
-          <thead className="bg-gray-100 dark:bg-gray-800/50">
+          <thead className="bg-gray-100">
             <tr>
               {!readOnly && (onToggleSelect || onSelectAll) && (
-                <th className="border border-gray-200 dark:border-gray-700 p-2 w-8 text-center">
+                <th className="border border-gray-200 p-2 w-8 text-center">
                   <input
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleSelectAll}
-                    className="rounded border-gray-300 dark:border-gray-600"
+                    className="rounded border-gray-300"
                   />
                 </th>
               )}
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Item No.</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Location</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Description</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Specifications</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Brand</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Qty</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Unit</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Unit Rate ($)</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Discount ($)</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2 text-gray-700 dark:text-gray-300">Amount ($)</th>
-              <th className="border border-gray-200 dark:border-gray-700 p-2"></th>
+              <th className="border border-gray-200 p-2 text-gray-700">Item No.</th>
+              <th className="border border-gray-200 p-2 text-gray-700">Location</th>
+              <th className="border border-gray-200 p-2 text-gray-700">Description</th>
+              <th className="border border-gray-200 p-2 text-gray-700">Specifications</th>
+              <th className="border border-gray-200 p-2 text-gray-700">Brand</th>
+              <th className="border border-gray-200 p-2 text-gray-700">Qty</th>
+              <th className="border border-gray-200 p-2 text-gray-700">Unit</th>
+              <th className="border border-gray-200 p-2 text-gray-700">Unit Rate ($)</th>
+              <th className="border border-gray-200 p-2 text-gray-700">Discount ($)</th>
+              <th className="border border-gray-200 p-2 text-gray-700">Amount ($)</th>
+              <th className="border border-gray-200 p-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -94,27 +94,27 @@ export function BQTable({
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-gray-50 dark:bg-gray-800/30">
+            <tr className="bg-gray-50">
               <td
                 colSpan={!readOnly && (onToggleSelect || onSelectAll) ? 10 : 9}
-                className="border border-gray-200 dark:border-gray-700 p-2 text-right font-bold text-gray-700 dark:text-gray-300"
+                className="border border-gray-200 p-2 text-right font-bold text-gray-700"
               >
                 Category Subtotal:
               </td>
-              <td className="border border-gray-200 dark:border-gray-700 p-2 text-right font-mono font-bold whitespace-nowrap text-gray-900 dark:text-white">
+              <td className="border border-gray-200 p-2 text-right font-mono font-bold whitespace-nowrap text-gray-900">
                 {formatCurrency(categoryTotal)}
               </td>
-              <td className="border border-gray-200 dark:border-gray-700 p-2"></td>
+              <td className="border border-gray-200 p-2"></td>
             </tr>
             <tr>
               <td
                 colSpan={!readOnly && (onToggleSelect || onSelectAll) ? 12 : 11}
-                className="border border-gray-200 dark:border-gray-700 p-2 text-center"
+                className="border border-gray-200 p-2 text-center"
               >
                 {!readOnly && onAddItem && (
                   <button
                     onClick={() => onAddItem(category.category_id)}
-                    className="bg-blue-500 dark:bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
+                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors"
                   >
                     + Add line item
                   </button>
