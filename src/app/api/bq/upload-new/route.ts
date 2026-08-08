@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { query, getClient } from "@/lib/db";
 import ExcelJS from "exceljs";
 import { ROLE_IDS } from "@/lib/roles";
+import { isValidXlsxSignature } from "@/lib/fileValidation";
 
 function mapUnit(unitRaw: string): string {
   const unit = unitRaw.trim().toUpperCase();
@@ -80,6 +81,11 @@ export async function POST(req: Request) {
   }
 
   const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  if (!isValidXlsxSignature(buffer)) {
+    return NextResponse.json({ error: "File content does not match .xlsx format" }, { status: 415 });
+  }
+
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(arrayBuffer);

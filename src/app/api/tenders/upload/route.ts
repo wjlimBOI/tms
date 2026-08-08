@@ -4,6 +4,8 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { hasRole } from "@/lib/permissions";
+import { ROLE_IDS } from "@/lib/roles";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
 
@@ -49,6 +51,15 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // No `tender_document`-style association between an uploaded file and a
+  // specific tender exists yet (see the paired GET route's comment), so
+  // per-tender entitlement can't be enforced here. Restricting to Admin
+  // closes the immediate gap - previously ANY authenticated user, including
+  // Contractor, could write arbitrary allowed-type files to shared disk.
+  const roleIds = (session.user as any).roleIds || [];
+  if (!hasRole(roleIds, ROLE_IDS.ADMIN)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const formData = await req.formData();

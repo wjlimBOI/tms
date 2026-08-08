@@ -9,6 +9,7 @@ import { z } from "zod";
 import { getClient } from "@/lib/db";
 import ExcelJS from "exceljs";
 import { logUpdate, logAuthEvent } from "@/lib/audit"; // ✅ audit import
+import { isValidXlsxSignature } from "@/lib/fileValidation";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -132,6 +133,14 @@ export async function POST(request: NextRequest) {
 
   // ✅ Read Excel file using exceljs
   const arrayBuffer = await uploadedFile.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  if (!isValidXlsxSignature(buffer)) {
+    return NextResponse.json(
+      { error: "File content does not match .xlsx format" },
+      { status: 415, headers: corsHeaders }
+    );
+  }
+
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(arrayBuffer);

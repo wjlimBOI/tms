@@ -6,6 +6,7 @@ import { query } from "@/lib/db";
 import ExcelJS from "exceljs"; // ✅ replaced xlsx
 import { ROLE_IDS } from "@/lib/roles";
 import { canEditSubmission } from "@/lib/permissions";
+import { isValidXlsxSignature } from "@/lib/fileValidation";
 
 // ----- Constants for clamping (adjust as needed) -----
 const MAX_QTY = 9999.99;
@@ -134,6 +135,11 @@ export async function POST(req: Request) {
 
   // ----- 2. Parse Excel using exceljs -----
   const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  if (!isValidXlsxSignature(buffer)) {
+    return NextResponse.json({ error: "File content does not match .xlsx format" }, { status: 415 });
+  }
+
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(arrayBuffer);
