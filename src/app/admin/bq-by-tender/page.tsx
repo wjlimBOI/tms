@@ -193,26 +193,26 @@ export default function AdminBQByTenderPage() {
 
   if (sessionStatus === "loading" || loadingTenders) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-gray-500 dark:text-cyan-300/70">Loading tenders…</p>
+          <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500">Loading tenders…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a1228]">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white dark:bg-[#0f1630] border-b border-gray-200 dark:border-white/10 py-6 px-4 sm:px-6 lg:px-8 shadow-sm">
+      <div className="bg-white border-b border-gray-200 py-6 px-4 sm:px-6 lg:px-8 shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
               BQs by Tender
             </h1>
           </div>
-          <div className="text-sm text-gray-500 dark:text-cyan-300/70">
+          <div className="text-sm text-gray-500">
             {tenders.length} {tenders.length === 1 ? 'tender' : 'tenders'} found
           </div>
         </div>
@@ -221,8 +221,8 @@ export default function AdminBQByTenderPage() {
       {/* Main content */}
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {tenders.length === 0 ? (
-          <div className="bg-white dark:bg-[#0f1630] rounded-xl border border-gray-200 dark:border-white/10 p-12 text-center shadow-sm">
-            <div className="text-gray-500 dark:text-cyan-300/70 text-lg font-medium">No tenders available</div>
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
+            <div className="text-gray-500 text-lg font-medium">No tenders available</div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -234,32 +234,32 @@ export default function AdminBQByTenderPage() {
               return (
                 <div
                   key={tender.tender_id}
-                  className="bg-white dark:bg-[#0f1630] rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden transition-all duration-200"
+                  className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all duration-200"
                 >
                   {/* Header row */}
                   <div
-                    className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
+                    className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={() => toggleTender(tender.tender_id)}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 flex-wrap">
-                        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                           {tender.tender_name}
                         </h2>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {tender.status_label}
                         </span>
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-cyan-300/70">
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                         <span>{tender.brand_name}</span>
-                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-cyan-300/40" />
+                        <span className="w-1 h-1 rounded-full bg-gray-400" />
                         <span>{tender.branch_name}</span>
-                        <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-cyan-300/40" />
+                        <span className="w-1 h-1 rounded-full bg-gray-400" />
                         <span>{tender.renovation_type}</span>
                         {filteredBqs.length > 0 && (
                           <>
-                            <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-cyan-300/40" />
-                            <span className="font-medium text-cyan-600 dark:text-cyan-400">
+                            <span className="w-1 h-1 rounded-full bg-gray-400" />
+                            <span className="font-medium text-cyan-600">
                               {filteredBqs.length} BQ{filteredBqs.length !== 1 ? 's' : ''}
                             </span>
                           </>
@@ -268,7 +268,7 @@ export default function AdminBQByTenderPage() {
                     </div>
                     <div className="flex items-center gap-3 ml-4">
                       <svg
-                        className={`w-5 h-5 text-gray-400 dark:text-gray-500 transform transition-transform duration-200 ${
+                        className={`w-5 h-5 text-gray-400 transform transition-transform duration-200 ${
                           isExpanded ? 'rotate-180' : ''
                         }`}
                         fill="none"
@@ -282,15 +282,15 @@ export default function AdminBQByTenderPage() {
 
                   {/* Expanded content */}
                   {isExpanded && (
-                    <div className="border-t border-gray-200 dark:border-white/10 px-5 py-4">
+                    <div className="border-t border-gray-200 px-5 py-4">
                       {/* Action bar */}
                       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-cyan-300/60">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                           <span className="font-medium">Masked contractors:</span>
                           <span className="flex flex-wrap gap-1">
                             {Array.from(contractorLetterMap.values()).map((label, idx) => (
                               <span key={idx} className="inline-flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 dark:bg-cyan-500" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                                 {label}
                               </span>
                             ))}
@@ -298,7 +298,7 @@ export default function AdminBQByTenderPage() {
                         </div>
                         <Link
                           href={`/admin/bqs?tender_id=${tender.tender_id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white transition shadow-sm"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white transition shadow-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -310,32 +310,32 @@ export default function AdminBQByTenderPage() {
 
                       {loadingBQs[tender.tender_id] ? (
                         <div className="flex justify-center py-10">
-                          <div className="w-8 h-8 border-4 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-8 h-8 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin" />
                         </div>
                       ) : filteredBqs.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500 dark:text-cyan-300/70 text-sm">
+                        <div className="text-center py-8 text-gray-500 text-sm">
                           No Draft or Submitted BQs for this tender.
                         </div>
                       ) : (
                         <div className="overflow-x-auto -mx-5 sm:mx-0">
                           <table className="min-w-[1000px] sm:min-w-full text-sm">
                             <thead>
-                              <tr className="border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">ID</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">BQ Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Job Site</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Contractor</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Version</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Total</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Date</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Area</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Work Type</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Last Updated</th>
-                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-cyan-300 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                              <tr className="border-b border-gray-200 bg-gray-50">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">BQ Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Job Site</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Contractor</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Version</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Total</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Area</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Work Type</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Last Updated</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                            <tbody className="divide-y divide-gray-100">
                               {filteredBqs.map((bq) => {
                                 const statusStyles = getBQStatusStyles(bq.status);
                                 const statusLabel = getBQStatusLabel(bq.status);
@@ -343,22 +343,22 @@ export default function AdminBQByTenderPage() {
                                 const isDeletingThisBq = deletingBqId === bq.submission_id;
                                 const maskedContractor = contractorLetterMap.get(bq.contractor_id) || `Contractor ?`;
                                 return (
-                                  <tr key={bq.submission_id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 font-mono text-xs whitespace-nowrap">{bq.submission_id}</td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 max-w-[180px] truncate" title={bqDisplayName}>
+                                  <tr key={bq.submission_id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{bq.submission_id}</td>
+                                    <td className="px-4 py-3 text-gray-700 max-w-[180px] truncate" title={bqDisplayName}>
                                       {bqDisplayName}
                                     </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 max-w-[150px] truncate" title={bq.job_site}>
+                                    <td className="px-4 py-3 text-gray-700 max-w-[150px] truncate" title={bq.job_site}>
                                       {bq.job_site}
                                     </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
                                       <span className="inline-flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-cyan-400 dark:bg-cyan-500" />
+                                        <span className="w-2 h-2 rounded-full bg-cyan-400" />
                                         {maskedContractor}
                                       </span>
                                     </td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 whitespace-nowrap text-xs">{bq.version_name || `Round ${bq.round_no}`}</td>
-                                    <td className="px-4 py-3 text-gray-700 dark:text-white/80 whitespace-nowrap font-medium">
+                                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap text-xs">{bq.version_name || `Round ${bq.round_no}`}</td>
+                                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap font-medium">
                                       {formatCurrency(bq.total_amount)}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
@@ -367,19 +367,19 @@ export default function AdminBQByTenderPage() {
                                         {statusLabel}
                                       </span>
                                     </td>
-                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap text-xs">{formatShortDate(bq.bq_date)}</td>
-                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap text-xs">{bq.area_size || "—"}</td>
-                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap text-xs">{bq.work_type}</td>
-                                    <td className="px-4 py-3 text-gray-500 dark:text-white/70 whitespace-nowrap text-xs">{formatDate(bq.updated_at)}</td>
+                                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{formatShortDate(bq.bq_date)}</td>
+                                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{bq.area_size || "—"}</td>
+                                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{bq.work_type}</td>
+                                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{formatDate(bq.updated_at)}</td>
                                     <td className="px-4 py-3 text-center whitespace-nowrap">
-                                      <Link href={`/bq/${bq.submission_id}/view`} className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 mr-3 transition text-xs font-medium">
+                                      <Link href={`/bq/${bq.submission_id}/view`} className="text-cyan-600 hover:text-cyan-700 mr-3 transition text-xs font-medium">
                                         View
                                       </Link>
                                       <button
                                         type="button"
                                         onClick={() => confirmDelete(bq, tender.tender_id)}
                                         disabled={isDeletingThisBq}
-                                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="text-red-600 hover:text-red-700 transition text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                       >
                                         {isDeletingThisBq ? "Deleting..." : "Delete"}
                                       </button>
