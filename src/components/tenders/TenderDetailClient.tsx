@@ -110,10 +110,10 @@ export default function TenderDetailClient({ id }: { id: string }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-gray-500 dark:text-cyan-300/70">Loading tender details…</p>
+          <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500">Loading tender details…</p>
         </div>
       </div>
     );
@@ -121,9 +121,9 @@ export default function TenderDetailClient({ id }: { id: string }) {
 
   if (error || !tender) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-[#0a1228]">
-        <div className="bg-red-100 dark:bg-red-500/20 border border-red-300 dark:border-red-500/50 rounded-2xl p-8 text-center max-w-md">
-          <p className="text-red-800 dark:text-red-200">{error || "Tender not found"}</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+        <div className="bg-red-100 border border-red-300 rounded-2xl p-8 text-center max-w-md">
+          <p className="text-red-800">{error || "Tender not found"}</p>
           <button
             onClick={() => router.back()}
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
@@ -147,31 +147,31 @@ export default function TenderDetailClient({ id }: { id: string }) {
   const fullAddress = tender.branch_full_address || tender.branch_name || "Address not provided";
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gray-50 dark:bg-[#0a1228]">
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
+    <div className="min-h-screen relative overflow-hidden bg-gray-50">
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
 
       <div className="relative z-10 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <button
               onClick={() => router.back()}
-              className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 flex items-center gap-1 transition"
+              className="text-cyan-600 hover:text-cyan-700 flex items-center gap-1 transition"
             >
               ← Back to list
             </button>
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href={`/tenders/${tender.tender_id}`}
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-cyan-600 dark:border-cyan-400 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition"
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-cyan-600 text-cyan-600 hover:bg-cyan-50 transition"
               >
                 View Document
               </Link>
               {isInternalTeam && (
                 <Link
                   href={`/admin/tenders/${tender.tender_id}`}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-700 text-white transition"
+                  className="px-4 py-2 text-sm font-medium rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white transition"
                 >
                   Edit Tender
                 </Link>
@@ -180,7 +180,7 @@ export default function TenderDetailClient({ id }: { id: string }) {
           </div>
 
           <div
-            className="bg-white dark:bg-white/5 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-cyan-500/30 overflow-hidden shadow-sm dark:shadow-none"
+            className="bg-white backdrop-blur-sm rounded-xl border border-gray-200 overflow-hidden shadow-sm"
             style={{ borderLeftColor: brandColor.borderColor, borderLeftWidth: "4px" }}
           >
             <div className="p-6 space-y-6">
@@ -195,12 +195,12 @@ export default function TenderDetailClient({ id }: { id: string }) {
                     />
                   )}
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{displayTitle}</h1>
-                    <p className="text-gray-600 dark:text-white/60 text-sm mt-1">
+                    <h1 className="text-2xl font-bold text-gray-900">{displayTitle}</h1>
+                    <p className="text-gray-600 text-sm mt-1">
                       {fullBrandName} – {tender.branch_name}
                     </p>
                     {tender.branch_building_name && tender.branch_building_name !== tender.branch_name && (
-                      <p className="text-gray-500 dark:text-white/50 text-xs mt-0.5">
+                      <p className="text-gray-500 text-xs mt-0.5">
                         Building: {tender.branch_building_name}
                       </p>
                     )}
@@ -212,15 +212,15 @@ export default function TenderDetailClient({ id }: { id: string }) {
               </div>
 
               {/* Address */}
-              <div className="border-t border-gray-200 dark:border-white/10 pt-4">
-                <h3 className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Location</h3>
-                <p className="text-gray-900 dark:text-white text-sm mt-1">{fullAddress}</p>
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="text-gray-500 text-xs uppercase tracking-wide">Location</h3>
+                <p className="text-gray-900 text-sm mt-1">{fullAddress}</p>
               </div>
 
               {/* Description */}
-              <div className="border-t border-gray-200 dark:border-white/10 pt-4">
-                <h3 className="text-gray-600 dark:text-white/80 text-sm font-medium mb-2">Description</h3>
-                <p className="text-gray-700 dark:text-white/70 text-sm">
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="text-gray-600 text-sm font-medium mb-2">Description</h3>
+                <p className="text-gray-700 text-sm">
                   {tender.tender_description || "No description provided."}
                 </p>
               </div>
@@ -228,60 +228,60 @@ export default function TenderDetailClient({ id }: { id: string }) {
               {/* Details grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Brand</h3>
-                  <p className="text-gray-900 dark:text-white text-sm mt-1">{fullBrandName}</p>
+                  <h3 className="text-gray-500 text-xs uppercase tracking-wide">Brand</h3>
+                  <p className="text-gray-900 text-sm mt-1">{fullBrandName}</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Branch</h3>
-                  <p className="text-gray-900 dark:text-white text-sm mt-1">{tender.branch_name}</p>
+                  <h3 className="text-gray-500 text-xs uppercase tracking-wide">Branch</h3>
+                  <p className="text-gray-900 text-sm mt-1">{tender.branch_name}</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Building</h3>
-                  <p className="text-gray-900 dark:text-white text-sm mt-1">{tender.branch_building_name || "—"}</p>
+                  <h3 className="text-gray-500 text-xs uppercase tracking-wide">Building</h3>
+                  <p className="text-gray-900 text-sm mt-1">{tender.branch_building_name || "—"}</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Work Type</h3>
-                  <p className="text-gray-900 dark:text-white text-sm mt-1">{tender.renovation_type}</p>
+                  <h3 className="text-gray-500 text-xs uppercase tracking-wide">Work Type</h3>
+                  <p className="text-gray-900 text-sm mt-1">{tender.renovation_type}</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Tender ID</h3>
-                  <p className="text-gray-900 dark:text-white text-sm mt-1">#{String(tender.tender_id).padStart(4, "0")}</p>
+                  <h3 className="text-gray-500 text-xs uppercase tracking-wide">Tender ID</h3>
+                  <p className="text-gray-900 text-sm mt-1">#{String(tender.tender_id).padStart(4, "0")}</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Tender Period</h3>
-                  <p className="text-gray-900 dark:text-white text-sm mt-1">
+                  <h3 className="text-gray-500 text-xs uppercase tracking-wide">Tender Period</h3>
+                  <p className="text-gray-900 text-sm mt-1">
                     {formatDateRange(tender.tender_date, tender.closing_date)}
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Renovation Period</h3>
-                  <p className="text-gray-900 dark:text-white text-sm mt-1">
+                  <h3 className="text-gray-500 text-xs uppercase tracking-wide">Renovation Period</h3>
+                  <p className="text-gray-900 text-sm mt-1">
                     {formatDateRange(tender.renovation_start_date, tender.renovation_end_date)}
                   </p>
                 </div>
 
                 {isInternalTeam && (
                   <div>
-                    <h3 className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Budget Forecast</h3>
-                    <p className="text-gray-900 dark:text-white text-sm mt-1">{formatCurrency(tender.estimated_budget)}</p>
+                    <h3 className="text-gray-500 text-xs uppercase tracking-wide">Budget Forecast</h3>
+                    <p className="text-gray-900 text-sm mt-1">{formatCurrency(tender.estimated_budget)}</p>
                   </div>
                 )}
 
                 {/* Project Manager section */}
                 {(tender.project_manager_name || tender.project_manager_email || tender.project_manager_phone) && (
-                  <div className="sm:col-span-2 border-t border-gray-200 dark:border-white/10 pt-4 mt-2">
-                    <h3 className="text-gray-600 dark:text-white/80 text-sm font-medium mb-3">Project Manager</h3>
+                  <div className="sm:col-span-2 border-t border-gray-200 pt-4 mt-2">
+                    <h3 className="text-gray-600 text-sm font-medium mb-3">Project Manager</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {tender.project_manager_name && (
                         <div>
-                          <span className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Name</span>
-                          <p className="text-gray-900 dark:text-white text-sm mt-1">{tender.project_manager_name}</p>
+                          <span className="text-gray-500 text-xs uppercase tracking-wide">Name</span>
+                          <p className="text-gray-900 text-sm mt-1">{tender.project_manager_name}</p>
                         </div>
                       )}
                       {tender.project_manager_email && (
                         <div>
-                          <span className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Email</span>
-                          <p className="text-gray-900 dark:text-white text-sm mt-1">
+                          <span className="text-gray-500 text-xs uppercase tracking-wide">Email</span>
+                          <p className="text-gray-900 text-sm mt-1">
                             <a href={`mailto:${tender.project_manager_email}`} className="hover:underline">
                               {tender.project_manager_email}
                             </a>
@@ -290,8 +290,8 @@ export default function TenderDetailClient({ id }: { id: string }) {
                       )}
                       {tender.project_manager_phone && (
                         <div>
-                          <span className="text-gray-500 dark:text-white/60 text-xs uppercase tracking-wide">Phone</span>
-                          <p className="text-gray-900 dark:text-white text-sm mt-1">
+                          <span className="text-gray-500 text-xs uppercase tracking-wide">Phone</span>
+                          <p className="text-gray-900 text-sm mt-1">
                             <a href={`tel:${tender.project_manager_phone}`} className="hover:underline">
                               {formatPhoneForDisplay(tender.project_manager_phone)}
                             </a>
@@ -305,21 +305,21 @@ export default function TenderDetailClient({ id }: { id: string }) {
 
               {/* Briefing Dates Section */}
               {tender.briefing_dates && tender.briefing_dates.length > 0 && (
-                <div className="border-t border-gray-200 dark:border-white/10 pt-4">
-                  <h3 className="text-gray-600 dark:text-white/80 text-sm font-medium mb-3">Briefing Dates</h3>
+                <div className="border-t border-gray-200 pt-4">
+                  <h3 className="text-gray-600 text-sm font-medium mb-3">Briefing Dates</h3>
                   <div className="space-y-2">
                     {tender.briefing_dates.map((briefing, index) => (
                       <div key={briefing.id} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm">
-                        <span className="text-gray-500 dark:text-white/60 min-w-[180px]">
+                        <span className="text-gray-500 min-w-[180px]">
                           {formatDate(briefing.briefing_date)}
                         </span>
                         {briefing.description && (
-                          <span className="text-gray-700 dark:text-white/70">
+                          <span className="text-gray-700">
                             {briefing.description}
                           </span>
                         )}
                         {index === 0 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-[10px] font-medium">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 text-[10px] font-medium">
                             Primary
                           </span>
                         )}
@@ -330,7 +330,7 @@ export default function TenderDetailClient({ id }: { id: string }) {
               )}
 
               {/* Timestamps */}
-              <div className="text-gray-400 dark:text-white/40 text-xs text-right pt-2 border-t border-gray-200 dark:border-white/10">
+              <div className="text-gray-400 text-xs text-right pt-2 border-t border-gray-200">
                 Created: {formatDate(tender.created_at)}
                 {tender.updated_at && ` • Updated: ${formatDate(tender.updated_at)}`}
               </div>
