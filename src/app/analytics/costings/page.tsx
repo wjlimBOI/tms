@@ -55,17 +55,17 @@ export default function CostingsDashboard() {
   });
 
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
-        <div className="w-10 h-10 border-4 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-gray-500 dark:cyan-300/70">Loading costings data...</p>
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-gray-500">Loading costings data...</p>
       </div>
     </div>
   );
   
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a1228]">
-      <div className="text-red-600 dark:text-red-400">Error: {error.message}</div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-red-600">Error: {error.message}</div>
     </div>
   );
   
@@ -75,8 +75,8 @@ export default function CostingsDashboard() {
   const summary = data.summary;
 
   return (
-    <div className="container mx-auto p-6 space-y-8 bg-gray-50 dark:bg-[#0a1228] min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white">BQ Costings Analytics</h1>
+    <div className="container mx-auto p-6 space-y-8 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-bold text-gray-900">BQ Costings Analytics</h1>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 items-end">
@@ -90,34 +90,34 @@ export default function CostingsDashboard() {
           />
         </div>
         <Tabs value={groupBy} onValueChange={(v) => setGroupBy(v as any)}>
-          <TabsList className="bg-gray-100 dark:bg-gray-800">
+          <TabsList className="bg-gray-100">
             <TabsTrigger 
               value="monthly"
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+              className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
             >
               Monthly
             </TabsTrigger>
             <TabsTrigger 
               value="yearly"
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+              className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
             >
               Yearly
             </TabsTrigger>
             <TabsTrigger 
               value="category"
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+              className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
             >
               By Category
             </TabsTrigger>
             <TabsTrigger 
               value="item"
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+              className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
             >
               Top Items
             </TabsTrigger>
             <TabsTrigger 
               value="tender"
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+              className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
             >
               Tender Comparison
             </TabsTrigger>
@@ -127,38 +127,38 @@ export default function CostingsDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <CardHeader><CardTitle className="text-gray-700 dark:text-gray-300">Total Spent</CardTitle></CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader><CardTitle className="text-gray-700">Total Spent</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">${summary.totalSpent.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-gray-900">${summary.totalSpent.toLocaleString()}</div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <CardHeader><CardTitle className="text-gray-700 dark:text-gray-300">Total Budget</CardTitle></CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader><CardTitle className="text-gray-700">Total Budget</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">${summary.totalBudget.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-gray-900">${summary.totalBudget.toLocaleString()}</div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <CardHeader><CardTitle className="text-gray-700 dark:text-gray-300">Variance</CardTitle></CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader><CardTitle className="text-gray-700">Variance</CardTitle></CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${summary.variance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            <div className={`text-2xl font-bold ${summary.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               ${summary.variance.toLocaleString()}
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <CardHeader><CardTitle className="text-gray-700 dark:text-gray-300">Budget Used</CardTitle></CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader><CardTitle className="text-gray-700">Budget Used</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{summary.percentUsed.toFixed(1)}%</div>
+            <div className="text-2xl font-bold text-gray-900">{summary.percentUsed.toFixed(1)}%</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
       <TabsContent value="monthly">
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <CardHeader><CardTitle className="text-gray-700 dark:text-gray-300">Monthly Spending</CardTitle></CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader><CardTitle className="text-gray-700">Monthly Spending</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={400}>
               <LineChart data={chartData}>
@@ -187,8 +187,8 @@ export default function CostingsDashboard() {
       </TabsContent>
 
       <TabsContent value="yearly">
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <CardHeader><CardTitle className="text-gray-700 dark:text-gray-300">Yearly Spending</CardTitle></CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader><CardTitle className="text-gray-700">Yearly Spending</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={400}>
               <LineChart data={chartData}>
@@ -217,8 +217,8 @@ export default function CostingsDashboard() {
       </TabsContent>
 
       <TabsContent value="category">
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <CardHeader><CardTitle className="text-gray-700 dark:text-gray-300">Spending by Category</CardTitle></CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader><CardTitle className="text-gray-700">Spending by Category</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={400}>
               <PieChart>
@@ -246,24 +246,24 @@ export default function CostingsDashboard() {
       </TabsContent>
 
       <TabsContent value="item">
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <CardHeader><CardTitle className="text-gray-700 dark:text-gray-300">Top 50 Most Expensive Items</CardTitle></CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader><CardTitle className="text-gray-700">Top 50 Most Expensive Items</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="min-w-full border border-gray-200 dark:border-gray-700">
+              <table className="min-w-full border border-gray-200">
                 <thead>
-                  <tr className="bg-gray-100 dark:bg-gray-800">
-                    <th className="p-2 text-left text-gray-700 dark:text-gray-300">Item Description</th>
-                    <th className="p-2 text-right text-gray-700 dark:text-gray-300">Total Spent</th>
-                    <th className="p-2 text-right text-gray-700 dark:text-gray-300"># of Submissions</th>
+                  <tr className="bg-gray-100">
+                    <th className="p-2 text-left text-gray-700">Item Description</th>
+                    <th className="p-2 text-right text-gray-700">Total Spent</th>
+                    <th className="p-2 text-right text-gray-700"># of Submissions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {chartData.map((item: any) => (
-                    <tr key={item.description} className="border-t border-gray-200 dark:border-gray-700">
-                      <td className="p-2 text-gray-900 dark:text-white">{item.description}</td>
-                      <td className="p-2 text-right text-gray-900 dark:text-white">${item.total_spent.toLocaleString()}</td>
-                      <td className="p-2 text-right text-gray-900 dark:text-white">{item.times_used}</td>
+                    <tr key={item.description} className="border-t border-gray-200">
+                      <td className="p-2 text-gray-900">{item.description}</td>
+                      <td className="p-2 text-right text-gray-900">${item.total_spent.toLocaleString()}</td>
+                      <td className="p-2 text-right text-gray-900">{item.times_used}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -274,8 +274,8 @@ export default function CostingsDashboard() {
       </TabsContent>
 
       <TabsContent value="tender">
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-          <CardHeader><CardTitle className="text-gray-700 dark:text-gray-300">Budget vs Actual per Tender</CardTitle></CardHeader>
+        <Card className="bg-white border border-gray-200">
+          <CardHeader><CardTitle className="text-gray-700">Budget vs Actual per Tender</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={500}>
               <BarChart data={chartData} layout="vertical" margin={{ left: 100 }}>
