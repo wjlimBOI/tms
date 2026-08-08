@@ -38,24 +38,24 @@ const ICONS: Record<NotifyType, typeof CheckCircle2> = {
 
 const STYLES: Record<NotifyType, { iconBg: string; icon: string; border: string }> = {
   success: {
-    iconBg: "bg-emerald-100 dark:bg-emerald-500/20",
-    icon: "text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-200 dark:border-emerald-900",
+    iconBg: "bg-emerald-100",
+    icon: "text-emerald-600",
+    border: "border-emerald-200",
   },
   error: {
-    iconBg: "bg-rose-100 dark:bg-rose-500/20",
-    icon: "text-rose-600 dark:text-rose-400",
-    border: "border-rose-200 dark:border-rose-900",
+    iconBg: "bg-rose-100",
+    icon: "text-rose-600",
+    border: "border-rose-200",
   },
   info: {
-    iconBg: "bg-blue-100 dark:bg-blue-500/20",
-    icon: "text-blue-600 dark:text-blue-400",
-    border: "border-blue-200 dark:border-blue-900",
+    iconBg: "bg-blue-100",
+    icon: "text-blue-600",
+    border: "border-blue-200",
   },
   warning: {
-    iconBg: "bg-amber-100 dark:bg-amber-500/20",
-    icon: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-200 dark:border-amber-900",
+    iconBg: "bg-amber-100",
+    icon: "text-amber-600",
+    border: "border-amber-200",
   },
 };
 
@@ -96,18 +96,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             <div
               key={item.id}
               className={cn(
-                "pointer-events-auto w-full max-w-sm rounded-xl border bg-white dark:bg-slate-900 shadow-2xl p-4 flex items-start gap-3 animate-in fade-in-0 zoom-in-95 duration-150",
+                "pointer-events-auto w-full max-w-sm rounded-xl border bg-white shadow-2xl p-4 flex items-start gap-3 animate-in fade-in-0 zoom-in-95 duration-150",
                 style.border
               )}
             >
               <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", style.iconBg)}>
                 <Icon className={cn("w-4.5 h-4.5", style.icon)} />
               </div>
-              <p className="flex-1 min-w-0 text-sm text-slate-700 dark:text-slate-200 pt-1">{item.message}</p>
+              <p className="flex-1 min-w-0 text-sm text-slate-700 pt-1">{item.message}</p>
               <button
                 type="button"
                 onClick={() => dismiss(item.id)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0"
+                className="text-slate-400 hover:text-slate-600 shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
