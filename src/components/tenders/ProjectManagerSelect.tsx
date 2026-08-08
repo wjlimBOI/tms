@@ -159,7 +159,7 @@ export default function ProjectManagerSelect({
   return (
     <div>
       {!hideLabel && (
-        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        <label className="block text-sm font-semibold text-slate-700 mb-1">
           Project Manager {required && <span className="text-rose-500">*</span>}
         </label>
       )}
@@ -173,7 +173,7 @@ export default function ProjectManagerSelect({
             onChange={handleInputChange}
             onFocus={() => setShowDropdown(true)}
             placeholder="Search or select project manager..."
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition pr-8"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition pr-8"
           />
           {loading && (
             <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -185,7 +185,7 @@ export default function ProjectManagerSelect({
           {showDropdown && pmList.length > 0 && (
             <ul
               ref={dropdownRef}
-              className={`absolute z-50 left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-y-auto
+              className={`absolute z-50 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg overflow-y-auto
                 ${dropdownAbove ? "bottom-full mb-1" : "top-full mt-1"}
                 max-h-[min(60vh,300px)]`}
               style={{
@@ -199,11 +199,11 @@ export default function ProjectManagerSelect({
                 <li
                   key={pm.id}
                   onClick={() => handleSelect(pm)}
-                  className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-slate-900 dark:text-white"
+                  className="px-3 py-2 hover:bg-slate-100 cursor-pointer text-slate-900"
                 >
                   <div className="flex flex-col">
                     <span className="font-medium">{pm.name}</span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                    <span className="text-xs text-slate-500">
                       {pm.email} {pm.phone ? `· ${formatPhoneForDisplay(pm.phone)}` : ""}
                     </span>
                   </div>
@@ -216,7 +216,7 @@ export default function ProjectManagerSelect({
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap"
+          className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition text-slate-700 font-medium whitespace-nowrap"
         >
           + New PM
         </button>
@@ -225,11 +225,11 @@ export default function ProjectManagerSelect({
       {/* Modal – already responsive */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-800 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Add Project Manager</h3>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-slate-200 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold text-slate-900 mb-4">Add Project Manager</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Full Name <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -237,11 +237,11 @@ export default function ProjectManagerSelect({
                   placeholder="e.g., John Doe"
                   value={newPM.name}
                   onChange={(e) => setNewPM({ ...newPM, name: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+                  className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Email <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -249,11 +249,11 @@ export default function ProjectManagerSelect({
                   placeholder="john@example.com"
                   value={newPM.email}
                   onChange={(e) => setNewPM({ ...newPM, email: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+                  className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Phone
                 </label>
                 <input
@@ -261,9 +261,9 @@ export default function ProjectManagerSelect({
                   placeholder="+6512345678"
                   value={newPM.phone}
                   onChange={(e) => setNewPM({ ...newPM, phone: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition"
+                  className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
                 />
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Use E.164 format, e.g. +6512345678 (no spaces)
                 </p>
               </div>
@@ -272,7 +272,7 @@ export default function ProjectManagerSelect({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-700 dark:text-slate-300"
+                className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 transition text-slate-700"
               >
                 Cancel
               </button>
@@ -280,7 +280,7 @@ export default function ProjectManagerSelect({
                 type="button"
                 onClick={handleCreate}
                 disabled={isCreating}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-medium transition disabled:opacity-50 shadow-sm"
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition disabled:opacity-50 shadow-sm"
               >
                 {isCreating ? "Creating..." : "Create"}
               </button>
