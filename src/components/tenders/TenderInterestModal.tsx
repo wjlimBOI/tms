@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Users, Mail, Phone, Building2 } from "lucide-react";
+import { X, Users, Mail, Phone, Building2, Check, Undo2 } from "lucide-react";
 import { format } from "date-fns";
+import { useNotify } from "@/components/ui/notification-provider";
 
 interface InterestEntry {
   interest_id: number;
@@ -24,9 +25,34 @@ interface Props {
 }
 
 export default function TenderInterestModal({ tenderId, tenderName, onClose }: Props) {
+  const toast = useNotify();
   const [interests, setInterests] = useState<InterestEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [decidingId, setDecidingId] = useState<number | null>(null);
+
+  const decide = async (interestId: number, approved: boolean) => {
+    setDecidingId(interestId);
+    try {
+      const res = await fetch(`/api/tenders/${tenderId}/interest/${interestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Unable to update interest status.");
+      }
+      setInterests((prev) =>
+        prev.map((entry) => (entry.interest_id === interestId ? { ...entry, is_approved: approved } : entry))
+      );
+      toast.success(approved ? "Contractor approved" : "Approval reverted");
+    } catch (err: any) {
+      toast.error(err.message || "Unable to update interest status.");
+    } finally {
+      setDecidingId(null);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -106,9 +132,20 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
                   className="p-3 rounded-lg border border-slate-200 bg-slate-50"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-sm text-slate-900">
-                      {entry.full_name || entry.username || "Unnamed contractor"}
-                    </p>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="font-medium text-sm text-slate-900 truncate">
+                        {entry.full_name || entry.username || "Unnamed contractor"}
+                      </p>
+                      {entry.is_approved ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-emerald-100 text-emerald-700 shrink-0">
+                          <Check className="w-2.5 h-2.5" /> Approved
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-amber-100 text-amber-700 shrink-0">
+                          Pending
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-400 shrink-0">
                       {entry.created_at ? format(new Date(entry.created_at), "MMM dd, yyyy") : ""}
                     </span>
@@ -135,6 +172,25 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
                       &quot;{entry.interest_note}&quot;
                     </p>
                   )}
+                  <div className="mt-2 flex justify-end">
+                    {entry.is_approved ? (
+                      <button
+                        onClick={() => decide(entry.interest_id, false)}
+                        disabled={decidingId === entry.interest_id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-200 transition disabled:opacity-50"
+                      >
+                        <Undo2 className="w-3 h-3" /> Revoke approval
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => decide(entry.interest_id, true)}
+                        disabled={decidingId === entry.interest_id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-50"
+                      >
+                        <Check className="w-3 h-3" /> {decidingId === entry.interest_id ? "Approving…" : "Approve"}
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
