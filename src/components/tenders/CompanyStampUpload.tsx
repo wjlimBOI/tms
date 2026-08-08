@@ -83,7 +83,7 @@ export const CompanyStampUpload: React.FC<CompanyStampUploadProps> = ({
 
   return (
     <div className={className}>
-      <label className="font-bold block text-sm text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+      <label className="font-bold block text-sm text-slate-700 mb-2">{label}</label>
       <div className="print:hidden">
         {!preview ? (
           <div
@@ -95,24 +95,24 @@ export const CompanyStampUpload: React.FC<CompanyStampUploadProps> = ({
               ${disabled ? "cursor-default opacity-60" : ""}
               ${
                 isDragging
-                  ? "border-blue-500 dark:border-blue-400 bg-blue-50/20 dark:bg-blue-950/20"
-                  : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50/80 dark:hover:bg-slate-800/80"
+                  ? "border-blue-500 bg-blue-50/20"
+                  : "border-slate-200 bg-slate-50/50 hover:border-slate-400 hover:bg-slate-50/80"
               }`}
           >
             <div className="flex flex-col items-center gap-2">
               <Upload
                 className={`w-8 h-8 transition-transform ${
-                  isDragging ? "scale-105 text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
+                  isDragging ? "scale-105 text-blue-500" : "text-slate-400"
                 }`}
               />
-              <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Drag & drop your stamp, or <span className="text-blue-600 dark:text-blue-400">click to browse</span>
+              <div className="text-sm font-medium text-slate-700">
+                Drag & drop your stamp, or <span className="text-blue-600">click to browse</span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG, PDF up to 5MB</p>
+              <p className="text-xs text-slate-500">PNG, JPG, PDF up to 5MB</p>
             </div>
             {isUploading && (
               <div
-                className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 dark:bg-blue-400 transition-all duration-100"
+                className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 transition-all duration-100"
                 style={{ width: `${uploadProgress}%` }}
               />
             )}
@@ -126,24 +126,24 @@ export const CompanyStampUpload: React.FC<CompanyStampUploadProps> = ({
             />
           </div>
         ) : (
-          <div className="border rounded-xl p-4 bg-white/50 dark:bg-slate-800/50">
+          <div className="border rounded-xl p-4 bg-white/50">
             <div className="flex items-start gap-3">
               {preview.startsWith("data:image") ? (
-                <img src={preview} alt="Stamp" className="w-16 h-16 object-contain border rounded dark:border-slate-700" />
+                <img src={preview} alt="Stamp" className="w-16 h-16 object-contain border rounded" />
               ) : (
-                <div className="w-16 h-16 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded border dark:border-slate-600">
-                  <File className="w-8 h-8 text-slate-500 dark:text-slate-400" />
+                <div className="w-16 h-16 flex items-center justify-center bg-slate-100 rounded border">
+                  <File className="w-8 h-8 text-slate-500" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate text-slate-700 dark:text-slate-300">{fileName}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{fileSize}</p>
+                <p className="font-medium truncate text-slate-700">{fileName}</p>
+                <p className="text-xs text-slate-500">{fileSize}</p>
                 {isUploading && (
                   <div className="mt-2 h-1 bg-emerald-500 rounded-full" style={{ width: `${uploadProgress}%` }} />
                 )}
               </div>
               {!disabled && (
-                <button onClick={handleRemove} className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400">
+                <button onClick={handleRemove} className="text-slate-400 hover:text-red-500">
                   ✕
                 </button>
               )}
