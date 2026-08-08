@@ -22,7 +22,7 @@ awards, and extensions.
    | `DATABASE_URL` | Yes | Postgres connection string |
    | `NEXTAUTH_SECRET` | Yes | NextAuth JWT signing secret |
    | `NEXTAUTH_URL` | Yes | Base URL used in emailed links (password reset, notifications) |
-   | `LOCAL_ENCRYPTION_KEY` | Yes | Symmetric key for `src/lib/encryption.ts` |
+   | `LOCAL_ENCRYPTION_KEY` | Yes | Symmetric key for `src/lib/encryption.ts` (AES-256-GCM). Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Once real encrypted data exists, never change this value — doing so makes that data permanently undecryptable. |
    | `ALLOWED_ORIGINS` | No | Comma-separated CORS allowlist (defaults to localhost) |
    | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | For email features | Outbound mail (stage notifications, tender requests, password reset) |
    | `TEAM_EMAIL` | For tender-requests | Notification recipient |
@@ -30,6 +30,13 @@ awards, and extensions.
    | `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_REQUESTS` | No | Rate limit tuning (defaults: 60000ms / 100 requests) |
    | `ANTHROPIC_API_KEY` | For AI description generation | Powers "Generate with AI" on the tender description field (`src/app/api/tenders/generate-description`) |
    | `CRON_SECRET` | For scheduled jobs | Bearer token required by `GET /api/cron/run` (tender stage transitions, DLP/submission-deadline reminders). Endpoint refuses all requests if unset. Trigger hourly (or per host cron limits) via `vercel.json` on Vercel, or an external `curl -H "Authorization: Bearer $CRON_SECRET" .../api/cron/run` cron line otherwise. |
+
+   The four "Yes" (required) variables are validated at server startup by
+   `src/instrumentation.ts` — if any are missing, the server refuses to
+   start and prints exactly which ones, instead of failing confusingly at
+   whatever request first happens to touch the missing value. A basic
+   unauthenticated health check (DB connectivity only) is available at
+   `GET /api/health` for load balancers/uptime monitors.
 
 3. **Set up the database**
    ```bash
