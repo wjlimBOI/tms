@@ -9,6 +9,7 @@ import { RefreshCw } from "lucide-react";
 import {
   getBQStatusStyles,
   getBQStatusLabel,
+  getDlpStatusBadgeStyle,
 } from "@/lib/statusColors";
 import { ROLE_IDS } from "@/lib/roles";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -28,8 +29,10 @@ interface DashboardStats {
   activeTenders?: number;
   dlpSummary?: {
     activeCases: number;
+    overdueCases?: number;
     nextDueDate?: string;
-    upcomingList?: Array<{ outlet: string; dueDate: string; daysLeft: number }>;
+    upcomingList?: Array<{ outlet: string; dueDate: string; status?: string; daysLeft: number; daysOverdue?: number }>;
+    overdueList?: Array<{ outlet: string; dueDate: string; status?: string; daysLeft: number; daysOverdue?: number }>;
   };
   awardedTenders?: AwardedTenderItem[];
   notifications?: DashboardNotification[];
@@ -352,8 +355,13 @@ export default function DashboardPage() {
             {/* DLP Deadlines */}
             <Card className="bg-white border-slate-200 shadow-none overflow-hidden flex flex-col p-0 gap-0">
               <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 border-b border-slate-200">
-                <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800">
+                <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
                   DLP Deadlines
+                  {!!stats?.dlpSummary?.overdueCases && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 normal-case tracking-normal">
+                      {stats.dlpSummary.overdueCases} overdue
+                    </span>
+                  )}
                 </CardTitle>
                 <Button
                   variant="link"
@@ -365,21 +373,23 @@ export default function DashboardPage() {
                 </Button>
               </CardHeader>
               <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
-                {!stats?.dlpSummary?.upcomingList?.length ? (
+                {!stats?.dlpSummary?.overdueList?.length && !stats?.dlpSummary?.upcomingList?.length ? (
                   <div className="text-sm text-slate-500 text-center py-4">No upcoming DLP deadlines.</div>
                 ) : (
                   <div className="space-y-2">
-                    {stats.dlpSummary.upcomingList.slice(0, 5).map((item: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center text-sm border-b border-slate-100 pb-2 last:border-0">
-                        <div className="min-w-0">
-                          <p className="font-medium text-slate-900 truncate max-w-[120px] sm:max-w-[180px]">{item.outlet}</p>
-                          <p className="text-[10px] sm:text-xs text-slate-500">Due: {formatDate(item.dueDate)}</p>
+                    {[...(stats.dlpSummary.overdueList || []), ...(stats.dlpSummary.upcomingList || [])]
+                      .slice(0, 5)
+                      .map((item: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center text-sm border-b border-slate-100 pb-2 last:border-0">
+                          <div className="min-w-0">
+                            <p className="font-medium text-slate-900 truncate max-w-[120px] sm:max-w-[180px]">{item.outlet}</p>
+                            <p className="text-[10px] sm:text-xs text-slate-500">Due: {formatDate(item.dueDate)}</p>
+                          </div>
+                          <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium ${getDlpStatusBadgeStyle(item.status || 'upcoming')}`}>
+                            {item.status === 'overdue' ? `${item.daysOverdue}d overdue` : `${item.daysLeft}d`}
+                          </span>
                         </div>
-                        <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium ${item.daysLeft <= 30 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-                          {item.daysLeft}d
-                        </span>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </CardContent>
@@ -611,22 +621,22 @@ export default function DashboardPage() {
           <div className="p-6">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
-                <caption className="sr-only">Upcoming Defect Liability Period deadlines by outlet</caption>
+                <caption className="sr-only">Defect Liability Period deadlines by outlet, overdue first</caption>
                 <thead className="bg-slate-50">
                   <tr>
                     <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Outlet</th>
                     <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">DLP Due Date</th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Days Left</th>
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {(stats?.dlpSummary?.upcomingList ?? []).map((item: any, idx: number) => (
+                  {[...(stats?.dlpSummary?.overdueList ?? []), ...(stats?.dlpSummary?.upcomingList ?? [])].map((item: any, idx: number) => (
                     <tr key={idx} className="hover:bg-slate-50 transition">
                       <td className="px-4 py-3 text-sm text-slate-900">{item.outlet}</td>
                       <td className="px-4 py-3 text-sm text-slate-700">{formatDate(item.dueDate)}</td>
                       <td className="px-4 py-3 text-sm">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.daysLeft <= 30 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-                          {item.daysLeft} days left
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDlpStatusBadgeStyle(item.status || 'upcoming')}`}>
+                          {item.status === 'overdue' ? `${item.daysOverdue} days overdue` : `${item.daysLeft} days left`}
                         </span>
                       </td>
                     </tr>
@@ -634,7 +644,7 @@ export default function DashboardPage() {
                 </tbody>
               </table>
             </div>
-            {(stats?.dlpSummary?.upcomingList?.length ?? 0) === 0 && (
+            {((stats?.dlpSummary?.upcomingList?.length ?? 0) + (stats?.dlpSummary?.overdueList?.length ?? 0)) === 0 && (
               <div className="text-center py-8 text-slate-500 text-sm">No upcoming DLP deadlines.</div>
             )}
           </div>

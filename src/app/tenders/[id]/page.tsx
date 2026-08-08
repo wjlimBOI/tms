@@ -30,6 +30,8 @@ import { FORM_OF_TENDER_ITEMS } from "@/lib/tenderFormItems";
 import { ROLE_IDS } from "@/lib/roles";
 import { numberToWords } from "@/lib/numberToWords";
 import { formatTenderDate, formatTenderDateTime, formatTenderDateLong } from "@/lib/dateUtils";
+import { computeDlpExpiry, getDlpStatus } from "@/lib/dlp";
+import { getDlpStatusBadgeStyle, getDlpStatusLabel } from "@/lib/statusColors";
 import { SignaturePad } from "@/components/tenders/SignaturePad";
 import { CompanyStampUpload } from "@/components/tenders/CompanyStampUpload";
 
@@ -83,6 +85,11 @@ interface TenderData {
   project_manager_name?: string | null;
   project_manager_phone?: string | null;
   project_manager_email?: string | null;
+  expected_handover_date?: string | null;
+  handover_date?: string | null;
+  defect_liability_months?: number | null;
+  handover_by_name?: string | null;
+  handover_notes?: string | null;
   clauses?: {
     critical: { title: string; description: string }[];
     scope: { title: string; description: string }[];
@@ -888,6 +895,68 @@ export default function TenderDocumentPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ===== DLP (DEFECT LIABILITY PERIOD) STATUS ===== */}
+        {/* Expected handover date is a planning estimate set at creation/edit
+            time and shown whenever it exists; actual DLP tracking only
+            begins once the tender is Awarded and a real handover has been
+            recorded — the two dates are deliberately independent. */}
+        {tender?.expected_handover_date && (
+          <div className="print:hidden mb-4 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2">
+            Expected handover date (planning estimate): <span className="font-medium text-slate-700">{formatTenderDate(tender.expected_handover_date)}</span>
+          </div>
+        )}
+        {tender && (tender.stage ?? 0) === 3 && (
+          <div className="print:hidden mb-6 p-4 bg-white rounded-lg border border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">Defect Liability Period</h3>
+            {!tender.handover_date ? (
+              <p className="text-sm text-slate-500">Not yet handed over.</p>
+            ) : (
+              (() => {
+                const months = tender.defect_liability_months ?? 12;
+                const expiry = computeDlpExpiry(tender.handover_date, months);
+                const { status, daysLeft, daysOverdue } = getDlpStatus(expiry);
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-slate-500">Handover date:</span>{" "}
+                      <span className="text-slate-900 font-medium">{formatTenderDate(tender.handover_date)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Defect liability period:</span>{" "}
+                      <span className="text-slate-900 font-medium">{months} months</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">DLP expiry:</span>{" "}
+                      <span className="text-slate-900 font-medium">{formatTenderDate(expiry.toISOString())}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500">Status:</span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDlpStatusBadgeStyle(status)}`}>
+                        {getDlpStatusLabel(status)}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {status === "overdue" ? `${daysOverdue} days overdue` : `${daysLeft} days left`}
+                      </span>
+                    </div>
+                    {tender.handover_by_name && (
+                      <div className="sm:col-span-2">
+                        <span className="text-slate-500">Recorded by:</span>{" "}
+                        <span className="text-slate-900 font-medium">{tender.handover_by_name}</span>
+                      </div>
+                    )}
+                    {tender.handover_notes && (
+                      <div className="sm:col-span-2">
+                        <span className="text-slate-500">Notes:</span>{" "}
+                        <span className="text-slate-700">{tender.handover_notes}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            )}
           </div>
         )}
 

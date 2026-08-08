@@ -148,6 +148,32 @@ export async function canViewTenderWithParticipation(
   return submissionRes.rows.length > 0;
 }
 
+// ========== HANDOVER / DLP PERMISSIONS ==========
+// Admin, or the Project Manager (or Senior PM) actually assigned to this
+// tender. `project_managers` (the dropdown reference table) has no link to a
+// real login account, so "the assigned PM" is resolved via email match
+// against `tender.project_manager_email` — a denormalized column snapshotted
+// onto the tender at creation time, not a join to `project_managers`.
+export async function canMarkHandover(
+  tenderId: number,
+  userEmail: string | null | undefined,
+  roleIds: number | number[]
+): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (hasRole(roles, ROLE_IDS.ADMIN)) return true;
+  if (!hasRole(roles, ROLE_IDS.PROJECT_MANAGER) && !hasRole(roles, ROLE_IDS.SENIOR_PROJECT_MANAGER)) {
+    return false;
+  }
+  if (!userEmail) return false;
+
+  const result = await pool.query(
+    `SELECT project_manager_email FROM tender WHERE tender_id = $1 AND is_deleted = false`,
+    [tenderId]
+  );
+  if (result.rows.length === 0 || !result.rows[0].project_manager_email) return false;
+  return result.rows[0].project_manager_email.toLowerCase() === userEmail.toLowerCase();
+}
+
 // ========== DRAFT TENDER VISIBILITY ==========
 export async function canViewDraftTender(roleIds: number | number[]): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);

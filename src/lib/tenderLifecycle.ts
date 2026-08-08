@@ -106,3 +106,38 @@ export async function applyScheduledTenderTransitions(): Promise<void> {
   await autoOpenScheduledTenders();
   await autoCloseExpiredTenders();
 }
+
+// DLP (Defect Liability Period) reminder — same lazy, no-cron pattern as the
+// stage auto-transitions above, but a one-time notification rather than a
+// state change. dlp_reminder_sent_at dedupes so a tender is only ever
+// reminded-on once per handover; the handover route resets it to NULL if the
+// handover date/defect liability period is later corrected, so a new expiry
+// can trigger a fresh reminder.
+export async function sendDueDlpReminders(): Promise<void> {
+  const dueRes = await query(
+    `SELECT t.tender_id, t.tender_name, b.branch_name,
+            (t.handover_date + (COALESCE(t.defect_liability_months, 12) || ' months')::interval)::date AS due_date
+     FROM tender t JOIN branch b ON t.branch_id = b.branch_id
+     WHERE t.is_deleted = false AND t.stage = 3 AND t.handover_date IS NOT NULL
+       AND t.dlp_reminder_sent_at IS NULL
+       AND (t.handover_date + (COALESCE(t.defect_liability_months, 12) || ' months')::interval)::date
+           <= (CURRENT_DATE + INTERVAL '30 days')`
+  );
+  if (dueRes.rows.length === 0) return;
+
+  const adminRes = await query(
+    `SELECT user_id FROM users WHERE role_id = $1 AND is_active = true`,
+    [ROLE_IDS.ADMIN]
+  );
+  const adminIds = adminRes.rows.map((r) => r.user_id);
+
+  for (const t of dueRes.rows) {
+    await notifyUsers(
+      adminIds,
+      `DLP expiring soon: ${t.tender_name}`,
+      `${t.branch_name} — Defect Liability Period expires on ${t.due_date}.`,
+      `/tenders/${t.tender_id}`
+    ).catch((err) => console.error(`DLP reminder notify failed for tender ${t.tender_id}:`, err));
+    await query(`UPDATE tender SET dlp_reminder_sent_at = NOW() WHERE tender_id = $1`, [t.tender_id]);
+  }
+}

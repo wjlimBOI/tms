@@ -15,6 +15,7 @@ import { useNotify } from "@/components/ui/notification-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import TenderInterestModal from "@/components/tenders/TenderInterestModal";
 import AwardTenderModal from "@/components/tenders/AwardTenderModal";
+import HandoverModal from "@/components/tenders/HandoverModal";
 
 // ---------- Interfaces ----------
 interface Tender {
@@ -34,6 +35,10 @@ interface Tender {
   building_name?: string;
   interest_count?: number;
   has_expressed_interest?: boolean;
+  project_manager_email?: string | null;
+  expected_handover_date?: string | null;
+  handover_date?: string | null;
+  defect_liability_months?: number | null;
 }
 
 interface ExtensionStatus {
@@ -193,11 +198,22 @@ export default function TendersListPage() {
   const [applyingInterestId, setApplyingInterestId] = useState<number | null>(null);
   const [interestModalTender, setInterestModalTender] = useState<Tender | null>(null);
   const [awardModalTender, setAwardModalTender] = useState<Tender | null>(null);
+  const [handoverModalTender, setHandoverModalTender] = useState<Tender | null>(null);
 
   const toast = useNotify();
   const confirm = useConfirm();
 
   const userRole = (session?.user as any)?.role_id;
+  const userEmail = (session?.user as any)?.email as string | undefined;
+
+  // Admin can mark handover on any Awarded tender; a Project Manager (or
+  // Senior PM) only on the tender they're actually assigned to, matched by
+  // email since project_managers has no link to a real login account.
+  const canMarkHandover = (item: Tender): boolean => {
+    if (userRole === ROLE_IDS.ADMIN) return true;
+    if (userRole !== ROLE_IDS.PROJECT_MANAGER && userRole !== ROLE_IDS.SENIOR_PROJECT_MANAGER) return false;
+    return !!userEmail && !!item.project_manager_email && userEmail.toLowerCase() === item.project_manager_email.toLowerCase();
+  };
   const isAdmin = userRole === ROLE_IDS.ADMIN;
   const isContractor = userRole === ROLE_IDS.CONTRACTOR;
   const canManageStage = userRole === ROLE_IDS.ADMIN;
@@ -899,6 +915,25 @@ export default function TendersListPage() {
                                 </>
                               )}
 
+                              {stageIdx === 3 && canMarkHandover(item) && !isEditing && (
+                                <>
+                                  <div className="px-2 sm:px-3 py-0.5 text-[8px] sm:text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+                                    Handover
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setHandoverModalTender(item);
+                                    }}
+                                    className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
+                                  >
+                                    <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    {item.handover_date ? "Update Handover" : "Mark as Handed Over"}
+                                  </button>
+                                  <hr className="my-1 border-slate-200" />
+                                </>
+                              )}
+
                               {isContractor && item.status_label === "Open" && !isEditing && (
                                 <>
                                   <div className="px-2 sm:px-3 py-0.5 text-[8px] sm:text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -998,6 +1033,18 @@ export default function TendersListPage() {
           tenderName={awardModalTender.tender_name}
           onClose={() => setAwardModalTender(null)}
           onAwarded={fetchTenders}
+        />
+      )}
+
+      {handoverModalTender && (
+        <HandoverModal
+          tenderId={handoverModalTender.tender_id}
+          tenderName={handoverModalTender.tender_name}
+          expectedHandoverDate={handoverModalTender.expected_handover_date}
+          currentHandoverDate={handoverModalTender.handover_date}
+          currentDefectLiabilityMonths={handoverModalTender.defect_liability_months}
+          onClose={() => setHandoverModalTender(null)}
+          onHandedOver={fetchTenders}
         />
       )}
     </div>

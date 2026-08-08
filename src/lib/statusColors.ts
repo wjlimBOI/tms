@@ -1,6 +1,6 @@
 // lib/statusColors.ts
 
-type StatusDomain = 'tender' | 'bq' | 'branch';
+type StatusDomain = 'tender' | 'bq' | 'branch' | 'dlp';
 
 interface StatusStyle {
   bg: string;
@@ -141,6 +141,36 @@ export const STATUS_CONFIG: Record<StatusDomain, StatusConfigMap> = {
       },
     },
   },
+  // ===== DLP (DEFECT LIABILITY PERIOD) STATUSES =====
+  dlp: {
+    upcoming: {
+      label: 'Upcoming',
+      style: {
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-700',
+        border: 'border-emerald-200',
+        dot: 'bg-emerald-500',
+      },
+    },
+    'due-soon': {
+      label: 'Due Soon',
+      style: {
+        bg: 'bg-amber-50',
+        text: 'text-amber-700',
+        border: 'border-amber-200',
+        dot: 'bg-amber-500',
+      },
+    },
+    overdue: {
+      label: 'Overdue',
+      style: {
+        bg: 'bg-rose-50',
+        text: 'text-rose-700',
+        border: 'border-rose-200',
+        dot: 'bg-rose-500',
+      },
+    },
+  },
 };
 
 const FALLBACK_STYLE: StatusStyle = {
@@ -186,3 +216,8 @@ export const getTenderStatusStyles = (status: string) => getStatusStyles(status,
 export const getBranchStatusBadgeStyle = (status: string) => getStatusBadgeStyle(status, 'branch');
 export const getBranchStatusLabel = (status: string) => getStatusLabel(status, 'branch');
 export const getBranchStatusStyles = (status: string) => getStatusStyles(status, 'branch');
+
+// ----- DLP status helpers -----
+export const getDlpStatusBadgeStyle = (status: string) => getStatusBadgeStyle(status, 'dlp');
+export const getDlpStatusLabel = (status: string) => getStatusLabel(status, 'dlp');
+export const getDlpStatusStyles = (status: string) => getStatusStyles(status, 'dlp');

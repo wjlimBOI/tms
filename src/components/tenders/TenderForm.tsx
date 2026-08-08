@@ -277,6 +277,8 @@ export default function TenderForm({
     project_manager_name: "",
     project_manager_email: "",
     project_manager_phone: "",
+    expected_handover_date: "",
+    defect_liability_months: "12",
   });
 
   // Load lookups
@@ -350,6 +352,10 @@ export default function TenderForm({
       project_manager_name: initialData.project_manager_name || "",
       project_manager_email: initialData.project_manager_email || "",
       project_manager_phone: initialData.project_manager_phone || "",
+      expected_handover_date: initialData.expected_handover_date
+        ? new Date(initialData.expected_handover_date).toISOString().slice(0, 10)
+        : "",
+      defect_liability_months: initialData.defect_liability_months?.toString() || "12",
     });
     setSelectedPMName(initialData.project_manager_name || "");
     const selectedBranch = branches.find((b) => b.branch_id === initialData.branch_id);
@@ -576,6 +582,8 @@ export default function TenderForm({
       project_manager_name: submitData.project_manager_name || null,
       project_manager_email: submitData.project_manager_email || null,
       project_manager_phone: submitData.project_manager_phone || null,
+      expected_handover_date: submitData.expected_handover_date || null,
+      defect_liability_months: submitData.defect_liability_months ? parseInt(submitData.defect_liability_months) : null,
       briefing_dates: briefingDates.map(d => {
         const parsed = new Date(d.date);
         return {
@@ -886,6 +894,36 @@ export default function TenderForm({
               value={formData.renovation_end_date}
               onChange={handleChange}
               className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="expected_handover_date" className="block font-semibold mb-1 text-slate-700">
+              Expected Handover Date <span className="font-normal text-slate-400">(planning estimate)</span>
+            </label>
+            <input
+              type="date"
+              id="expected_handover_date"
+              name="expected_handover_date"
+              value={formData.expected_handover_date}
+              onChange={handleChange}
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="defect_liability_months" className="block font-semibold mb-1 text-slate-700">
+              Defect Liability Period (months)
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="120"
+              id="defect_liability_months"
+              name="defect_liability_months"
+              value={formData.defect_liability_months}
+              onChange={handleChange}
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
         </div>

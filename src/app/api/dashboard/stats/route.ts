@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
+import { getDlpStatus } from "@/lib/dlp";
+import { sendDueDlpReminders } from "@/lib/tenderLifecycle";
 import type { AwardedTenderItem, DashboardNotification } from "@/types/dashboard";
 
 export async function OPTIONS(request: NextRequest) {
@@ -92,6 +94,11 @@ export async function GET(request: NextRequest) {
       );
     }
   }
+
+  // Best-effort, non-blocking — every internal-staff dashboard load
+  // opportunistically checks/sends DLP reminders, same lazy no-cron pattern
+  // as applyScheduledTenderTransitions().
+  void sendDueDlpReminders().catch((err) => console.error("DLP reminder check failed:", err));
 
   // ========== INTERNAL STAFF: real DB-backed data ==========
   let realActiveTendersCount = 0;
@@ -194,31 +201,41 @@ export async function GET(request: NextRequest) {
     .slice(0, 15);
 
   // ========== DLP summary – real data (tender.handover_date) ==========
-  // Empty until projects have a recorded handover_date — there's no "mark
-  // project handed over" feature yet, tracked separately from awarding.
-  let realDlpSummary = { activeCases: 0, nextDueDate: null as string | null, upcomingList: [] as any[] };
+  // Overdue DLPs are surfaced explicitly, not silently dropped — a DLP past
+  // its expiry is exactly the case ops most needs to see.
+  let realDlpSummary: {
+    activeCases: number;
+    overdueCases: number;
+    nextDueDate: string | null;
+    upcomingList: any[];
+    overdueList: any[];
+  } = { activeCases: 0, overdueCases: 0, nextDueDate: null, upcomingList: [], overdueList: [] };
   try {
     const dlpRes = await query(
       `SELECT t.tender_id, b.branch_name AS outlet,
               (t.handover_date + (COALESCE(t.defect_liability_months, 12) || ' months')::interval)::date AS due_date
        FROM tender t
        JOIN branch b ON t.branch_id = b.branch_id
-       WHERE t.is_deleted = false AND t.handover_date IS NOT NULL`
+       WHERE t.is_deleted = false AND t.stage = 3 AND t.handover_date IS NOT NULL`
     );
-    const upcomingDlpList = dlpRes.rows
-      .map((r) => {
-        const dueDate = new Date(r.due_date);
-        const daysLeft = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-        return { outlet: r.outlet, dueDate: r.due_date, daysLeft };
-      })
-      .filter((item) => item.daysLeft > 0)
+    const allDlpItems = dlpRes.rows.map((r) => {
+      const { status, daysLeft, daysOverdue } = getDlpStatus(new Date(r.due_date));
+      return { outlet: r.outlet, dueDate: r.due_date, status, daysLeft, daysOverdue };
+    });
+    const overdueList = allDlpItems
+      .filter((i) => i.status === "overdue")
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+    const upcomingList = allDlpItems
+      .filter((i) => i.status !== "overdue")
       .sort((a, b) => a.daysLeft - b.daysLeft)
       .slice(0, 15);
 
     realDlpSummary = {
-      activeCases: upcomingDlpList.length,
-      nextDueDate: upcomingDlpList[0]?.dueDate || null,
-      upcomingList: upcomingDlpList,
+      activeCases: allDlpItems.length,
+      overdueCases: overdueList.length,
+      nextDueDate: upcomingList[0]?.dueDate || null,
+      upcomingList,
+      overdueList: overdueList.slice(0, 15),
     };
   } catch (err) {
     console.error("Failed to fetch DLP summary:", err);

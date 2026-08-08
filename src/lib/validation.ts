@@ -68,6 +68,13 @@ const tenderBaseSchema = z.object({
     .optional()
     .nullable()
     .refine(val => !val || validateSGPhone(val), 'Please enter a valid Singapore phone number'),
+  // Planning-time estimate, deliberately not date-ordered against
+  // renovation_end_date — real handover routinely slips past the planned
+  // renovation completion date, so the two are intentionally uncoupled.
+  // Stored as a plain @db.Date column (form input is type="date", not
+  // datetime-local), hence a basic parse check rather than z.string().datetime().
+  expected_handover_date: z.string().refine((v) => !isNaN(new Date(v).getTime()), 'Invalid date').optional().nullable(),
+  defect_liability_months: z.number().int().positive().max(120).optional().nullable(),
   briefing_dates: z.array(briefingDateSchema).optional().default([]),
   clauses: z.object({
     critical: z.array(z.object({ title: z.string(), description: z.string() })).optional(),
@@ -95,6 +102,21 @@ function validateTenderDateOrder(data: Partial<z.infer<typeof tenderBaseSchema>>
 
 export const tenderCreateSchema = tenderBaseSchema.superRefine(validateTenderDateOrder);
 export const tenderUpdateSchema = tenderBaseSchema.partial().superRefine(validateTenderDateOrder);
+
+// ===========================================
+// TENDER HANDOVER / DLP SCHEMA
+// ===========================================
+export const handoverSchema = z.object({
+  handover_date: z.string().refine((v) => {
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return false;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    return d <= today;
+  }, 'Handover date cannot be in the future'),
+  defect_liability_months: z.number().int().positive().max(120),
+  notes: z.string().max(2000).optional().nullable(),
+});
 
 // ===========================================
 // TENDER LIST QUERY SCHEMA

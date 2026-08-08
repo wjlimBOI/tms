@@ -98,7 +98,8 @@ export async function GET(
             pm.phone AS project_manager_phone_joined,
             t.project_manager_name,
             t.project_manager_email,
-            t.project_manager_phone
+            t.project_manager_phone,
+            hu.username AS handover_by_name
      FROM tender t
      JOIN branch b ON t.branch_id = b.branch_id
      LEFT JOIN branch_address ba ON b.branch_id = ba.branch_id AND ba.is_primary = true
@@ -106,6 +107,7 @@ export async function GET(
      JOIN renovation_type rt ON t.renovation_type_id = rt.type_id
      JOIN tender_status ts ON t.status_id = ts.status_id
      LEFT JOIN project_managers pm ON t.project_manager_id = pm.id
+     LEFT JOIN users hu ON hu.user_id = t.handover_by
      WHERE t.tender_id = $1 AND t.is_deleted = false`,
     [tenderId]
   );
@@ -132,6 +134,7 @@ const TENDER_METADATA_FIELDS = [
   'tender_name', 'tender_description', 'status_id', 'branch_id', 'renovation_type_id',
   'project_manager_id', 'project_manager_name', 'project_manager_email', 'project_manager_phone',
   'tender_date', 'closing_date', 'renovation_start_date', 'renovation_end_date',
+  'expected_handover_date', 'defect_liability_months',
   'briefing_dates',
 ];
 

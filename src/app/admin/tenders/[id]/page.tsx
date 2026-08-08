@@ -106,6 +106,8 @@ interface Tender {
   closing_date?: string | null;
   renovation_start_date?: string | null;
   renovation_end_date?: string | null;
+  expected_handover_date?: string | null;
+  defect_liability_months?: number | null;
   estimated_budget?: number | null;
   brand_name: string;
   branch_name: string;
@@ -469,6 +471,8 @@ export default function AdminEditTenderPage() {
       parsedValue = parseInt(value, 10) || 0;
     } else if (name === "project_manager_id") {
       parsedValue = value ? parseInt(value, 10) : null;
+    } else if (name === "defect_liability_months") {
+      parsedValue = value ? parseInt(value, 10) : null;
     }
     setFormData({ ...formData, [name]: parsedValue });
   };
@@ -614,6 +618,8 @@ export default function AdminEditTenderPage() {
         "closing_date",
         "renovation_start_date",
         "renovation_end_date",
+        "expected_handover_date",
+        "defect_liability_months",
       ] as const;
 
       const dateTimeFields = new Set([
@@ -1039,6 +1045,38 @@ export default function AdminEditTenderPage() {
                       value={isoToLocalDateTime(formData.renovation_end_date)}
                       onChange={handleChange}
                       className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
+                    />
+                  </div>
+                )}
+                {formData.expected_handover_date !== undefined && (
+                  <div>
+                    <label htmlFor="expected_handover_date" className="block font-semibold mb-1 text-slate-700">
+                      Expected Handover Date <span className="font-normal text-slate-400">(planning estimate)</span>
+                    </label>
+                    <input
+                      type="date"
+                      id="expected_handover_date"
+                      name="expected_handover_date"
+                      value={formData.expected_handover_date ? formData.expected_handover_date.slice(0, 10) : ""}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
+                    />
+                  </div>
+                )}
+                {formData.defect_liability_months !== undefined && (
+                  <div>
+                    <label htmlFor="defect_liability_months" className="block font-semibold mb-1 text-slate-700">
+                      Defect Liability Period (months)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="120"
+                      id="defect_liability_months"
+                      name="defect_liability_months"
+                      value={formData.defect_liability_months ?? ""}
+                      onChange={handleChange}
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                   </div>
                 )}

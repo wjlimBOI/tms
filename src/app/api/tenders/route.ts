@@ -72,6 +72,10 @@ export async function GET(request: NextRequest) {
       t.closing_date,
       t.stage,
       ts.status_code,
+      t.project_manager_email,
+      t.expected_handover_date,
+      t.handover_date,
+      t.defect_liability_months,
       (SELECT COUNT(*) FROM tender_interest ti WHERE ti.tender_id = t.tender_id)::int AS interest_count
       ${isContractor ? `,
       EXISTS(SELECT 1 FROM tender_interest ti2 WHERE ti2.tender_id = t.tender_id AND ti2.contractor_id = $${1}) AS has_expressed_interest
@@ -195,9 +199,10 @@ export async function POST(request: NextRequest) {
          renovation_start_date, renovation_end_date, estimated_budget,
          project_manager_id, project_manager_name, project_manager_email, project_manager_phone,
          contract_template_id, clauses,
+         expected_handover_date, defect_liability_months,
          created_at, updated_at
        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,NOW(),NOW())
        RETURNING tender_id`,
       [
         body.branch_id,
@@ -217,6 +222,8 @@ export async function POST(request: NextRequest) {
         body.project_manager_phone || null,
         activeTemplate?.template_id || null,
         activeTemplate ? JSON.stringify(activeTemplate.content) : null,
+        body.expected_handover_date || null,
+        body.defect_liability_months || 12,
       ]
     );
 
