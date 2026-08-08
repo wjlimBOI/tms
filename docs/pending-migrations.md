@@ -42,6 +42,27 @@ now has a real client-side gate (session check + Admin bypass +
 `/api/user/permissions` check), mirroring the pattern already used by
 `calendar/page.tsx`.
 
+## APPLIED — add missing `tender_acknowledgment.checklist_data` column (applied 2026-08-09)
+
+Found during a development-stage gap-analysis pass (not a bug sweep):
+`POST /api/tenders/[id]/acknowledge` (`src/app/api/tenders/[id]/acknowledge/route.ts`)
+has always inserted into a `checklist_data` column that did not exist on the
+live `tender_acknowledgment` table — every single call threw a Postgres
+"column does not exist" error, meaning document acknowledgment has **never
+successfully persisted**, independent of the earlier acknowledgment-status
+endpoint-spelling fix (`docs/audit-history.md`) — that fix corrected which
+URL got called, but the underlying write was still broken regardless.
+
+```sql
+ALTER TABLE tender_acknowledgment ADD COLUMN checklist_data JSONB;
+```
+
+Applied directly against the dev DB (real access was available), then
+`npx prisma db pull` + `npx prisma generate` + `npx prisma validate` to
+resync `schema.prisma`. Live-verified: POST'd a real acknowledgment with
+checklist data, confirmed the row persisted with `checklist_data` populated,
+then cleaned up the test row.
+
 ## NOT YET APPLIED — also required: `CRON_SECRET` env var + hosting confirmation
 
 Not a database migration, but blocking for the scheduler half of this same

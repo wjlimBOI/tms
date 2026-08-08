@@ -218,6 +218,7 @@ model tender_acknowledgment {
   acknowledged_at DateTime? @default(now()) @db.Timestamp(6)
   signature       String    @db.VarChar(255)
   sections        Json?
+  checklist_data  Json?
   contractor      users     @relation(fields: [contractor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
   tender          tender    @relation(fields: [tender_id], references: [tender_id], onDelete: Cascade, onUpdate: NoAction)
 
