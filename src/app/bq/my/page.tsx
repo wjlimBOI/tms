@@ -231,7 +231,7 @@ export default function BQWorkspacePage() {
 
   if (sessionStatus === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="w-10 h-10 border-3 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
       </div>
     );
@@ -239,9 +239,9 @@ export default function BQWorkspacePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-        <div className="bg-rose-50/80 dark:bg-rose-900/20 backdrop-blur-sm border border-rose-200 dark:border-rose-800 rounded-xl p-8 text-center shadow-sm">
-          <p className="text-rose-800 dark:text-rose-200">{error}</p>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="bg-rose-50/80 backdrop-blur-sm border border-rose-200 rounded-xl p-8 text-center shadow-sm">
+          <p className="text-rose-800">{error}</p>
           <Button onClick={fetchSubmissions} variant="default" className="mt-4 bg-rose-600 hover:bg-rose-700 text-white">Retry</Button>
         </div>
       </div>
@@ -249,15 +249,15 @@ export default function BQWorkspacePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-wrap justify-between items-start gap-4 border-b border-slate-200/50 dark:border-slate-800/50 pb-4">
+        <div className="flex flex-wrap justify-between items-start gap-4 border-b border-slate-200/50 pb-4">
           <div className="animate-fade-in-up">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent tracking-tight">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent tracking-tight">
               Bill of Quantities
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-sm text-slate-500 mt-1">
               {selectedDetail?.submission?.bq_name
                 ? `${selectedDetail.submission.bq_name} – ${selectedDetail.submission.client_name_override || selectedDetail.submission.brand_name || "—"}`
                 : 'Select a BQ submission to view line items'}
@@ -269,7 +269,7 @@ export default function BQWorkspacePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="gap-1 text-slate-700 border-slate-300 hover:bg-slate-100"
                   onClick={() => window.open(`/api/bq/export?submissionId=${selectedSubmissionId}`, "_blank")}
                 >
                   <Download className="h-4 w-4" /> Export
@@ -277,14 +277,14 @@ export default function BQWorkspacePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="gap-1 text-slate-700 border-slate-300 hover:bg-slate-100"
                   onClick={() => window.open(`/bq/${selectedSubmissionId}/view?print=1`, "_blank")}
                 >
                   <Printer className="h-4 w-4" /> Print
                 </Button>
                 {selectedDetail.canEdit && (
                   <Link href={`/bq/${selectedSubmissionId}/edit`}>
-                    <Button variant="default" size="sm" className="gap-1 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 text-white shadow-sm transition-all hover:-translate-y-0.5">
+                    <Button variant="default" size="sm" className="gap-1 bg-slate-800 hover:bg-slate-700 text-white shadow-sm transition-all hover:-translate-y-0.5">
                       <Pencil className="h-4 w-4" /> Edit BQ
                     </Button>
                   </Link>
@@ -302,53 +302,53 @@ export default function BQWorkspacePage() {
         </div>
 
         {/* Filter Section (unchanged) */}
-        <div className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-md rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm transition-all duration-300">
+        <div className="bg-white/50 backdrop-blur-md rounded-xl border border-slate-200/50 shadow-sm transition-all duration-300">
           <button
             onClick={() => setIsFiltersOpen(!isFiltersOpen)}
             className="w-full flex justify-between items-center p-4 text-left"
           >
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Filters</span>
+            <span className="text-sm font-semibold text-slate-700">Filters</span>
             <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isFiltersOpen ? 'rotate-180' : ''}`} />
           </button>
           <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isFiltersOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="p-4 pt-0 border-t border-slate-200/50 dark:border-slate-800/50">
+            <div className="p-4 pt-0 border-t border-slate-200/50">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Client</label>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Client</label>
                   <input
                     type="text"
                     placeholder="Search by client"
                     defaultValue={clientFilter}
                     onChange={(e) => handleDebouncedSearch(setClientFilter)(e.target.value)}
-                    className="w-full bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                    className="w-full bg-white/50 border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Job Site</label>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Job Site</label>
                   <input
                     type="text"
                     placeholder="Search by branch"
                     defaultValue={jobSiteFilter}
                     onChange={(e) => handleDebouncedSearch(setJobSiteFilter)(e.target.value)}
-                    className="w-full bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-white/50 border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Work Type</label>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Work Type</label>
                   <input
                     type="text"
                     placeholder="e.g., Renovation"
                     defaultValue={workTypeFilter}
                     onChange={(e) => handleDebouncedSearch(setWorkTypeFilter)(e.target.value)}
-                    className="w-full bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-white/50 border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Status</label>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Status</label>
                   <select
                     value={statusFilter}
                     onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-white/50 border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
                   >
                     <option value="">All Statuses</option>
                     <option value="Draft">Draft</option>
@@ -375,7 +375,7 @@ export default function BQWorkspacePage() {
                 >
                   Apply Filters
                 </Button>
-                <Button variant="outline" onClick={clearFilters} className="text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Clear</Button>
+                <Button variant="outline" onClick={clearFilters} className="text-slate-700 border-slate-300 hover:bg-slate-100">Clear</Button>
               </div>
             </div>
           </div>
@@ -388,14 +388,14 @@ export default function BQWorkspacePage() {
             {loading ? (
               <div className="animate-pulse space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-32 bg-slate-200/50 dark:bg-slate-800/50 rounded-xl backdrop-blur-sm" />
+                  <div key={i} className="h-32 bg-slate-200/50 rounded-xl backdrop-blur-sm" />
                 ))}
               </div>
             ) : submissions.length === 0 ? (
-              <div className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-800/50 p-8 text-center">
-                <p className="text-slate-500 dark:text-slate-400">No submissions found</p>
+              <div className="bg-white/50 backdrop-blur-sm rounded-xl border border-slate-200/50 p-8 text-center">
+                <p className="text-slate-500">No submissions found</p>
                 {canCreate && (
-                  <Link href="/bq/new" className="inline-block mt-3 text-sm text-cyan-600 dark:text-cyan-400 hover:underline">
+                  <Link href="/bq/new" className="inline-block mt-3 text-sm text-cyan-600 hover:underline">
                     Create your first BQ
                   </Link>
                 )}
@@ -412,26 +412,26 @@ export default function BQWorkspacePage() {
                     onClick={() => setSelectedSubmissionId(sub.submission_id)}
                     className={`group relative cursor-pointer rounded-xl border transition-all duration-300 transform ${
                       isSelected
-                        ? 'border-cyan-500 bg-cyan-50/50 dark:bg-cyan-950/30 shadow-md scale-[1.02]'
-                        : 'border-slate-200/50 dark:border-slate-800/50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm hover:shadow-md hover:-translate-y-1'
+                        ? 'border-cyan-500 bg-cyan-50/50 shadow-md scale-[1.02]'
+                        : 'border-slate-200/50 bg-white/60 backdrop-blur-sm hover:shadow-md hover:-translate-y-1'
                     }`}
                     style={{ borderLeftWidth: '4px', borderLeftColor: brandColor.borderColor }}
                   >
                     <div className="p-4">
                       <div className="flex justify-between items-start">
-                        <h3 className="font-semibold text-slate-900 dark:text-white group-hover:text-cyan-700 dark:group-hover:text-cyan-300 transition-colors">
+                        <h3 className="font-semibold text-slate-900 group-hover:text-cyan-700 transition-colors">
                           {sub.bq_name}
                         </h3>
                         <Badge variant="secondary" className={statusBadgeClass}>{statusLabel}</Badge>
                       </div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{sub.client_name} – {sub.job_site}</p>
+                      <p className="text-sm text-slate-500 mt-1">{sub.client_name} – {sub.job_site}</p>
                       <p className="text-xs text-slate-400 mt-2">BQ Date: {formatDate(sub.bq_date)}</p>
                       <div className="flex gap-3 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <Link href={`/bq/${sub.submission_id}/view`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                        <Link href={`/bq/${sub.submission_id}/view`} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
                           <Eye className="h-3 w-3" /> View
                         </Link>
                         {sub.can_edit && (
-                          <Link href={`/bq/${sub.submission_id}/edit`} className="text-xs text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1">
+                          <Link href={`/bq/${sub.submission_id}/edit`} className="text-xs text-amber-600 hover:underline flex items-center gap-1">
                             <Pencil className="h-3 w-3" /> Edit
                           </Link>
                         )}
@@ -446,17 +446,17 @@ export default function BQWorkspacePage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-700 rounded-md disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  className="px-3 py-1 text-sm border border-slate-300 rounded-md disabled:opacity-40 hover:bg-slate-100 transition"
                 >
                   Prev
                 </button>
-                <span className="px-3 py-1 text-sm text-slate-600 dark:text-slate-400">
+                <span className="px-3 py-1 text-sm text-slate-600">
                   Page {currentPage} of {totalPages}
                 </span>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-700 rounded-md disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  className="px-3 py-1 text-sm border border-slate-300 rounded-md disabled:opacity-40 hover:bg-slate-100 transition"
                 >
                   Next
                 </button>
@@ -467,25 +467,25 @@ export default function BQWorkspacePage() {
           {/* Right: Detailed BQ Table */}
           <div className="lg:col-span-2">
             {selectedDetail ? (
-              <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm overflow-hidden transition-all duration-500 animate-fade-in">
-                <div className="p-4 border-b border-slate-200/50 dark:border-slate-800/50 flex flex-wrap justify-between items-center gap-3">
+              <div className="bg-white/60 backdrop-blur-md rounded-xl border border-slate-200/50 shadow-sm overflow-hidden transition-all duration-500 animate-fade-in">
+                <div className="p-4 border-b border-slate-200/50 flex flex-wrap justify-between items-center gap-3">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Line Items</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Detailed breakdown</p>
+                    <h2 className="text-lg font-semibold text-slate-800">Line Items</h2>
+                    <p className="text-xs text-slate-500">Detailed breakdown</p>
                   </div>
                   <div className="relative w-64">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
                     <Input
                       type="text"
                       placeholder="Search items..."
-                      className="pl-8 bg-white/50 dark:bg-slate-800/50 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-cyan-500 transition"
+                      className="pl-8 bg-white/50 border-slate-300 focus:ring-2 focus:ring-cyan-500 transition"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     {searchTerm && (
                       <button
                         onClick={() => setSearchTerm("")}
-                        className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -500,14 +500,14 @@ export default function BQWorkspacePage() {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm sticky top-0">
-                        <tr className="border-b border-slate-200 dark:border-slate-700">
-                          <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Item No.</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Description</th>
-                          <th className="px-4 py-3 text-right font-semibold text-slate-600 dark:text-slate-300">Qty</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Unit</th>
-                          <th className="px-4 py-3 text-right font-semibold text-slate-600 dark:text-slate-300">Unit Price ($)</th>
-                          <th className="px-4 py-3 text-right font-semibold text-slate-600 dark:text-slate-300">Total ($)</th>
+                      <thead className="bg-slate-100/80 backdrop-blur-sm sticky top-0">
+                        <tr className="border-b border-slate-200">
+                          <th className="px-4 py-3 text-left font-semibold text-slate-600">Item No.</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-600">Description</th>
+                          <th className="px-4 py-3 text-right font-semibold text-slate-600">Qty</th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-600">Unit</th>
+                          <th className="px-4 py-3 text-right font-semibold text-slate-600">Unit Price ($)</th>
+                          <th className="px-4 py-3 text-right font-semibold text-slate-600">Total ($)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -519,23 +519,23 @@ export default function BQWorkspacePage() {
                           safeItems.map((item, idx) => (
                             <tr
                               key={item.line_item_id}
-                              className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all duration-200"
+                              className="border-b border-slate-100 hover:bg-slate-50/50 transition-all duration-200"
                               style={{ animationDelay: `${idx * 30}ms` }}
                             >
-                              <td className="px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-400">{item.item_no}</td>
-                              <td className="px-4 py-3 text-slate-800 dark:text-slate-200">{item.description}</td>
-                              <td className="px-4 py-3 text-right font-mono text-slate-700 dark:text-slate-300">{item.quantity.toLocaleString()}</td>
-                              <td className="px-4 py-3 text-left text-slate-500 dark:text-slate-400">{item.unit}</td>
-                              <td className="px-4 py-3 text-right font-mono text-slate-700 dark:text-slate-300">{item.unit_price.toFixed(2)}</td>
-                              <td className="px-4 py-3 text-right font-mono font-semibold text-slate-900 dark:text-white">{item.amount.toLocaleString()}</td>
+                              <td className="px-4 py-3 font-mono text-xs text-slate-600">{item.item_no}</td>
+                              <td className="px-4 py-3 text-slate-800">{item.description}</td>
+                              <td className="px-4 py-3 text-right font-mono text-slate-700">{item.quantity.toLocaleString()}</td>
+                              <td className="px-4 py-3 text-left text-slate-500">{item.unit}</td>
+                              <td className="px-4 py-3 text-right font-mono text-slate-700">{item.unit_price.toFixed(2)}</td>
+                              <td className="px-4 py-3 text-right font-mono font-semibold text-slate-900">{item.amount.toLocaleString()}</td>
                             </tr>
                           ))
                         )}
                       </tbody>
-                      <tfoot className="bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm border-t-2 border-slate-300 dark:border-slate-700">
+                      <tfoot className="bg-slate-100/80 backdrop-blur-sm border-t-2 border-slate-300">
                         <tr>
-                          <td colSpan={5} className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">Total Estimated Cost</td>
-                          <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white text-lg">{formatCurrency(totalCost)}</td>
+                          <td colSpan={5} className="px-4 py-3 text-right font-bold text-slate-700">Total Estimated Cost</td>
+                          <td className="px-4 py-3 text-right font-bold text-slate-900 text-lg">{formatCurrency(totalCost)}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -543,14 +543,14 @@ export default function BQWorkspacePage() {
                 )}
               </div>
             ) : (
-              <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-xl border border-slate-200/50 dark:border-slate-800/50 p-12 text-center transition-all duration-300">
+              <div className="bg-white/60 backdrop-blur-md rounded-xl border border-slate-200/50 p-12 text-center transition-all duration-300">
                 <div className="space-y-3">
-                  <div className="mx-auto w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                  <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
                     <Eye className="h-8 w-8 text-slate-400" />
                   </div>
-                  <p className="text-slate-500 dark:text-slate-400">Select a BQ submission from the list to view its bill of quantities.</p>
+                  <p className="text-slate-500">Select a BQ submission from the list to view its bill of quantities.</p>
                   {canCreate && (
-                    <Link href="/bq/new" className="inline-block mt-2 text-sm text-cyan-600 dark:text-cyan-400 hover:underline flex items-center justify-center gap-1">
+                    <Link href="/bq/new" className="inline-block mt-2 text-sm text-cyan-600 hover:underline flex items-center justify-center gap-1">
                       <Plus className="h-4 w-4" /> Create new BQ
                     </Link>
                   )}
