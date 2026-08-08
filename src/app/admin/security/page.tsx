@@ -644,7 +644,7 @@ function NotificationEmailSettings() {
                   )}
                 </td>
                 <td className="py-2 px-3 text-center">
-                  <label className="inline-flex items-center cursor-pointer">
+                  <label className="inline-flex items-center justify-center w-11 h-11 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={s.email_enabled}

@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import DateRangePicker from '@/components/ui/DateRangePicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { useNotify } from '@/components/ui/notification-provider';
 import {
   LineChart,
   Line,
@@ -38,6 +39,7 @@ interface CostingsResponse {
 export default function CostingsDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const toast = useNotify();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [groupBy, setGroupBy] = useState<'monthly' | 'yearly' | 'category' | 'item' | 'tender'>('monthly');
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({
@@ -64,6 +66,8 @@ export default function CostingsDashboard() {
         if (data.permissions?.includes('view')) {
           setHasAccess(true);
         } else {
+          setHasAccess(false);
+          toast.error("You don't have access to Costings Analytics. Contact an administrator if you believe this is a mistake.");
           router.push('/');
         }
       } catch {
@@ -82,6 +86,7 @@ export default function CostingsDashboard() {
       if (dateRange.end) params.set('endDate', dateRange.end.toISOString().split('T')[0]);
       const res = await fetch(`/api/analytics/costings?${params}`);
       if (res.status === 401 || res.status === 403) {
+        toast.error("You don't have access to Costings Analytics. Contact an administrator if you believe this is a mistake.");
         router.push('/');
         throw new Error('Access denied');
       }
@@ -93,9 +98,9 @@ export default function CostingsDashboard() {
   });
 
   if (status === 'loading' || hasAccess === null || (hasAccess && isLoading)) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50" role="status" aria-live="polite">
       <div className="text-center">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" aria-hidden="true" />
         <p className="text-gray-500">Loading costings data...</p>
       </div>
     </div>

@@ -185,8 +185,20 @@ export default function Navbar() {
       if (inboxRef.current && !inboxRef.current.contains(t)) setIsInboxOpen(false);
       if (searchRef.current && !searchRef.current.contains(t) && !isMobileSearchExpanded) setIsSearchOpen(false);
     };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setIsMenuOpen(false);
+      setIsProfileOpen(false);
+      setIsNotiOpen(false);
+      setIsInboxOpen(false);
+      setIsSearchOpen(false);
+    };
     document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [isMobileSearchExpanded]);
 
   const closeAll = (except?: "menu" | "profile" | "noti" | "inbox") => {
@@ -314,8 +326,11 @@ export default function Navbar() {
             <button
               ref={menuBtnRef}
               onClick={() => { closeAll("menu"); setIsMenuOpen((o) => !o); }}
-              className="p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus:outline-none"
+              className="p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50"
               aria-label="Toggle menu"
+              aria-expanded={isMenuOpen}
+              aria-haspopup="true"
+              aria-controls="navbar-menu-panel"
             >
               {isMenuOpen
                 ? <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -336,6 +351,7 @@ export default function Navbar() {
               <input
                 type="text"
                 placeholder="Search projects or estimates…"
+                aria-label="Search projects or estimates"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full border border-gray-200 bg-gray-50 rounded-full py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#15406a]/30 focus:border-[#15406a]/40 transition"
@@ -387,6 +403,7 @@ export default function Navbar() {
                   ref={mobileSearchInputRef}
                   type="text"
                   placeholder="Search projects or estimates…"
+                  aria-label="Search projects or estimates"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full border border-gray-200 bg-gray-50 rounded-full py-2 pl-9 pr-4 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#15406a]/30"
@@ -417,12 +434,19 @@ export default function Navbar() {
               </button>
 
               <div className="relative" ref={notiRef}>
-                <button onClick={() => { closeAll("noti"); setIsNotiOpen((o) => !o); }} className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus:outline-none">
+                <button
+                  onClick={() => { closeAll("noti"); setIsNotiOpen((o) => !o); }}
+                  className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50"
+                  aria-label={unreadNoti > 0 ? `Notifications, ${unreadNoti} unread` : "Notifications"}
+                  aria-expanded={isNotiOpen}
+                  aria-haspopup="true"
+                  aria-controls="navbar-noti-panel"
+                >
                   <IconBell />
                   <Badge count={unreadNoti} />
                 </button>
                 {isNotiOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                  <div id="navbar-noti-panel" className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                       <div><p className="text-sm font-semibold text-gray-800">Notifications</p><p className="text-[11px] text-gray-400">{unreadNoti} unread</p></div>
                       <button
@@ -452,9 +476,9 @@ export default function Navbar() {
                             }}
                             className={`w-full text-left flex items-start gap-3 px-4 py-3 transition-colors ${!n.is_read ? "bg-blue-50/50 hover:bg-blue-50" : "hover:bg-slate-50"}`}
                           >
-                            <span className="text-xl leading-none mt-0.5 flex-shrink-0">{notificationIcon(n.title)}</span>
+                            <span className="text-xl leading-none mt-0.5 flex-shrink-0" aria-hidden="true">{notificationIcon(n.title)}</span>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2"><p className={`text-xs font-semibold truncate ${!n.is_read ? "text-gray-900" : "text-gray-600"}`}>{n.title}</p>{!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}</div>
+                              <div className="flex items-center justify-between gap-2"><p className={`text-xs font-semibold truncate ${!n.is_read ? "text-gray-900" : "text-gray-600"}`}>{n.title}{!n.is_read && <span className="sr-only"> (unread)</span>}</p>{!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" aria-hidden="true" />}</div>
                               <p className="text-xs text-gray-500 mt-0.5 leading-snug line-clamp-2">{n.body}</p>
                               <p className="text-[10px] text-gray-400 mt-1">{relativeTime(n.created_at)}</p>
                             </div>
@@ -467,11 +491,18 @@ export default function Navbar() {
               </div>
 
               <div className="relative" ref={inboxRef}>
-                <button onClick={() => { closeAll("inbox"); setIsInboxOpen((o) => !o); }} className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus:outline-none">
+                <button
+                  onClick={() => { closeAll("inbox"); setIsInboxOpen((o) => !o); }}
+                  className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50"
+                  aria-label="Messages"
+                  aria-expanded={isInboxOpen}
+                  aria-haspopup="true"
+                  aria-controls="navbar-inbox-panel"
+                >
                   <IconInbox />
                 </button>
                 {isInboxOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                  <div id="navbar-inbox-panel" className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-800">Messages</p>
                       <p className="text-[11px] text-gray-400">Recent activity across your tenders</p>
@@ -506,11 +537,18 @@ export default function Navbar() {
               </div>
 
               <div className="relative ml-1" ref={profileRef}>
-                <button onClick={() => { closeAll("profile"); setIsProfileOpen((o) => !o); }} className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0d2d4a] to-[#15406a] flex items-center justify-center text-white font-semibold text-sm hover:opacity-90 transition focus:outline-none">
+                <button
+                  onClick={() => { closeAll("profile"); setIsProfileOpen((o) => !o); }}
+                  className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0d2d4a] to-[#15406a] flex items-center justify-center text-white font-semibold text-sm hover:opacity-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50 focus-visible:ring-offset-2"
+                  aria-label={`Account menu for ${userName}`}
+                  aria-expanded={isProfileOpen}
+                  aria-haspopup="true"
+                  aria-controls="navbar-profile-panel"
+                >
                   {userInitial}
                 </button>
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-1.5 overflow-hidden">
+                  <div id="navbar-profile-panel" className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-1.5 overflow-hidden">
                     <div className="px-4 py-2.5 border-b border-gray-100"><p className="text-xs font-semibold text-gray-800 truncate">{userName}</p><p className="text-[10px] text-gray-400 truncate">{userEmail}</p></div>
                     <Link href="/account/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-slate-50 transition-colors"><span className="text-gray-400">{icons.profile}</span> Your Profile</Link>
                     <button onClick={handleSignOut} className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"><span>{icons.signout}</span> Sign Out</button>
@@ -524,7 +562,7 @@ export default function Navbar() {
 
       {/* Hamburger Dropdown */}
       {isMenuOpen && (
-        <div ref={menuRef} className="absolute left-0 top-full z-40 bg-white border-r border-b border-gray-100 rounded-br-2xl shadow-2xl py-2 min-w-[200px]" style={{ width: "max-content" }}>
+        <div id="navbar-menu-panel" ref={menuRef} className="absolute left-0 top-full z-40 bg-white border-r border-b border-gray-100 rounded-br-2xl shadow-2xl py-2 min-w-[200px]" style={{ width: "max-content" }}>
           <SectionLabel>Workspace</SectionLabel>
           <NavLink href="/tenders" icon={icons.tender}>Tenders</NavLink>
           {!isAdmin && <NavLink href="/bq/my" icon={icons.building}>Bill of Quantities</NavLink>}
