@@ -353,36 +353,36 @@ export default function EditCostEstimatePage() {
 
   const InfoModal = () => (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className={`w-10 h-10 rounded-full ${
-              infoModal.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-500/20' :
-              infoModal.type === 'error' ? 'bg-rose-100 dark:bg-rose-500/20' :
-              'bg-blue-100 dark:bg-blue-500/20'
+              infoModal.type === 'success' ? 'bg-emerald-100' :
+              infoModal.type === 'error' ? 'bg-rose-100' :
+              'bg-blue-100'
             } flex items-center justify-center`}>
               {infoModal.type === 'success' && (
-                <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                 </svg>
               )}
               {infoModal.type === 'error' && (
-                <svg className="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               )}
               {infoModal.type === 'info' && (
-                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               )}
             </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{infoModal.title}</h3>
+            <h3 className="text-xl font-bold text-gray-900">{infoModal.title}</h3>
           </div>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
+          <p className="text-gray-600 mb-6">
             {infoModal.message}
             {infoModal.note && (
-              <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
+              <span className="block mt-2 text-amber-600 font-medium">
                 {infoModal.note}
               </span>
             )}
@@ -401,15 +401,15 @@ export default function EditCostEstimatePage() {
   );
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0a1228] dark:to-[#0f1630]">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="text-center">
-        <div className="w-10 h-10 border-4 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-gray-600 dark:text-cyan-300/70 text-sm">Loading Bill of Quantities…</p>
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-gray-600 text-sm">Loading Bill of Quantities…</p>
       </div>
     </div>
   );
-  if (error) return <div className="p-8 text-red-600 dark:text-red-400 text-center">{error}</div>;
-  if (!session) return <div className="p-8 text-center text-gray-700 dark:text-gray-300">Please log in.</div>;
+  if (error) return <div className="p-8 text-red-600 text-center">{error}</div>;
+  if (!session) return <div className="p-8 text-center text-gray-700">Please log in.</div>;
 
   const currentLogo = submission?.logo_url || `/logos/${getDefaultLogoName(currentClientName)}`;
   const getDisplayRenovationType = () => {
@@ -422,14 +422,14 @@ export default function EditCostEstimatePage() {
   };
 
   const statusTextColors: Record<string, string> = {
-    Draft: "text-amber-800 dark:text-amber-400",
-    Submitted: "text-sky-800 dark:text-sky-400",
-    Approved: "text-emerald-800 dark:text-emerald-400",
-    Rejected: "text-rose-800 dark:text-rose-400",
+    Draft: "text-amber-800",
+    Submitted: "text-sky-800",
+    Approved: "text-emerald-800",
+    Rejected: "text-rose-800",
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-[#0a1228] dark:via-[#0d1430] dark:to-[#0a1228]">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {isDirty && (
           <div className="fixed bottom-6 right-6 z-50 bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg text-xs font-semibold flex items-center gap-2 animate-pulse">
@@ -440,16 +440,16 @@ export default function EditCostEstimatePage() {
         {/* Category Management Modal */}
         {showCategoryModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl p-5 max-w-md w-full max-h-[85vh] overflow-auto border border-gray-200 dark:border-cyan-500/20">
-              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Manage Categories</h2>
+            <div className="bg-white rounded-xl shadow-xl p-5 max-w-md w-full max-h-[85vh] overflow-auto border border-gray-200">
+              <h2 className="text-xl font-bold mb-4 text-gray-900">Manage Categories</h2>
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Current Categories</h3>
+                  <h3 className="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-2">Current Categories</h3>
                   {categories.map(cat => (
-                    <div key={cat.category_id} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                      <span className="text-sm text-gray-800 dark:text-gray-200">{cat.category_name}</span>
+                    <div key={cat.category_id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                      <span className="text-sm text-gray-800">{cat.category_name}</span>
                       {canEdit && (
-                        <button onClick={() => handleRemoveCategory(cat.category_id)} className="text-red-600 dark:text-red-400 text-xs hover:underline">
+                        <button onClick={() => handleRemoveCategory(cat.category_id)} className="text-red-600 text-xs hover:underline">
                           Remove
                         </button>
                       )}
@@ -457,13 +457,13 @@ export default function EditCostEstimatePage() {
                   ))}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Add New Category</h3>
-                  {availableCategories.length === 0 && <div className="text-gray-500 dark:text-gray-400 text-xs italic">All categories already added.</div>}
+                  <h3 className="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-2">Add New Category</h3>
+                  {availableCategories.length === 0 && <div className="text-gray-500 text-xs italic">All categories already added.</div>}
                   {availableCategories.map(cat => (
-                    <div key={cat.id} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                      <span className="text-sm text-gray-800 dark:text-gray-200">{cat.name}</span>
+                    <div key={cat.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                      <span className="text-sm text-gray-800">{cat.name}</span>
                       {canEdit && (
-                        <button onClick={() => handleAddCategory(cat.id)} className="text-green-600 dark:text-green-400 text-xs hover:underline">
+                        <button onClick={() => handleAddCategory(cat.id)} className="text-green-600 text-xs hover:underline">
                           Add
                         </button>
                       )}
@@ -471,7 +471,7 @@ export default function EditCostEstimatePage() {
                   ))}
                 </div>
               </div>
-              <button onClick={() => setShowCategoryModal(false)} className="mt-5 w-full bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+              <button onClick={() => setShowCategoryModal(false)} className="mt-5 w-full bg-gray-100 text-gray-800 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
                 Close
               </button>
             </div>
@@ -481,27 +481,27 @@ export default function EditCostEstimatePage() {
         {/* Submit Confirmation Modal */}
         {showSubmitModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Submit BQ</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Submit BQ</h3>
                 </div>
-                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                <p className="text-gray-600 mb-6">
                   Are you sure you want to submit this Bill of Quantities?
                   <br />
-                  <span className="text-amber-600 dark:text-amber-400 font-medium block mt-2">
+                  <span className="text-amber-600 font-medium block mt-2">
                     ⚠️ You will no longer be able to edit it after submission.
                   </span>
                 </p>
                 <div className="flex gap-3 justify-end">
                   <button
                     onClick={() => setShowSubmitModal(false)}
-                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition font-medium text-sm"
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition font-medium text-sm"
                   >
                     Cancel
                   </button>
@@ -521,20 +521,20 @@ export default function EditCostEstimatePage() {
         {/* Success Modal (after submission) */}
         {showSuccessModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-[#0f1630] rounded-xl shadow-xl max-w-md w-full border border-emerald-200 dark:border-emerald-500/20 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-emerald-200 overflow-hidden">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Submission Successful</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Submission Successful</h3>
                 </div>
-                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                <p className="text-gray-600 mb-6">
                   Your Bill of Quantities has been submitted successfully.
                   <br />
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium block mt-2">
+                  <span className="text-emerald-600 font-medium block mt-2">
                     ✓ The page will now reload to reflect the updated status.
                   </span>
                 </p>
@@ -555,7 +555,7 @@ export default function EditCostEstimatePage() {
         {showInfoModal && <InfoModal />}
 
         {/* Header Card */}
-        <div className="bg-white/90 dark:bg-[#0f1630]/90 backdrop-blur-sm border border-gray-200/50 dark:border-cyan-500/20 rounded-xl shadow-md p-5 mb-6 transition-all">
+        <div className="bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-md p-5 mb-6 transition-all">
           <div className="flex justify-center mb-5">
             <img
               src={currentLogo}
@@ -566,26 +566,26 @@ export default function EditCostEstimatePage() {
           </div>
 
           {/* Document Title – READ ONLY */}
-          <div className="mb-5 pb-2 border-b border-gray-200 dark:border-gray-700/50">
+          <div className="mb-5 pb-2 border-b border-gray-200">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Document Title
               </label>
               {submission?.round_no && (
-                <span className="inline-flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-400">
+                <span className="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" /></svg>
                   Version {submission.round_no}
                 </span>
               )}
             </div>
-            <div className="text-sm font-medium py-2 text-gray-800 dark:text-gray-200">
+            <div className="text-sm font-medium py-2 text-gray-800">
               {submission?.bq_name || "—"}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div style={{ borderLeftColor: clientColor.borderColor }} className="border-l-4 pl-3">
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Client / Brand</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Client / Brand</label>
               {canEditHeader && Array.isArray(brands) && brands.length > 0 ? (
                 <select
                   value={currentClientName}
@@ -596,49 +596,49 @@ export default function EditCostEstimatePage() {
                     const firstBranch = getFirstBranchForBrand(selectedBrand);
                     if (firstBranch) handleUpdateBranch(firstBranch.branch_name);
                   }}
-                  className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
                 >
                   {brands.map(brand => <option key={brand.brand_id} value={brand.brand_name}>{brand.brand_name}</option>)}
                 </select>
               ) : (
-                <div className="text-sm font-medium py-2 text-gray-800 dark:text-gray-200">{currentClientName}</div>
+                <div className="text-sm font-medium py-2 text-gray-800">{currentClientName}</div>
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Job Site / Branch</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Job Site / Branch</label>
               {canEditHeader && filteredBranches.length > 0 ? (
                 <select
                   value={currentJobSite}
                   onChange={(e) => handleJobSiteChange(e.target.value)}
-                  className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
                 >
                   {filteredBranches.map(branch => <option key={branch.branch_id} value={branch.branch_name}>{branch.branch_name}</option>)}
                 </select>
               ) : (
-                <div className="text-sm font-medium py-2 text-gray-800 dark:text-gray-200">{currentJobSite}</div>
+                <div className="text-sm font-medium py-2 text-gray-800">{currentJobSite}</div>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Type of Work</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Type of Work</label>
               {canEditHeader ? (
                 <select
                   value={submission?.renovation_type_override || submission?.renovation_type_id || ""}
                   onChange={(e) => handleUpdateRenovationType(parseInt(e.target.value))}
-                  className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
                 >
                   <option value="">-- Same as project --</option>
                   {renovationTypes.map(rt => <option key={rt.type_id} value={rt.type_id}>{rt.type_name}</option>)}
                 </select>
               ) : (
-                <div className="text-sm font-medium py-2 text-gray-800 dark:text-gray-200">{getDisplayRenovationType()}</div>
+                <div className="text-sm font-medium py-2 text-gray-800">{getDisplayRenovationType()}</div>
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Document Date</label>
-              <div className="text-sm font-medium py-2 text-gray-800 dark:text-gray-200">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Document Date</label>
+              <div className="text-sm font-medium py-2 text-gray-800">
                 {submission?.created_at
                   ? new Date(submission.created_at).toLocaleDateString(undefined, {
                       year: "numeric",
@@ -649,24 +649,24 @@ export default function EditCostEstimatePage() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Project Area</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Project Area</label>
               {canEditHeader ? (
                 <input
                   type="text"
                   value={submission?.area_size || ""}
                   onChange={(e) => handleUpdateArea(e.target.value)}
-                  className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
                   placeholder="e.g., 250 m²"
                 />
               ) : (
-                <div className="text-sm font-medium py-2 text-gray-800 dark:text-gray-200">{submission?.area_size || "—"}</div>
+                <div className="text-sm font-medium py-2 text-gray-800">{submission?.area_size || "—"}</div>
               )}
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700/50 mt-2">
+          <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-200 mt-2">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-cyan-300 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Bill of Quantities
               </span>
               <div className="inline-flex items-center gap-1.5 flex-shrink-0 px-2.5 py-0.5 rounded-full text-xs font-semibold">
@@ -678,31 +678,31 @@ export default function EditCostEstimatePage() {
                     'bg-rose-500'
                   }`}
                 />
-                <span className={statusTextColors[currentStatus] || "text-gray-700 dark:text-gray-300"}>
+                <span className={statusTextColors[currentStatus] || "text-gray-700"}>
                   {currentStatus}
                 </span>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex flex-wrap gap-3 text-xs text-gray-500">
               <div><span className="font-medium">Last Saved:</span> {formatDate(submission?.updated_at)}</div>
               <div><span className="font-medium">Last Edited:</span> {formatDate(submission?.last_edit_at)}</div>
-              <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">💾 Auto‑save</div>
+              <div className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">💾 Auto‑save</div>
             </div>
           </div>
-          <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-            {!canEdit && <span className="text-amber-600 dark:text-amber-400">🔒 Read‑only mode</span>}
+          <div className="mt-2 text-xs text-gray-400">
+            {!canEdit && <span className="text-amber-600">🔒 Read‑only mode</span>}
           </div>
         </div>
 
         {/* Action Bar */}
         {canEdit && (
-          <div className="flex flex-wrap justify-between items-center gap-3 mb-6 bg-white/50 dark:bg-[#0f1630]/50 backdrop-blur-sm rounded-lg p-3 border border-gray-200/50 dark:border-cyan-500/20">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-6 bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-gray-200/50">
             <div className="flex gap-2">
-              <button onClick={() => setShowCategoryModal(true)} className="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-indigo-100 transition">
+              <button onClick={() => setShowCategoryModal(true)} className="bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-indigo-100 transition">
                 Manage Categories
               </button>
               {selectedItems.length > 0 && (
-                <button onClick={handleDeleteSelected} className="bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-rose-100 transition">
+                <button onClick={handleDeleteSelected} className="bg-rose-50 text-rose-700 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-rose-100 transition">
                   Delete ({selectedItems.length})
                 </button>
               )}
@@ -725,7 +725,7 @@ export default function EditCostEstimatePage() {
         {/* BQ Tables */}
         <div className="space-y-6">
           {categories.map(cat => (
-            <div key={cat.category_id} className="rounded-lg overflow-hidden shadow border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/20">
+            <div key={cat.category_id} className="rounded-lg overflow-hidden shadow border border-gray-200 bg-white">
               <div className="w-full overflow-x-auto">
                 <BQTable
                   category={cat}
@@ -747,9 +747,9 @@ export default function EditCostEstimatePage() {
 
         {/* Submission Guidelines & Submit Button */}
         {canSubmit && (
-          <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-3">📋 Submission Guidelines</h3>
-            <ul className="text-sm text-blue-700 dark:text-blue-200 space-y-2 list-disc list-inside mb-4">
+          <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-lg font-semibold text-blue-800 mb-3">📋 Submission Guidelines</h3>
+            <ul className="text-sm text-blue-700 space-y-2 list-disc list-inside mb-4">
               <li><strong>Latest submission only:</strong> Only your most recent submission will be evaluated.</li>
               <li><strong>Defect Liability Period (DLP):</strong> 12 months from the date of Practical Completion.</li>
               <li><strong>Retention Period:</strong> 5% of the contract sum will be retained for 12 months after Practical Completion.</li>
@@ -763,7 +763,7 @@ export default function EditCostEstimatePage() {
                   onChange={(e) => setGuidelinesAccepted(e.target.checked)}
                   className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="text-sm text-gray-700">
                   I confirm that I have read and agree to the above submission guidelines.
                 </span>
               </label>
@@ -773,7 +773,7 @@ export default function EditCostEstimatePage() {
                 className={`px-6 py-2 rounded-lg text-sm font-semibold shadow-sm transition ${
                   guidelinesAccepted && !isSubmitting
                     ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                    : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
                 {isSubmitting ? "Submitting..." : "📤 Submit Bill of Quantities"}
@@ -783,11 +783,11 @@ export default function EditCostEstimatePage() {
         )}
 
         {/* Footer */}
-        <div className="mt-8 flex flex-wrap justify-between items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700/50">
-          <button onClick={handleBackToBQs} className="bg-gray-500 hover:bg-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow">
+        <div className="mt-8 flex flex-wrap justify-between items-center gap-3 pt-4 border-t border-gray-200">
+          <button onClick={handleBackToBQs} className="bg-gray-500 hover:bg-gray-600 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow">
             ← Back to BQs
           </button>
-          <div className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-cyan-300 bg-clip-text text-transparent">
+          <div className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
             Grand Total: {formatCurrency(grandTotal)}
           </div>
         </div>
