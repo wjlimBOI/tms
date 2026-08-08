@@ -72,11 +72,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "File content does not match its extension" }, { status: 415 });
   }
 
-  const uploadDir = path.join(process.cwd(), "public/uploads/tenders");
+  // Written outside /public — Next.js serves that directory statically with
+  // no authorization at all, so anything placed there (tender drawings,
+  // contract documents) would be downloadable by anyone with the URL,
+  // logged in or not, forever. Served back out only through the
+  // authenticated GET route below instead.
+  const uploadDir = path.join(process.cwd(), "private/uploads/tenders");
   await mkdir(uploadDir, { recursive: true });
   const filename = `${uuidv4()}${ext}`;
   const filepath = path.join(uploadDir, filename);
   await writeFile(filepath, buffer);
-  const url = `/uploads/tenders/${filename}`;
+  const url = `/api/tenders/documents/${filename}`;
   return NextResponse.json({ url });
 }
