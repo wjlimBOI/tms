@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { format, parseISO } from "date-fns";
 import { useNotify } from "@/components/ui/notification-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getBrandColor } from "@/lib/brandColors";
 import type { EventInput } from "@fullcalendar/core";
 
@@ -103,8 +104,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const availableBranches = branchMap.get(brandKey) || [];
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-200" onClick={e => e.stopPropagation()}>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent showCloseButton={false} className="max-w-lg max-h-[90vh] overflow-y-auto p-0 gap-0">
         <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -112,7 +113,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Edit Event</h3>
+            <DialogTitle className="text-xl font-bold text-slate-900">Edit Event</DialogTitle>
           </div>
         </div>
         <div className="p-6 space-y-4">
@@ -217,8 +218,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -694,12 +695,13 @@ export default function CalendarPage() {
         {/* ---------- Modals ---------- */}
 
         {/* Event Detail Modal – supports grouped events */}
-        {showModal && selectedEvent && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-            <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-6 shadow-2xl border border-slate-200" onClick={e => e.stopPropagation()}>
+        <Dialog open={showModal && !!selectedEvent} onOpenChange={(open) => { if (!open) setShowModal(false); }}>
+          <DialogContent showCloseButton={false} className="max-w-md max-h-[80vh] overflow-y-auto p-6 gap-0">
+            {selectedEvent && (
+            <>
               <div className="flex items-start justify-between mb-4">
-                <h3 className="text-xl font-bold text-slate-900 pr-6">{selectedEvent.title}</h3>
-                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 transition">
+                <DialogTitle className="text-xl font-bold text-slate-900 pr-6">{selectedEvent.title}</DialogTitle>
+                <button onClick={() => setShowModal(false)} aria-label="Close" className="text-slate-400 hover:text-slate-600 transition">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -785,9 +787,10 @@ export default function CalendarPage() {
               <button onClick={() => setShowModal(false)} className="mt-3 w-full px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg transition text-sm font-medium">
                 Close
               </button>
-            </div>
-          </div>
-        )}
+            </>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <EditEventModal
           isOpen={showEditModal}
@@ -801,11 +804,10 @@ export default function CalendarPage() {
         />
 
         {/* Add Event Modal */}
-        {showAddModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
-            <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200" onClick={e => e.stopPropagation()}>
+        <Dialog open={showAddModal} onOpenChange={(open) => { if (!open) setShowAddModal(false); }}>
+          <DialogContent showCloseButton={false} className="max-w-lg max-h-[90vh] overflow-y-auto p-0 gap-0">
               <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4">
-                <h3 className="text-xl font-bold text-slate-900">Create New Event</h3>
+                <DialogTitle className="text-xl font-bold text-slate-900">Create New Event</DialogTitle>
               </div>
               <div className="p-6 space-y-4">
                 <input
@@ -888,9 +890,8 @@ export default function CalendarPage() {
                 <button onClick={() => setShowAddModal(false)} className="px-5 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-50 transition font-medium">Cancel</button>
                 <button onClick={handleAddEvent} className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl font-medium shadow-md transition">Create Event</button>
               </div>
-            </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* ---------- Global CSS Overrides ---------- */}
