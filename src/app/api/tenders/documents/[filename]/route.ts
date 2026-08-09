@@ -2,20 +2,21 @@
 //
 // Serves files uploaded via /api/tenders/upload, which are written outside
 // /public specifically so they can't be fetched unauthenticated by anyone
-// who has the URL (see the comment in that route). This route requires a
-// session, matching the same bar the upload route itself already enforces.
+// who has the URL (see the comment in that route).
 //
-// Note: there is currently no `tender_document` (or similar) association
-// between an uploaded filename and a specific tender/record anywhere in
-// the codebase, so this can only enforce "must be logged in" — not
-// per-tender authorization ("must be entitled to this specific tender's
-// documents"). That's a real, separate gap: building it needs the missing
-// upload<->tender association to exist first, not a fix that belongs here.
+// Real per-tender authorization: /api/tenders/upload now requires a
+// tender_id and writes a tender_document row per upload, so this route
+// looks the filename up there and checks the requester is actually
+// entitled to that specific tender's documents (canAccessTenderDocuments) —
+// not just "must be logged in," which is all it could enforce before that
+// linkage existed.
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { query } from "@/lib/db";
+import { canAccessTenderDocuments } from "@/lib/permissions";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -45,6 +46,22 @@ export async function GET(
   const { filename } = await params;
   if (!FILENAME_PATTERN.test(filename)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const docRes = await query(
+    `SELECT tender_id, is_active FROM tender_document WHERE file_path = $1`,
+    [filename]
+  );
+  if (docRes.rows.length === 0 || !docRes.rows[0].is_active) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const { tender_id: tenderId } = docRes.rows[0];
+
+  const userId = (session.user as any).id;
+  const roleIds = (session.user as any).roleIds || [];
+  const allowed = await canAccessTenderDocuments(tenderId, userId, roleIds);
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const ext = path.extname(filename).toLowerCase();

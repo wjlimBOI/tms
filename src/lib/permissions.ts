@@ -223,6 +223,31 @@ export async function canAccessTenderMessages(
   return { allowed: false, isStaff: false };
 }
 
+// ========== TENDER DOCUMENTS (tender_document / tenders/documents/[filename]) ==========
+// Any staff (non-Contractor) role can view any tender's documents, matching
+// canViewTender's existing convention. A Contractor needs real participation
+// on this specific tender - reuses the same submission/interest/
+// tender_contractor/award union canAccessTenderMessages already established,
+// rather than inventing a second definition of "participates in this tender."
+export async function canAccessTenderDocuments(
+  tenderId: number,
+  userId: number,
+  roleIds: number | number[]
+): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (!hasRole(roles, ROLE_IDS.CONTRACTOR)) return true;
+
+  const participation = await pool.query(
+    `SELECT 1 FROM tender_submission WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false
+     UNION SELECT 1 FROM tender_interest WHERE tender_id = $1 AND contractor_id = $2
+     UNION SELECT 1 FROM tender_contractor WHERE tender_id = $1 AND contractor_id = $2
+     UNION SELECT 1 FROM tender_award WHERE tender_id = $1 AND winning_contractor_id = $2
+     LIMIT 1`,
+    [tenderId, userId]
+  );
+  return participation.rows.length > 0;
+}
+
 // ========== PERMISSION MATRIX (permissions/role_permissions tables) ==========
 // Pure resource/action check, driven by the real permissions/role_permissions
 // tables — not a ROLE_IDS shortcut. Deliberately does NOT auto-bypass Admin:

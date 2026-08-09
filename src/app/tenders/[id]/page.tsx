@@ -37,6 +37,7 @@ import { getDlpStatusBadgeStyle, getDlpStatusLabel } from "@/lib/statusColors";
 import { SignaturePad } from "@/components/tenders/SignaturePad";
 import { CompanyStampUpload } from "@/components/tenders/CompanyStampUpload";
 import TenderMessagesPanel from "@/components/tenders/TenderMessagesPanel";
+import TenderDocumentsPanel from "@/components/tenders/TenderDocumentsPanel";
 import AlertModal, { AlertModalData } from "@/components/ui/AlertModal";
 
 const PrintDateCleanup = dynamic(() => import("@/components/PrintDateCleanup"), { ssr: false });
@@ -893,6 +894,11 @@ export default function TenderDocumentPage() {
               })()
             )}
           </div>
+        )}
+
+        {/* ===== DOCUMENTS ===== */}
+        {tender && (
+          <TenderDocumentsPanel tenderId={tender.tender_id} />
         )}
 
         {/* ===== MESSAGES (contractor Q&A + staff announcements) ===== */}

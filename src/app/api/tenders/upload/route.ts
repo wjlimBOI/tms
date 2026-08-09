@@ -7,6 +7,8 @@ import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
 import { ROLE_IDS } from "@/lib/roles";
 import { matchesFileSignature } from "@/lib/fileValidation";
+import { query } from "@/lib/db";
+import { sanitize } from "@/lib/sanitize";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
 
@@ -39,6 +41,24 @@ export async function POST(req: Request) {
   const file = formData.get("file") as File;
   if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
 
+  // Required so this upload can actually be tied back to a tender - this is
+  // the missing link tenders/documents/[filename]'s auth check depends on
+  // (see that route's own header comment). Without it there is no way to
+  // ever authorize a specific contractor against a specific file, only
+  // "is logged in."
+  const tenderId = parseInt(String(formData.get("tender_id") || ""), 10);
+  if (isNaN(tenderId)) {
+    return NextResponse.json({ error: "tender_id is required" }, { status: 400 });
+  }
+  const tenderRes = await query(
+    `SELECT tender_id FROM tender WHERE tender_id = $1 AND is_deleted = false`,
+    [tenderId]
+  );
+  if (tenderRes.rows.length === 0) {
+    return NextResponse.json({ error: "Tender not found" }, { status: 404 });
+  }
+  const description = sanitize(String(formData.get("description") || "")).slice(0, 500) || null;
+
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: "File too large" }, { status: 413 });
   }
@@ -66,6 +86,14 @@ export async function POST(req: Request) {
   const filename = `${uuidv4()}${ext}`;
   const filepath = path.join(uploadDir, filename);
   await writeFile(filepath, buffer);
+
+  const docRes = await query(
+    `INSERT INTO tender_document (tender_id, uploaded_by, file_name, file_path, file_type, file_size, description)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING document_id`,
+    [tenderId, (session.user as any).id, sanitize(file.name).slice(0, 255), filename, file.type, file.size, description]
+  );
+
   const url = `/api/tenders/documents/${filename}`;
-  return NextResponse.json({ url });
+  return NextResponse.json({ url, document_id: docRes.rows[0].document_id });
 }
