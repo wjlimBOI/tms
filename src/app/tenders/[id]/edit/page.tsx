@@ -1,4 +1,4 @@
-﻿// app/tenders/[id]/edit/page.tsx
+// app/tenders/[id]/edit/page.tsx
 
 "use client";
 
