@@ -7,6 +7,7 @@ import { z } from "zod";
 import { sendTenderRequestEmail } from "@/lib/email";
 import { logInsert, logAuthEvent } from "@/lib/audit"; // ✅ audit imports
 import { ROLE_IDS } from "@/lib/roles";
+import { sanitize } from "@/lib/sanitize";
 
 const tenderRequestSchema = z.object({
   tender_id: z.coerce.number().int().positive(),
@@ -50,7 +51,8 @@ export async function POST(req: NextRequest) { // ✅ Changed to NextRequest
         { status: 400 }
       );
     }
-    const { tender_id, request_type, message } = parsed.data;
+    const { tender_id, request_type } = parsed.data;
+    const message = sanitize(parsed.data.message);
 
     const contractorName = session.user.name || "Contractor";
     const contractorEmail = session.user.email || "";

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { logUpdate, logAuthEvent } from "@/lib/audit";
+import { sanitize } from "@/lib/sanitize";
 
 // ---------- GET (read‑only, unchanged) ----------
 export async function GET() {
@@ -50,7 +51,11 @@ export async function PUT(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { full_name, display_name, company_name, department, phone } = body;
+  const full_name = body.full_name ? sanitize(body.full_name) : body.full_name;
+  const display_name = body.display_name ? sanitize(body.display_name) : body.display_name;
+  const company_name = body.company_name ? sanitize(body.company_name) : body.company_name;
+  const department = body.department ? sanitize(body.department) : body.department;
+  const phone = body.phone;
 
   // 1. Fetch old data for audit
   const oldDataResult = await query(

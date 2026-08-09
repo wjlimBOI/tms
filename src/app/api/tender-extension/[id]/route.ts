@@ -7,6 +7,7 @@ import { logUpdate } from "@/lib/audit";
 import { sendExtensionDecisionEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notifications";
 import { ROLE_IDS } from "@/lib/roles";
+import { sanitize } from "@/lib/sanitize";
 
 // GET – fetch a single extension request (unchanged)
 export async function GET(
@@ -74,7 +75,8 @@ export async function PUT(
   }
 
   const body = await req.json();
-  const { status, reason } = body; // status: 'Approved' | 'Rejected'
+  const { status } = body; // status: 'Approved' | 'Rejected'
+  const reason = body.reason ? sanitize(body.reason) : body.reason;
   if (!status || !['Approved', 'Rejected'].includes(status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }

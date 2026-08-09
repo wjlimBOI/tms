@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
+import { sanitize } from "@/lib/sanitize";
 import { z } from "zod";
 
 const mainTendererSchema = z.object({
@@ -108,7 +109,6 @@ export async function POST(
       );
     }
     const {
-      agreedName,
       agreedDate,
       agreedSignature,
       agreedStampPreview,
@@ -116,13 +116,45 @@ export async function POST(
       lumpSumRaw,
       lumpSumFormatted,   // sent from frontend
       amountInWords,
-      mainTenderer,
-      witness,
-      declaration,
       declarationStampPreview,
-      projectExperience,
-      currentCommitment,
     } = parsed.data;
+
+    // Sanitize only the genuine free-text fields - agreedSignature,
+    // *StampPreview, and witness/declaration.signature are base64 image
+    // data URIs (signature pad captures), not text, and must pass through
+    // untouched or the stored signature/stamp images would be corrupted.
+    // This data lands in tender_submission.submission_data (jsonb) and is
+    // later re-rendered when the submission is reviewed/printed.
+    const agreedName = sanitize(parsed.data.agreedName);
+    const mainTenderer = {
+      ...parsed.data.mainTenderer,
+      fullName: sanitize(parsed.data.mainTenderer.fullName),
+      position: sanitize(parsed.data.mainTenderer.position),
+      companyName: sanitize(parsed.data.mainTenderer.companyName),
+      address: sanitize(parsed.data.mainTenderer.address),
+    };
+    const witness = {
+      ...parsed.data.witness,
+      fullName: sanitize(parsed.data.witness.fullName),
+      address: sanitize(parsed.data.witness.address),
+    };
+    const declaration = {
+      ...parsed.data.declaration,
+      iName: sanitize(parsed.data.declaration.iName),
+      onBehalfOf: sanitize(parsed.data.declaration.onBehalfOf),
+      name: sanitize(parsed.data.declaration.name),
+      address: sanitize(parsed.data.declaration.address),
+    };
+    const projectExperience = parsed.data.projectExperience.map((row) => ({
+      ...row,
+      projectName: sanitize(row.projectName),
+      designer: sanitize(row.designer),
+    }));
+    const currentCommitment = parsed.data.currentCommitment.map((row) => ({
+      ...row,
+      projectName: sanitize(row.projectName),
+      designer: sanitize(row.designer),
+    }));
 
     // 4. Check tender exists and is open
     await applyScheduledTenderTransitions();

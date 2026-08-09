@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
+import { sanitize } from "@/lib/sanitize";
 
 // PUT – update an event (only admin or creator)
 export async function PUT(
@@ -17,7 +18,10 @@ export async function PUT(
 
   const { id } = await params;
   const body = await req.json();
-  const { title, start_date, end_date, all_day, event_type, location, description, brand_id, tender_id } = body;
+  const { start_date, end_date, all_day, event_type, brand_id, tender_id } = body;
+  const title = sanitize(body.title || "");
+  const location = body.location ? sanitize(body.location) : body.location;
+  const description = body.description ? sanitize(body.description) : body.description;
 
   if (!title) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });

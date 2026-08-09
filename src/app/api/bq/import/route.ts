@@ -7,6 +7,7 @@ import ExcelJS from "exceljs"; // ✅ replaced xlsx
 import { ROLE_IDS } from "@/lib/roles";
 import { canEditSubmission } from "@/lib/permissions";
 import { isValidXlsxSignature } from "@/lib/fileValidation";
+import { sanitize } from "@/lib/sanitize";
 
 // ----- Constants for clamping (adjust as needed) -----
 const MAX_QTY = 9999.99;
@@ -242,7 +243,10 @@ export async function POST(req: Request) {
   for (const row of rows) {
     if (!row || row.length === 0) continue;
     const sno = row[snoIdx]?.toString().trim() || "";
-    const desc = row[descIdx]?.toString().trim() || "";
+    // Sanitized here (not just at insert) since `desc` also becomes the
+    // category name (currentExcelCat.name below) - both end up rendered via
+    // dangerouslySetInnerHTML in bq/compare/page.tsx's highlightMatches.
+    const desc = sanitize(row[descIdx]?.toString().trim() || "");
     const qtyVal = row[qtyIdx];
     const rateVal = row[rateIdx];
     const unit = unitIdx !== -1 ? (row[unitIdx]?.toString().trim() || "") : "";

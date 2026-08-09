@@ -6,6 +6,7 @@ import { query } from "@/lib/db";
 import { canEditLineItem } from "@/lib/permissions";
 import { bqLineItemCreateSchema, bqLineItemUpdateSchema } from "@/lib/validation";
 import { calculateLineItemAmount } from "@/lib/bqCalculations";
+import { sanitizeObject } from "@/lib/sanitize";
 
 async function getNextSortOrder(
   submissionId: number,
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
   if (!validation.success) {
     return NextResponse.json({ error: validation.error.message }, { status: 400 });
   }
-  const data = validation.data;
+  const data = sanitizeObject(validation.data);
 
   const canEdit = await canEditLineItem(0, session.user.id, (session.user as any).roleIds || [], data.submission_id);
   if (!canEdit) {
@@ -100,7 +101,7 @@ export async function PUT(req: Request) {
   if (!validation.success) {
     return NextResponse.json({ error: validation.error.message }, { status: 400 });
   }
-  const { line_item_id, ...fields } = validation.data;
+  const { line_item_id, ...fields } = sanitizeObject(validation.data);
 
   // Permission check
   const canEdit = await canEditLineItem(line_item_id, session.user.id, (session.user as any).roleIds || []);

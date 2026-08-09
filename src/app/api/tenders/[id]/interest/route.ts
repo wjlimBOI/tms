@@ -6,6 +6,7 @@ import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
 import { logInsert } from "@/lib/audit";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
+import { sanitize } from "@/lib/sanitize";
 import { z } from "zod";
 
 const interestBodySchema = z.object({
@@ -88,7 +89,7 @@ export async function POST(
     try {
       const raw = await request.json();
       const parsed = interestBodySchema.safeParse(raw);
-      if (parsed.success) interestNote = parsed.data.interest_note || null;
+      if (parsed.success) interestNote = parsed.data.interest_note ? sanitize(parsed.data.interest_note) : null;
     } catch {
       // no body / invalid JSON — interest_note is optional, proceed without it
     }

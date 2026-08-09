@@ -8,6 +8,7 @@ import { sendExtensionRequestEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notifications";
 import { ROLE_IDS } from "@/lib/roles";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
+import { sanitize } from "@/lib/sanitize";
 
 // ===== POST: Request a time extension =====
 export async function POST(req: Request) {
@@ -23,15 +24,16 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { tender_id, requested_days, reason } = body;
+  const { tender_id, requested_days } = body;
 
   // Validate required fields
-  if (!tender_id || !requested_days || !reason) {
+  if (!tender_id || !requested_days || !body.reason) {
     return NextResponse.json(
       { error: "Missing required fields: tender_id, requested_days, reason" },
       { status: 400 }
     );
   }
+  const reason = sanitize(body.reason);
 
   if (requested_days < 1) {
     return NextResponse.json({ error: "Requested days must be at least 1" }, { status: 400 });

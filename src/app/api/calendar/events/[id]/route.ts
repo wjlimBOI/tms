@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
+import { sanitize } from "@/lib/sanitize";
 
 export async function PUT(
   req: NextRequest,
@@ -15,7 +16,10 @@ export async function PUT(
   const { id } = await params;
   const eventId = parseInt(id);
   const body = await req.json();
-  const { title, start_date, end_date, all_day, event_type, location, description, brand_id, branch_id, tender_id } = body;
+  const { start_date, end_date, all_day, event_type, brand_id, branch_id, tender_id } = body;
+  const title = sanitize(body.title || "");
+  const location = body.location ? sanitize(body.location) : body.location;
+  const description = body.description ? sanitize(body.description) : body.description;
   if (!title) return NextResponse.json({ error: "Title required" }, { status: 400 });
 
   // 1. Fetch old event for audit

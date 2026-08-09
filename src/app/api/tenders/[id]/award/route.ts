@@ -7,6 +7,7 @@ import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
 import { createNotification, notifyUsers, sendTrackedEmail } from "@/lib/notifications";
 import { sendAwardResultEmail } from "@/lib/email";
+import { sanitize } from "@/lib/sanitize";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -95,7 +96,7 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const submissionId = parseInt(body.submission_id);
   const contractValue = parseFloat(body.contract_value);
-  const remark = typeof body.remark === "string" ? body.remark.slice(0, 500) : null;
+  const remark = typeof body.remark === "string" ? sanitize(body.remark.slice(0, 500)) : null;
 
   if (isNaN(submissionId) || isNaN(contractValue) || contractValue <= 0) {
     return NextResponse.json(

@@ -6,6 +6,7 @@ import { query, getClient } from "@/lib/db";
 import ExcelJS from "exceljs";
 import { ROLE_IDS } from "@/lib/roles";
 import { isValidXlsxSignature } from "@/lib/fileValidation";
+import { sanitize } from "@/lib/sanitize";
 
 function mapUnit(unitRaw: string): string {
   const unit = unitRaw.trim().toUpperCase();
@@ -22,7 +23,12 @@ function mapUnit(unitRaw: string): string {
 
 function clean(val: any): string {
   if (val === undefined || val === null) return '';
-  return String(val).replace(/\u00A0/g, ' ').trim();
+  // Strip any HTML/script content from Excel cell text before it's ever
+  // stored - description/brand end up rendered via dangerouslySetInnerHTML
+  // in bq/compare/page.tsx (search-utils.ts's highlightMatches), so a
+  // contractor-uploaded spreadsheet is just as much an injection vector as
+  // the manual BQ line-item form.
+  return sanitize(String(val).replace(/\u00A0/g, ' ').trim());
 }
 
 function truncateText(text: string, maxLength: number): string {

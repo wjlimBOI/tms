@@ -10,6 +10,7 @@ import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { z } from "zod";
 import { passwordValidation } from "@/lib/validation";
 import { logInsert, logAuthEvent } from "@/lib/audit";
+import { sanitize } from "@/lib/sanitize";
 
 // ─── Zod Schemas ───────────────────────────────────────────────
 
@@ -274,14 +275,14 @@ export async function POST(request: NextRequest) {
   }
 
   const {
-    username,
     email,
     role_id,
     is_active,
     access_start_date,
     access_end_date,
-    company_name,
   } = validation.data;
+  const username = sanitize(validation.data.username);
+  const company_name = validation.data.company_name ? sanitize(validation.data.company_name) : validation.data.company_name;
 
   const tempPassword = generateTempPassword();
   const hashedPassword = await bcrypt.hash(tempPassword, 12);

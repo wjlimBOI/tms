@@ -11,6 +11,7 @@ import { passwordValidation } from "@/lib/validation";
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
 import { sendTrackedEmail } from "@/lib/notifications";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { sanitize } from "@/lib/sanitize";
 
 // Zod schemas
 const paramsSchema = z.object({
@@ -104,16 +105,16 @@ export async function PUT(
     );
   }
   const {
-    username,
     email,
-    display_name,
     role_id,
     is_active,
     access_start_date,
     access_end_date,
-    company_name,
-    password,
+    password, // never sanitize - would corrupt legitimate password special characters
   } = validation.data;
+  const username = validation.data.username ? sanitize(validation.data.username) : validation.data.username;
+  const display_name = validation.data.display_name ? sanitize(validation.data.display_name) : validation.data.display_name;
+  const company_name = validation.data.company_name ? sanitize(validation.data.company_name) : validation.data.company_name;
 
   // 1. Fetch existing user (for audit and existence check)
   const oldUser = await prisma.users.findUnique({

@@ -6,6 +6,7 @@ import { query } from "@/lib/db";
 import { z } from "zod";
 import { logInsert, logAuthEvent } from "@/lib/audit"; // ✅ audit imports
 import { ROLE_IDS } from "@/lib/roles";
+import { sanitize } from "@/lib/sanitize";
 
 const createPMSchema = z.object({
   name: z.string().min(1).max(255),
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     const result = await query(
       `INSERT INTO project_managers (name, email, phone) VALUES ($1, $2, $3) RETURNING *`,
-      [validated.name, validated.email, validated.phone || null]
+      [sanitize(validated.name), validated.email, validated.phone || null]
     );
     const newPM = result.rows[0];
 

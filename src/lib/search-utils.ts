@@ -121,11 +121,35 @@ export function isCostQuery(query: string): boolean {
 }
 
 // ---------- HIGHLIGHT ----------
+// The return value here is rendered via dangerouslySetInnerHTML
+// (src/app/bq/compare/page.tsx), and `text` is contractor-supplied BQ line
+// item description/brand text pulled straight from the database - it must
+// be HTML-escaped before any markup is added, or a malicious description
+// (e.g. containing an <img onerror=...> payload) executes in whichever
+// admin/staff browser later views the comparison results.
+function escapeHtmlForHighlight(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function highlightMatches(text: string, keywords: string[]): string {
-  if (!text || keywords.length === 0) return text;
-  const escaped = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  const regex = new RegExp(escaped.join('|'), 'gi');
-  return text.replace(regex, match => `<mark class="bg-yellow-300/70 text-gray-900 px-0.5 rounded">${match}</mark>`);
+  if (!text) return "";
+  const safeText = escapeHtmlForHighlight(text);
+  if (keywords.length === 0) return safeText;
+  // Keywords must go through the same HTML escaping as the text they'll be
+  // matched against, or a keyword containing e.g. "&" would never match its
+  // escaped ("&amp;") counterpart in safeText.
+  const pattern = keywords
+    .map(k => escapeHtmlForHighlight(k).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .filter(Boolean)
+    .join('|');
+  if (!pattern) return safeText;
+  const regex = new RegExp(pattern, 'gi');
+  return safeText.replace(regex, match => `<mark class="bg-yellow-300/70 text-gray-900 px-0.5 rounded">${match}</mark>`);
 }
 
 // ---------- FUSE ----------

@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { logInsert, logAuthEvent } from "@/lib/audit";
 import { ROLE_IDS } from "@/lib/roles";
+import { sanitize } from "@/lib/sanitize";
 
 // ---------- GET (read-only, no audit) ----------
 export async function GET(req: NextRequest) {
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
       RETURNING branch_id, branch_name, brand_id, operation_status, created_at, updated_at
       `,
       [
-        branch_name.trim(),
+        sanitize(branch_name.trim()),
         brand_id,
         operation_status || 'Open',
       ]
@@ -147,8 +148,8 @@ export async function POST(req: NextRequest) {
       `,
       [
         newBranch.branch_id,
-        address.full_address.trim(),
-        address.building_name?.trim() || null,
+        sanitize(address.full_address.trim()),
+        address.building_name?.trim() ? sanitize(address.building_name.trim()) : null,
         address.postal_code?.trim() || null,
         address.is_primary !== undefined ? address.is_primary : true
       ]

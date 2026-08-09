@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { sanitize } from "@/lib/sanitize";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
   }
   const source = sourceRes.rows[0];
   const newRound = source.round_no + 1;
-  const finalVersionName = version_name?.trim() || `Round ${newRound}`;
+  const finalVersionName = version_name?.trim() ? sanitize(version_name.trim()) : `Round ${newRound}`;
 
   const client = await (await import("@/lib/db")).default.connect();
   try {

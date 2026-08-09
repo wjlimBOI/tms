@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
+import { sanitize } from "@/lib/sanitize";
 
 // PUT – rename a version
 export async function PUT(
@@ -22,7 +23,7 @@ export async function PUT(
 
   await query(
     `UPDATE tender_submission SET version_name = $1 WHERE submission_id = $2`,
-    [version_name, id]
+    [sanitize(version_name), id]
   );
   return NextResponse.json({ success: true });
 }
