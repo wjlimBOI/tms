@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const queryMock = vi.fn();
 const sendStageNotificationEmailMock = vi.fn();
+const sendDlpReminderEmailMock = vi.fn();
+const sendSubmissionDeadlineReminderEmailMock = vi.fn();
 
 vi.mock("@/lib/db", () => ({
   query: (...args: unknown[]) => queryMock(...args),
@@ -9,18 +11,36 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/email", () => ({
   sendStageNotificationEmail: (...args: unknown[]) => sendStageNotificationEmailMock(...args),
+  sendDlpReminderEmail: (...args: unknown[]) => sendDlpReminderEmailMock(...args),
+  sendSubmissionDeadlineReminderEmail: (...args: unknown[]) => sendSubmissionDeadlineReminderEmailMock(...args),
 }));
 
 import {
   autoOpenScheduledTenders,
   autoCloseExpiredTenders,
   applyScheduledTenderTransitions,
+  sendDueDlpReminders,
+  sendUpcomingSubmissionDeadlineReminders,
 } from "./tenderLifecycle";
+
+// Finds the query() call whose SQL matches `pattern`, regardless of position
+// - sendDueDlpReminders/sendUpcomingSubmissionDeadlineReminders route email
+// through sendTrackedEmail(), which makes its own query() calls (settings
+// lookup, email_notification_log insert) interleaved with this module's own,
+// so asserting by call index like the auto-open/close tests above would be
+// brittle here.
+function findQueryCall(pattern: RegExp) {
+  return queryMock.mock.calls.find(([sql]) => pattern.test(sql as string));
+}
 
 beforeEach(() => {
   queryMock.mockReset();
   sendStageNotificationEmailMock.mockReset();
   sendStageNotificationEmailMock.mockResolvedValue(undefined);
+  sendDlpReminderEmailMock.mockReset();
+  sendDlpReminderEmailMock.mockResolvedValue(undefined);
+  sendSubmissionDeadlineReminderEmailMock.mockReset();
+  sendSubmissionDeadlineReminderEmailMock.mockResolvedValue(undefined);
 });
 
 describe("autoOpenScheduledTenders", () => {
@@ -154,5 +174,110 @@ describe("applyScheduledTenderTransitions", () => {
     await applyScheduledTenderTransitions();
 
     expect(queryMock).toHaveBeenCalledTimes(6);
+  });
+});
+
+describe("sendDueDlpReminders", () => {
+  it("does nothing further when no tender's DLP is due", async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+    await sendDueDlpReminders();
+    expect(queryMock).toHaveBeenCalledTimes(1);
+    expect(sendDlpReminderEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("notifies and emails every active admin, and marks the reminder sent, for a due tender", async () => {
+    // due_date comes back from pg as a native Date object (no custom type
+    // parser is registered - see src/lib/db.ts's own comment on this exact
+    // issue), which is the regression this test guards: interpolating a
+    // Date directly into notification/email text used to throw inside
+    // escapeHtml(), silently swallowed by sendTrackedEmail, so the email
+    // never sent - toDateOnly() must be applied first.
+    const dueDate = new Date("2026-09-12T00:00:00Z");
+    queryMock
+      .mockResolvedValueOnce({
+        rows: [{ tender_id: 7, tender_name: "Test Tender", branch_name: "Test Branch", due_date: dueDate }],
+      }) // dueRes
+      .mockResolvedValueOnce({
+        rows: [{ user_id: 1, email: "admin1@example.com", name: "Admin One" }],
+      }) // adminRes
+      .mockResolvedValue({ rows: [] }); // notifyUsers insert, sendTrackedEmail's settings lookup + log insert, final UPDATE
+
+    await sendDueDlpReminders();
+
+    const notifyCall = findQueryCall(/INSERT INTO notifications/);
+    expect(notifyCall).toBeDefined();
+    expect(notifyCall![1]).toEqual([1, "DLP expiring soon: Test Tender", expect.stringContaining("2026-09-12"), "/tenders/7"]);
+    expect(notifyCall![1][2]).not.toMatch(/GMT|\[object/);
+
+    expect(sendDlpReminderEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "admin1@example.com",
+        recipientName: "Admin One",
+        tenderName: "Test Tender",
+        tenderId: 7,
+        dueDate: "2026-09-12",
+      })
+    );
+
+    const updateCall = findQueryCall(/UPDATE tender SET dlp_reminder_sent_at = NOW\(\)/);
+    expect(updateCall).toBeDefined();
+    expect(updateCall![1]).toEqual([7]);
+  });
+
+  it("still marks the reminder sent even if the email fails", async () => {
+    sendDlpReminderEmailMock.mockRejectedValue(new Error("SMTP down"));
+    queryMock
+      .mockResolvedValueOnce({
+        rows: [{ tender_id: 7, tender_name: "Test Tender", branch_name: "Test Branch", due_date: "2026-09-12" }],
+      })
+      .mockResolvedValueOnce({ rows: [{ user_id: 1, email: "admin1@example.com", name: "Admin One" }] })
+      .mockResolvedValue({ rows: [] });
+
+    await sendDueDlpReminders();
+
+    const updateCall = findQueryCall(/UPDATE tender SET dlp_reminder_sent_at = NOW\(\)/);
+    expect(updateCall).toBeDefined();
+  });
+});
+
+describe("sendUpcomingSubmissionDeadlineReminders", () => {
+  it("does nothing further when there are no candidates", async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+    await sendUpcomingSubmissionDeadlineReminders();
+    expect(queryMock).toHaveBeenCalledTimes(1);
+    expect(sendSubmissionDeadlineReminderEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("does not throw, and sends nothing further, if the candidate query itself fails", async () => {
+    queryMock.mockRejectedValueOnce(new Error("connection reset"));
+    await expect(sendUpcomingSubmissionDeadlineReminders()).resolves.toBeUndefined();
+    expect(sendSubmissionDeadlineReminderEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("notifies and emails a contractor with interest but no real submission as the deadline approaches", async () => {
+    // closing_date has the same pg-Date-object regression risk as
+    // sendDueDlpReminders' due_date above.
+    const closingDate = new Date("2026-08-15T00:00:00Z");
+    queryMock
+      .mockResolvedValueOnce({
+        rows: [{ contractor_id: 22, username: "novelty", email: "novelty@example.com", tender_id: 3, tender_name: "Test Tender", closing_date: closingDate }],
+      })
+      .mockResolvedValue({ rows: [] });
+
+    await sendUpcomingSubmissionDeadlineReminders();
+
+    const notifyCall = findQueryCall(/INSERT INTO notifications/);
+    expect(notifyCall).toBeDefined();
+    expect(notifyCall![1]).toEqual([22, "Submission deadline approaching", expect.stringContaining("2026-08-15"), "/tenders/3"]);
+
+    expect(sendSubmissionDeadlineReminderEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "novelty@example.com",
+        recipientName: "novelty",
+        tenderName: "Test Tender",
+        tenderId: 3,
+        closingDate: "2026-08-15",
+      })
+    );
   });
 });
