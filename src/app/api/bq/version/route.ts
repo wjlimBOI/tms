@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sanitize } from "@/lib/sanitize";
+import { ROLE_IDS } from "@/lib/roles";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -21,13 +22,22 @@ export async function POST(req: Request) {
             bq_date, area_size, client_name_override, logo_url,
             renovation_type_override, branch_name_override, bq_name
      FROM tender_submission
-     WHERE submission_id = $1`,
+     WHERE submission_id = $1 AND is_deleted = false`,
     [submission_id]
   );
   if (sourceRes.rows.length === 0) {
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
   }
   const source = sourceRes.rows[0];
+
+  // Only the owning contractor (or an admin) may branch a new version off
+  // this submission - matches the owner-or-admin pattern in bq/reset/route.ts.
+  const userRoleIds = (session.user as any)?.roleIds || [];
+  const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+  const isOwner = String(source.contractor_id) === String(session.user.id);
+  if (!isAdmin && !isOwner) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const newRound = source.round_no + 1;
   const finalVersionName = version_name?.trim() ? sanitize(version_name.trim()) : `Round ${newRound}`;
 
