@@ -209,7 +209,7 @@ export async function GET(req: Request) {
   }
 
   const result = await query(
-    `SELECT id, status, requested_days, reason, created_at
+    `SELECT id, status, requested_days, reason, requested_by, created_at
      FROM tender_extension_requests
      WHERE tender_id = $1
      ORDER BY created_at DESC
@@ -222,11 +222,17 @@ export async function GET(req: Request) {
   }
 
   const row = result.rows[0];
+  // reason is the requester's private free-text justification - only the
+  // requester themselves or staff (non-Contractor roles) may see it; other
+  // participants on the tender only need to know a request is pending.
+  const roleIds = ((session.user as any).roleIds || []) as number[];
+  const isStaff = !roleIds.includes(ROLE_IDS.CONTRACTOR);
+  const isRequester = row.requested_by === session.user.id;
   return NextResponse.json({
     id: row.id,
     status: row.status,
     requestedDays: row.requested_days,
-    reason: row.reason,
+    reason: isStaff || isRequester ? row.reason : null,
     createdAt: row.created_at,
   });
 }

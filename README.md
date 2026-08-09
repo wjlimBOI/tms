@@ -26,6 +26,7 @@ awards, and extensions.
    | `ALLOWED_ORIGINS` | No | Comma-separated CORS allowlist (defaults to localhost) |
    | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | For email features | Outbound mail (stage notifications, tender requests, password reset) |
    | `TEAM_EMAIL` | For tender-requests | Notification recipient |
+   | `DB_SSL_CA_PATH` / `DB_SSL_REJECT_UNAUTHORIZED` | No | Raw `pg.Pool` TLS config (`src/lib/db.ts`) — verifies certificates by default in production; only set `DB_SSL_REJECT_UNAUTHORIZED=false` for a genuine emergency opt-out (logged when used). Prisma-based routes get their SSL behavior from `DATABASE_URL`'s `sslmode` param instead. |
    | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | No | Enables rate limiting (login, password reset, AI description generation); without these, rate limiting is a no-op |
    | `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_REQUESTS` | No | Rate limit tuning (defaults: 60000ms / 100 requests) |
    | `ANTHROPIC_API_KEY` | For AI description generation | Powers "Generate with AI" on the tender description field (`src/app/api/tenders/generate-description`) |

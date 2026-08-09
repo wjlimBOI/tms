@@ -68,7 +68,6 @@ export async function PUT(
            tender_id = $9,
            updated_at = NOW()
        WHERE event_id = $10
-         AND (created_by = $11 OR $11 = 1)
        RETURNING *`,
       [
         title,
@@ -81,7 +80,6 @@ export async function PUT(
         brand_id || null,
         tender_id || null,
         id,
-        session.user.id
       ]
     );
 
@@ -155,9 +153,8 @@ export async function DELETE(
     const result = await query(
       `UPDATE calendar_events SET is_deleted = true, deleted_at = NOW()
        WHERE event_id = $1
-         AND (created_by = $2 OR $2 = 1)
        RETURNING event_id`,
-      [id, session.user.id]
+      [id]
     );
 
     if (result.rowCount === 0) {
