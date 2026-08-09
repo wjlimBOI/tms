@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import "./SignaturePad.css";
 
 interface SignaturePadProps {
   label: string;
@@ -170,19 +171,6 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
           <div className="print-signature-line" style={{ borderBottom: "1.5px solid #000", minHeight: "0.5cm", marginTop: "0.5cm" }} />
         )}
       </div>
-      <style jsx>{`
-        @media print {
-          .print-signature-line {
-            display: block !important;
-            margin-top: 10mm !important;
-            border-bottom: 1.5px solid #000000 !important;
-            width: auto !important;
-            min-width: 250px !important;
-            max-width: 300px !important;
-            min-height: 5mm !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };

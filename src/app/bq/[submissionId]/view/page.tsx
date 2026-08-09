@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrandColor } from "@/lib/brandColors";
+import "./bq-view-print.css";
 import { getBQStatusBadgeStyle, getBQStatusLabel } from "@/lib/statusColors";
 
 interface LineItem {
@@ -180,79 +181,6 @@ export default function ViewBQPage() {
 
   return (
     <div className="p-4 max-w-[95%] mx-auto print:p-0 print:max-w-none bg-gray-50 min-h-screen">
-      <style jsx global>{`
-        @media print {
-          nav, .navbar, .sticky, .no-print, button, a:not([href^="/bq/"]) {
-            display: none !important;
-          }
-          body {
-            background: white;
-            margin: 0.5in !important;
-            padding: 0 !important;
-          }
-          .border-l-orange-500,
-          .border-l-red-500,
-          .border-l-blue-500,
-          .border-l-purple-500,
-          .border-l-pink-500,
-          .border-l-yellow-500,
-          .border-l-teal-500,
-          .border-l-gray-500 {
-            border-left-color: #ccc !important;
-          }
-          .bq-container {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-          .header-card {
-            page-break-after: avoid;
-            break-after: avoid;
-          }
-          table {
-            width: 100% !important;
-            font-size: 9pt !important;
-            page-break-before: avoid !important;
-            page-break-inside: auto;
-            border-collapse: collapse !important;
-          }
-          tr {
-            page-break-inside: avoid;
-            page-break-after: avoid;
-          }
-          th, td {
-            border: 1px solid #000 !important;
-            padding: 4px 6px !important;
-          }
-          .bg-gray-800 {
-            background-color: #2c3e50 !important;
-            color: white !important;
-            print-color-adjust: exact;
-          }
-          .bg-gray-50 {
-            background-color: #f8f9fa !important;
-            print-color-adjust: exact;
-          }
-          .description-cell {
-            white-space: normal !important;
-            word-wrap: break-word;
-          }
-          .currency-cell {
-            white-space: nowrap !important;
-            text-align: right !important;
-          }
-          .logo-print {
-            height: 3rem !important;
-            width: auto !important;
-          }
-          .header-card {
-            margin-bottom: 0.5rem !important;
-          }
-          .table-container {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-        }
-      `}</style>
 
       <div className="bq-container">
         {/* Header Card with Status Badge */}

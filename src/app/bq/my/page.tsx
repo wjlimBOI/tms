@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import DateRangePicker from "@/components/ui/DateRangePicker";
+import "./bq-my.css";
 import { getBQStatusBadgeStyle, getBQStatusLabel } from "@/lib/statusColors";
 import { getBrandColor } from "@/lib/brandColors";
 import { Button } from "@/components/ui/Button";
@@ -561,22 +562,6 @@ export default function BQWorkspacePage() {
         </div>
       </div>
 
-      <style jsx global>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.5s ease-out forwards;
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.4s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 }

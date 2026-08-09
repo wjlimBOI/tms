@@ -1,0 +1,19 @@
+/* Print styles for the signature line fallback in SignaturePad.tsx.
+ * Previously a scoped <style jsx> block - Next.js 16 + Turbopack does not
+ * reliably render styled-jsx output (confirmed via a full production build
+ * for the global variant of this same pattern elsewhere in this app; this
+ * scoped variant produced zero CSS output too). Moved to a plain imported
+ * CSS file, the same proven pipeline already used for the homepage
+ * (src/app/homepage.css). */
+
+@media print {
+  .print-signature-line {
+    display: block !important;
+    margin-top: 10mm !important;
+    border-bottom: 1.5px solid #000000 !important;
+    width: auto !important;
+    min-width: 250px !important;
+    max-width: 300px !important;
+    min-height: 5mm !important;
+  }
+}

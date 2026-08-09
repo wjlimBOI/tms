@@ -10,6 +10,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getBrandColor } from "@/lib/brandColors";
 import type { EventInput } from "@fullcalendar/core";
+import "./calendar.css";
 
 // ---------- Dynamic FullCalendar import ----------
 const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
@@ -895,87 +896,6 @@ export default function CalendarPage() {
       </div>
 
       {/* ---------- Global CSS Overrides ---------- */}
-      <style jsx global>{`
-        .fc {
-          height: 100% !important;
-        }
-        .fc .fc-view-harness {
-          flex: 1 1 auto;
-        }
-        .dark .fc {
-          --fc-border-color: #334155;
-          --fc-page-bg-color: #0f172a;
-          --fc-neutral-bg-color: #1e293b;
-          --fc-today-bg-color: rgba(59, 130, 246, 0.15);
-          --fc-button-bg-color: #1e293b;
-          --fc-button-border-color: #334155;
-          --fc-button-hover-bg-color: #334155;
-          --fc-button-hover-border-color: #475569;
-          --fc-button-active-bg-color: #2563eb;
-          --fc-button-active-border-color: #2563eb;
-          --fc-list-event-hover-bg-color: #1e293b;
-        }
-        .dark .fc-theme-standard td,
-        .dark .fc-theme-standard th,
-        .dark .fc-theme-standard .fc-scrollgrid,
-        .dark .fc-theme-standard .fc-popover {
-          border-color: #334155;
-        }
-        .dark .fc-daygrid-day,
-        .dark .fc-timegrid-slot,
-        .dark .fc-timegrid-col,
-        .dark .fc-list-table,
-        .dark .fc-list-table tbody,
-        .dark .fc-list-table tr {
-          background-color: #0f172a;
-        }
-        .dark .fc .fc-button-primary {
-          background-color: var(--fc-button-bg-color);
-          border-color: var(--fc-button-border-color);
-          color: #e2e8f0;
-        }
-        .dark .fc .fc-button-primary:hover {
-          background-color: var(--fc-button-hover-bg-color);
-          border-color: var(--fc-button-hover-border-color);
-        }
-        .dark .fc .fc-button-primary:not(:disabled).fc-button-active,
-        .dark .fc .fc-button-primary:not(:disabled):active {
-          background-color: var(--fc-button-active-bg-color);
-          border-color: var(--fc-button-active-border-color);
-          color: white;
-        }
-        .dark .fc-day-today {
-          background-color: var(--fc-today-bg-color) !important;
-        }
-        .dark .fc-day-today .fc-daygrid-day-number {
-          background-color: #3b82f6;
-          color: white;
-          border-radius: 9999px;
-          width: 1.75rem;
-          height: 1.75rem;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-        @media (max-width: 640px) {
-          .fc .fc-toolbar {
-            flex-direction: column;
-            gap: 0.75rem;
-          }
-          .fc .fc-toolbar-chunk {
-            display: flex;
-            justify-content: center;
-          }
-          .fc .fc-toolbar-title {
-            font-size: 1.1rem !important;
-          }
-          .fc .fc-button-group .fc-button,
-          .fc .fc-today-button {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -1,0 +1,336 @@
+/* Print styles for the tender edit/submission page
+ * (src/app/tenders/[id]/edit/page.tsx). Previously a <style jsx global>
+ * block, which Next.js 16 + Turbopack does not reliably render for "use
+ * client" App Router pages - confirmed via a full production build that
+ * this block produced ZERO CSS output. Moved to a plain imported CSS file,
+ * the same proven pipeline already used for the homepage
+ * (src/app/homepage.css). Deliberately kept separate from the similar (but
+ * not identical) print stylesheet at src/app/tenders/[id]/tender-print.css
+ * rather than merged/shared, to avoid changing either page's real output. */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 20mm 15mm 20mm 15mm;
+    @bottom-center {
+      content: "Page " counter(page);
+      font-size: 9pt;
+      color: #000;
+    }
+  }
+
+  html,
+  body,
+  main,
+  #__next,
+  .min-h-screen,
+  .flex-1 {
+    color: #000000 !important;
+    background: white !important;
+    font-family: "Times New Roman", Times, serif !important;
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+    letter-spacing: 0.01em !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  * {
+    background: transparent !important;
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    color: #000 !important;
+  }
+
+  h1 {
+    font-size: 22pt !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    margin-bottom: 6pt !important;
+  }
+  h2 {
+    font-size: 14pt !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    text-align: center !important;
+    margin-top: 2pt !important;
+    margin-bottom: 12pt !important;
+  }
+  h3 {
+    font-size: 12pt !important;
+    font-weight: 700 !important;
+    margin-top: 8pt !important;
+    margin-bottom: 4pt !important;
+  }
+
+  .critical-clause .font-bold,
+  .mb-2 .font-bold,
+  .clauses-container .font-bold {
+    font-size: 11pt !important;
+    font-weight: 700 !important;
+  }
+
+  .print-field-row {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 10pt !important;
+  }
+  .print-field-row label,
+  .print-field-row > label {
+    display: block !important;
+    font-size: 7.5pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    color: #000 !important;
+    margin-bottom: 2pt !important;
+  }
+  .print-single-input,
+  .print-field-row input[type="text"],
+  .print-field-row input[type="date"] {
+    display: block !important;
+    width: 260pt !important;
+    max-width: 100% !important;
+    border: none !important;
+    border-bottom: 1pt solid #000 !important;
+    padding: 1pt 0 3pt !important;
+    font-size: 10.5pt !important;
+    background: transparent !important;
+    color: #000 !important;
+  }
+  .print-field-row input[type="date"] {
+    width: 130pt !important;
+  }
+  .print-field-row textarea {
+    display: none !important;
+  }
+
+  .print-address-line {
+    border-bottom: 1pt solid #000 !important;
+    display: block !important;
+    height: 18pt !important;
+    margin-bottom: 2pt !important;
+  }
+
+  #form-of-tender input[type="text"] {
+    display: inline-block !important;
+    width: 110pt !important;
+    border: none !important;
+    border-bottom: 1pt solid #000 !important;
+    text-align: right !important;
+    background: transparent !important;
+    color: #000 !important;
+  }
+
+  td input,
+  th input {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 9pt !important;
+    color: #000 !important;
+    background: transparent !important;
+  }
+  input::placeholder {
+    color: transparent !important;
+    opacity: 0 !important;
+  }
+  input[type="date"].date-empty {
+    color: transparent !important;
+  }
+  input[type="date"].date-empty::-webkit-calendar-picker-indicator {
+    display: none !important;
+  }
+
+  #relevant-experience-table-section,
+  #current-commitment-table-section {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    clear: both !important;
+    overflow: hidden !important;
+  }
+  #relevant-experience-table-section table,
+  #current-commitment-table-section table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    margin-top: 12pt !important;
+  }
+  #relevant-experience-table-section th:nth-child(1),
+  #relevant-experience-table-section td:nth-child(1) {
+    width: 35% !important;
+  }
+  #relevant-experience-table-section th:nth-child(2),
+  #relevant-experience-table-section td:nth-child(2) {
+    width: 20% !important;
+  }
+  #relevant-experience-table-section th:nth-child(3),
+  #relevant-experience-table-section td:nth-child(3) {
+    width: 25% !important;
+    white-space: nowrap !important;
+  }
+  #relevant-experience-table-section th:nth-child(4),
+  #relevant-experience-table-section td:nth-child(4) {
+    width: 20% !important;
+  }
+  #current-commitment-table-section th:nth-child(1),
+  #current-commitment-table-section td:nth-child(1) {
+    width: 33% !important;
+  }
+  #current-commitment-table-section th:nth-child(2),
+  #current-commitment-table-section td:nth-child(2) {
+    width: 15% !important;
+  }
+  #current-commitment-table-section th:nth-child(3),
+  #current-commitment-table-section td:nth-child(3) {
+    width: 32% !important;
+    word-wrap: break-word !important;
+  }
+  #current-commitment-table-section th:nth-child(4),
+  #current-commitment-table-section td:nth-child(4) {
+    width: 20% !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #d1d5db !important;
+    padding: 6pt 8pt !important;
+    font-size: 9.5pt !important;
+    word-wrap: break-word !important;
+  }
+  td input,
+  th input,
+  #relevant-experience-table-section td input,
+  #current-commitment-table-section td input {
+    border: none !important;
+    border-bottom: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    text-decoration: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  nav,
+  footer,
+  header,
+  .navbar,
+  .site-footer,
+  #global-nav,
+  #global-footer,
+  [class*="navbar"],
+  [class*="footer"],
+  aside,
+  .print\:hidden,
+  .print\:hidden * {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+  }
+
+  #schedule-critical-considerations {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+  #schedule-critical-considerations .clauses-container {
+    orphans: 2 !important;
+    widows: 2 !important;
+  }
+  .critical-clause {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  #schedule-critical-considerations h2 {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+  #terms-conditions-tender {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    margin-top: 18pt !important;
+    margin-bottom: 18pt !important;
+  }
+  #terms-conditions-tender .mb-2 {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    padding-top: 4pt !important;
+    padding-bottom: 4pt !important;
+  }
+
+  #project-team-card,
+  #schedule-critical-considerations,
+  #scope-contract-section,
+  #terms-conditions-tender,
+  #form-of-tender,
+  #contractors-declaration-section,
+  #relevant-experience-table-section,
+  #current-commitment-table-section,
+  #main-tenderer-sign-off,
+  #witness-sign-off-panel,
+  #agreed-confirmed-by-section {
+    display: block !important;
+    position: relative !important;
+    margin-top: 12pt !important;
+    margin-bottom: 18pt !important;
+    padding: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  #project-team-card {
+    margin-top: 12pt !important;
+    margin-bottom: 24pt !important;
+    padding: 16pt !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+  }
+  .project-team-grid-wrapper {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16pt !important;
+  }
+  #schedule-critical-considerations,
+  #terms-conditions-tender {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+  .grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 2rem !important;
+  }
+  .grid-cols-1 {
+    grid-template-columns: 1fr !important;
+  }
+  .whitespace-nowrap {
+    white-space: nowrap !important;
+  }
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+  #form-of-tender,
+  #contractors-declaration-section {
+    page-break-before: always !important;
+    break-before: page !important;
+    margin-top: 0 !important;
+  }
+
+  #project-team-card .print\:space-y-0\.5 > * + * {
+    margin-top: 0.5pt !important;
+  }
+  #project-team-card .print\:space-y-2 > * + * {
+    margin-top: 2pt !important;
+  }
+}

@@ -3,6 +3,7 @@
 import { useRef, useState, DragEvent, ChangeEvent } from "react";
 import { Upload, File } from "lucide-react";
 import { useNotify } from "@/components/ui/notification-provider";
+import "./CompanyStampUpload.css";
 
 interface CompanyStampUploadProps {
   label?: string;
@@ -158,19 +159,6 @@ export const CompanyStampUpload: React.FC<CompanyStampUploadProps> = ({
           <div className="print-stamp-line" style={{ borderBottom: "1.5px solid #000", minHeight: "0.5cm", marginTop: "0.5cm" }} />
         )}
       </div>
-      <style jsx>{`
-        @media print {
-          .print-stamp-line {
-            display: block !important;
-            margin-top: 10mm !important;
-            border-bottom: 1.5px solid #000000 !important;
-            width: auto !important;
-            min-width: 200px !important;
-            max-width: 250px !important;
-            min-height: 5mm !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };

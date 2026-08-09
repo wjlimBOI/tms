@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import React from "react";
 import Link from "next/link";
 import { getBrandColor } from "@/lib/brandColors";
+import "./bq-compare.css";
 import { highlightMatches } from "@/lib/search-utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
@@ -614,59 +615,6 @@ export default function CompareBQPage() {
   // ==================== RENDER ====================
   return (
     <div className="min-h-screen relative overflow-hidden bg-gray-50">
-      <style jsx global>{`
-        .sticky-left {
-          position: sticky;
-          left: 0;
-          background-color: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(4px);
-          z-index: 10;
-        }
-        .dark .sticky-left {
-          background-color: rgba(10, 18, 40, 0.9);
-          backdrop-filter: blur(4px);
-        }
-        .sticky-header {
-          position: sticky;
-          top: 0;
-          background-color: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(8px);
-          z-index: 20;
-        }
-        .dark .sticky-header {
-          background-color: rgba(10, 18, 40, 0.95);
-          backdrop-filter: blur(8px);
-        }
-        .highlight-row {
-          animation: highlight-flash 1.5s ease;
-        }
-        @keyframes highlight-flash {
-          0% { background-color: rgba(6, 182, 212, 0.3); }
-          50% { background-color: rgba(6, 182, 212, 0.6); }
-          100% { background-color: transparent; }
-        }
-        .price-card-pulse {
-          animation: price-pulse 1.5s ease-in-out infinite;
-        }
-        @keyframes price-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
-          50% { box-shadow: 0 0 20px 4px rgba(6, 182, 212, 0.3); }
-        }
-        .modal-scroll::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-        .modal-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .modal-scroll::-webkit-scrollbar-thumb {
-          background: rgba(6, 182, 212, 0.5);
-          border-radius: 9999px;
-        }
-        .modal-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(6, 182, 212, 0.8);
-        }
-      `}</style>
 
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
