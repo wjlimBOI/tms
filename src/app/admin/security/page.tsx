@@ -66,12 +66,19 @@ interface AuditLogEntry {
 }
 
 interface Notification {
-  id: string;
+  notification_id: number;
   title: string;
-  message: string;
-  timestamp: Date;
-  type: "info" | "warning" | "success" | "error";
-  read: boolean;
+  body: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+function notificationIcon(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("approved")) return "✓";
+  if (t.includes("rejected")) return "⚠️";
+  return "ℹ️";
 }
 
 const roleDisplayNames: Record<string, string> = {
@@ -686,7 +693,6 @@ export default function SecurityDashboard() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [userRoleId, setUserRoleId] = useState<number | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
   useEffect(() => {
@@ -696,7 +702,6 @@ export default function SecurityDashboard() {
       return;
     }
     const userRole = (session.user as any)?.role_id;
-    setUserRoleId(userRole);
     if (userRole === 1) setIsAdmin(true);
 
     const fetchPermissions = async () => {
@@ -770,7 +775,7 @@ export default function SecurityDashboard() {
         </div>
 
         <div className="transition-all duration-500 ease-out">
-          {activeTab === "notifications" && <Notifications userRoleId={userRoleId} />}
+          {activeTab === "notifications" && <Notifications />}
           {activeTab === "config" && isAdmin && <WorkflowConfig roles={roles} />}
           {activeTab === "permissions" && isAdmin && <RolePermissions roles={roles} userPermissions={userPermissions} />}
           {activeTab === "timelock" && isAdmin && <TimeLockedAccess roles={roles} />}
@@ -847,148 +852,95 @@ function SubTabButton({ active, onClick, label }: { active: boolean; onClick: ()
 // ============================================================
 // Notifications Component (full implementation)
 // ============================================================
-function Notifications({ userRoleId }: { userRoleId: number | null }) {
+function Notifications() {
   const toast = useNotify();
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: "1",
-      title: "New Tender Submission",
-      message: "Contractor Novelty has submitted tender documents for tender T-2026-001.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 15),
-      type: "info",
-      read: false,
-    },
-    {
-      id: "2",
-      title: "Tender created for Shakura Pigmentation Beauty #05-17 Tampines 1",
-      message: "Tender 'Shakura Pigmentation Beauty #05-17 Tampines 1' has been created and requires acknowledgment.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      type: "warning",
-      read: false,
-    },
-    {
-      id: "3",
-      title: "Approval Completed",
-      message: "All steps for Tender Submission #45 have been acknowledged.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-      type: "success",
-      read: true,
-    },
-    {
-      id: "4",
-      title: "Security Alert",
-      message: "Multiple failed login attempts detected for user 'contractor2'.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30),
-      type: "error",
-      read: false,
-    },
-    {
-      id: "5",
-      title: "Role Updated",
-      message: "Your permissions have been updated. Review the changes.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
-      type: "info",
-      read: false,
-    },
-  ]);
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const [showAcknowledgeModal, setShowAcknowledgeModal] = useState(false);
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const [acknowledging, setAcknowledging] = useState(false);
+  const fetchNotifications = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) throw new Error("Failed to load notifications");
+      const data = await res.json();
+      setNotifications(data.notifications || []);
+    } catch (err) {
+      console.error(err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const markAsRead = (id: string) => {
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const markAsRead = (id: number) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => (n.notification_id === id ? { ...n, is_read: true } : n))
     );
+    fetch(`/api/notifications/${id}`, { method: "PATCH" }).catch((err) => console.error(err));
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    toast.success("All notifications marked as read");
-  };
-
-  const openAcknowledgeModal = (notification: Notification) => {
-    if (notification.id === "2") {
-      setSelectedNotification(notification);
-      setShowAcknowledgeModal(true);
-    } else {
-      if (!notification.read) markAsRead(notification.id);
+  const markAllAsRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    try {
+      await fetch("/api/notifications/mark-all-read", { method: "POST" });
+      toast.success("All notifications marked as read");
+    } catch (err) {
+      console.error(err);
+      toast.error("Couldn't reach the server. Your notifications may not have been marked as read — try again.");
     }
   };
 
-  const handleAcknowledge = async () => {
-    if (!selectedNotification) return;
-    setAcknowledging(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === selectedNotification.id
-          ? {
-              ...n,
-              read: true,
-              title: "✓ Tender Acknowledged",
-              message: "Shakura Pigmentation Beauty #05-17 Tampines 1 has been acknowledged and is now live.",
-              type: "success",
-            }
-          : n
-      )
-    );
-    setShowAcknowledgeModal(false);
-    setSelectedNotification(null);
-    setAcknowledging(false);
-    toast.success("Tender acknowledged and is now live!");
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.is_read) markAsRead(notification.notification_id);
+    if (notification.link) router.push(notification.link);
   };
 
-  const getTypeStyles = (type: Notification["type"]) => {
-    switch (type) {
-      case "success":
-        return "bg-emerald-100 text-emerald-800 border-emerald-200";
-      case "warning":
-        return "bg-amber-100 text-amber-800 border-amber-200";
-      case "error":
-        return "bg-rose-100 text-rose-800 border-rose-200";
-      default:
-        return "bg-blue-100 text-blue-800 border-blue-200";
-    }
-  };
-
-  const getIcon = (type: Notification["type"]) => {
-    switch (type) {
-      case "success":
-        return "✓";
-      case "warning":
-        return "⚠️";
-      case "error":
-        return "❌";
-      default:
-        return "ℹ️";
-    }
-  };
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
-    <>
-      <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/20">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-gray-800">Notifications</h2>
-            {unreadCount > 0 && (
-              <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-blue-600 text-white">
-                {unreadCount}
-              </span>
-            )}
-          </div>
+    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-md">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/20">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-gray-800">Notifications</h2>
           {unreadCount > 0 && (
-            <button
-              onClick={markAllAsRead}
-              className="text-sm text-blue-600 hover:text-blue-700 transition"
-            >
-              Mark all as read
-            </button>
+            <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-blue-600 text-white">
+              {unreadCount}
+            </span>
           )}
         </div>
+        {unreadCount > 0 && (
+          <button
+            onClick={markAllAsRead}
+            className="text-sm text-blue-600 hover:text-blue-700 transition"
+          >
+            Mark all as read
+          </button>
+        )}
+      </div>
 
+      {loading ? (
+        <div className="p-8 text-center text-gray-500">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          Loading notifications…
+        </div>
+      ) : error ? (
+        <div className="p-8 text-center">
+          <p className="text-gray-500 mb-3">Couldn't load notifications. Please check your connection and try again.</p>
+          <button
+            onClick={fetchNotifications}
+            className="text-sm text-blue-600 hover:text-blue-700 transition font-medium"
+          >
+            Retry
+          </button>
+        </div>
+      ) : (
         <div className="divide-y divide-gray-200">
           {notifications.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
@@ -996,113 +948,36 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
             </div>
           ) : (
             notifications.map((notification) => (
-              <div
-                key={notification.id}
-                onClick={() => openAcknowledgeModal(notification)}
-                className={`p-5 transition-all duration-200 hover:bg-white/30 cursor-pointer ${
-                  !notification.read ? "bg-white/20" : ""
+              <button
+                key={notification.notification_id}
+                onClick={() => handleNotificationClick(notification)}
+                className={`w-full text-left p-5 transition-all duration-200 hover:bg-white/30 ${
+                  !notification.is_read ? "bg-white/20" : ""
                 }`}
               >
                 <div className="flex gap-4">
-                  <div
-                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${getTypeStyles(
-                      notification.type
-                    )}`}
-                  >
-                    {getIcon(notification.type)}
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg bg-blue-100 text-blue-800 border border-blue-200">
+                    {notificationIcon(notification.title)}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <h3 className="font-semibold text-gray-900">{notification.title}</h3>
+                      <h3 className="font-semibold text-gray-900">
+                        {notification.title}
+                        {!notification.is_read && <span className="sr-only"> (unread)</span>}
+                      </h3>
                       <span className="text-xs text-gray-500">
-                        {format(notification.timestamp, "dd/MM/yyyy HH:mm")}
+                        {format(new Date(notification.created_at), "dd/MM/yyyy HH:mm")}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                    {!notification.read && notification.id !== "2" && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          markAsRead(notification.id);
-                        }}
-                        className="mt-2 text-xs text-blue-600 hover:underline"
-                      >
-                        Mark as read
-                      </button>
-                    )}
-                    {notification.id === "2" && !notification.read && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openAcknowledgeModal(notification);
-                        }}
-                        className="mt-2 text-xs bg-amber-600 text-white px-3 py-1 rounded-lg hover:bg-amber-700 transition"
-                      >
-                        Acknowledge & Go Live
-                      </button>
-                    )}
+                    <p className="text-sm text-gray-600 mt-1">{notification.body}</p>
                   </div>
                 </div>
-              </div>
+              </button>
             ))
           )}
         </div>
-      </div>
-
-      <Dialog
-        open={showAcknowledgeModal && !!selectedNotification}
-        onOpenChange={(open) => { if (!open) { setShowAcknowledgeModal(false); setSelectedNotification(null); } }}
-      >
-        <DialogContent showCloseButton={false} className="max-w-md p-0 gap-0 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200">
-              <DialogTitle className="text-xl font-bold text-gray-900">
-                Second‑Level Approval Required
-              </DialogTitle>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-2 text-amber-600">
-                <span className="text-2xl">⚠️</span>
-                <span className="font-semibold">Project Manager Review</span>
-              </div>
-              <p className="text-gray-600">
-                Tender <strong>Shakura Pigmentation Beauty #05-17 Tampines 1</strong> is ready for go‑live.
-              </p>
-              <p className="text-gray-600">
-                Please confirm that all documents are compliant and the tender is ready to be published.
-              </p>
-              <div className="bg-gray-100 p-3 rounded-lg text-sm">
-                <p className="font-mono text-gray-700">
-                  Tender ID: <span className="font-bold">T-2026-002</span>
-                </p>
-                <p className="font-mono text-gray-700 mt-1">
-                  Created by: <span className="font-bold">Mark Nocon (Renovation Team)</span>
-                </p>
-                <p className="font-mono text-gray-700 mt-1">
-                  Requires approval from: <span className="font-bold">Jack Puan (Project Manager)</span>
-                </p>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 px-6 py-5 bg-gray-50 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setShowAcknowledgeModal(false);
-                  setSelectedNotification(null);
-                }}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAcknowledge}
-                disabled={acknowledging}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium transition disabled:opacity-50"
-              >
-                {acknowledging ? "Processing..." : "Acknowledge & Go Live"}
-              </button>
-            </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      )}
+    </div>
   );
 }
 
