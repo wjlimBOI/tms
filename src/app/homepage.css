@@ -300,60 +300,82 @@
     sans-serif;
   background: #0d2d4a;
 }
-.leaflet-tooltip.leaflet-tooltip-top {
-  background: rgba(7, 28, 46, 0.95);
+/* ---- Outlet popup - click/tap to open (not hover-only), so it works the
+   same way on touch devices as on desktop. Leaflet's default popup chrome
+   is light-themed and center-aligned text; overridden below, scoped to
+   .outlet-popup-container (passed as bindPopup's `className`) so it doesn't
+   affect popups anywhere else the app might add later. ---- */
+.outlet-popup-container .leaflet-popup-content-wrapper {
+  background: rgba(7, 28, 46, 0.97);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  border-radius: 12px;
   color: #fff;
-  padding: 10px 12px;
-  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.6);
-  /* Leaflet's own base .leaflet-tooltip rule sets white-space: nowrap, which
-     is inherited by every descendant (including .outlet-tooltip below)
-     unless overridden - that's what was forcing the address onto one long
-     line and pushing the tooltip box wider than its max-width instead of
-     wrapping. Reset it back to normal at the source. */
-  white-space: normal;
+  box-shadow: 0 14px 32px -12px rgba(0, 0, 0, 0.65);
 }
-.leaflet-tooltip-top::before {
-  border-top-color: rgba(7, 28, 46, 0.95);
+.outlet-popup-container .leaflet-popup-content {
+  /* Leaflet sets an explicit inline width here based on the bindPopup
+     maxWidth/minWidth options - don't override it with !important, or the
+     dynamic sizing (and the fix for the address being too cramped) breaks. */
+  margin: 12px 14px;
 }
-.outlet-tooltip {
+.outlet-popup-container .leaflet-popup-tip {
+  background: rgba(7, 28, 46, 0.97);
+  box-shadow: none;
+}
+.outlet-popup-container a.leaflet-popup-close-button {
+  color: rgba(255, 255, 255, 0.6);
+  /* Default close button is a small 24x24 hit area - too small to
+     comfortably tap on a phone (WCAG 2.5.8 wants >=24px, but touch devices
+     benefit from more); padding widens the real tap target without
+     changing its visual size/position. */
+  padding: 6px;
+}
+.outlet-popup-container a.leaflet-popup-close-button:hover,
+.outlet-popup-container a.leaflet-popup-close-button:focus {
+  color: #fff;
+}
+.outlet-popup {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 0.72rem;
+  gap: 6px;
+  font-size: 0.76rem;
   line-height: 1.45;
-  max-width: 220px;
-  white-space: normal;
+  text-align: left;
 }
-.outlet-tooltip-building {
-  font-size: 0.8rem;
+.outlet-popup-building {
+  font-size: 0.86rem;
   font-weight: 600;
   color: #fff;
-  white-space: normal;
   overflow-wrap: break-word;
 }
-.outlet-tooltip-brand {
+.outlet-popup-brands {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.outlet-popup-brand-row {
+  display: flex;
+}
+.outlet-popup-brand {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.7rem;
+  gap: 6px;
+  font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   /* color set inline per-brand via getBrandColor() (src/lib/brandColors.ts) */
 }
-.outlet-tooltip-brand-dot {
+.outlet-popup-brand-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.outlet-tooltip-address {
+.outlet-popup-address {
   display: block;
   color: rgba(255, 255, 255, 0.75);
-  white-space: normal;
   overflow-wrap: break-word;
 }
 .leaflet-control-attribution {
