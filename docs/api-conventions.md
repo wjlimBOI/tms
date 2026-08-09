@@ -84,9 +84,12 @@ units, brands — realistically capped at a few hundred rows), or already
 scoped to something inherently small (one tender's submissions, one user's
 own records, an explicit existing `LIMIT`).
 
-Two things noticed during the survey, not fixed here (out of scope for
+One thing noticed during the survey, not fixed here (out of scope for
 pagination):
-- `bq/template` (GET) is an empty stub — no real query, dead code.
 - `calendar/events` (GET) has no upper bound on the date-range window a
   caller can request; low risk today, but worth a sanity cap if it's ever
   exposed to less-trusted callers.
+
+(`bq/template` (GET), the empty stub previously noted here, was removed
+during an orphaned-routes cleanup pass rather than fixed — see AGENTS.md
+§6.)
