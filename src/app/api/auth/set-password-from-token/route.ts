@@ -47,9 +47,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Sanitise inputs
+    // 3. Sanitise the token (not the password — sanitizing would corrupt the
+    // special characters passwordValidation requires, and it's never rendered
+    // as HTML, so there's no XSS reason to alter it before hashing)
     const sanitisedToken = sanitize(token);
-    const sanitisedPassword = sanitize(new_password);
 
     // 4. Verify token (valid, unused, not expired)
     const tokenRecord = await prisma.password_reset_tokens.findFirst({
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Hash new password
-    const hashedPassword = await bcrypt.hash(sanitisedPassword, 12);
+    const hashedPassword = await bcrypt.hash(new_password, 12);
 
     // 6. Update user password and reset flag
     await prisma.users.update({

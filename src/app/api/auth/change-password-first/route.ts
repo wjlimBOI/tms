@@ -5,7 +5,6 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { passwordValidation } from "@/lib/validation";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
-import { sanitize } from "@/lib/sanitize";
 
 // OPTIONS preflight handler
 export async function OPTIONS(request: NextRequest) {
@@ -47,11 +46,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Sanitise (just in case, but password is hashed)
-    const sanitisedPassword = sanitize(new_password);
-
-    // 5. Hash the new password
-    const hashed = await bcrypt.hash(sanitisedPassword, 12);
+    // 4. Hash the new password directly — do not sanitize it first.
+    // sanitize() would HTML-escape exactly the special characters
+    // passwordValidation requires, silently corrupting the hash and locking
+    // the user out. Passwords are never rendered as HTML, so there's no XSS
+    // reason to alter them before hashing.
+    const hashed = await bcrypt.hash(new_password, 12);
 
     // 6. Update user
     await prisma.users.update({
