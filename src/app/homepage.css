@@ -353,9 +353,6 @@
   flex-direction: column;
   gap: 3px;
 }
-.outlet-popup-brand-row {
-  display: flex;
-}
 .outlet-popup-brand {
   display: inline-flex;
   align-items: center;
@@ -377,6 +374,44 @@
   display: block;
   color: rgba(255, 255, 255, 0.75);
   overflow-wrap: break-word;
+}
+
+/* Multi-brand popups: one tab per brand (colored via the --tab-color custom
+   property, set inline per-brand from getBrandColor()), only the active
+   tab's panel visible. Switching is wired up in OutletMap.tsx via a real
+   delegated click listener, not inline onclick (blocked by this app's CSP). */
+.outlet-popup-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 2px;
+}
+.outlet-popup-tab {
+  appearance: none;
+  border: 1px solid var(--tab-color);
+  background: transparent;
+  color: var(--tab-color);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.outlet-popup-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.outlet-popup-tab-active {
+  background: var(--tab-color);
+  color: #071c2e;
+}
+.outlet-popup-panel {
+  display: none;
+}
+.outlet-popup-panel-active {
+  display: block;
 }
 .leaflet-control-attribution {
   background: rgba(7, 28, 46, 0.7) !important;

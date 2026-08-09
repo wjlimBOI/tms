@@ -108,7 +108,7 @@ const swiperSlides = [...partnerBrands, ...partnerBrands];
 
 // Swiper 12's loop mode repositions the real slide elements instead of
 // cloning DOM nodes (no `.swiper-slide-duplicate` class exists in this
-// version â€” verified against node_modules/swiper/shared/swiper-core.mjs).
+// version — verified against node_modules/swiper/shared/swiper-core.mjs).
 // Because this carousel already renders each brand twice in `swiperSlides`
 // (for loop continuity) and each card is a real `<a href>`, every non-active
 // slide's link is still a focusable, real tab stop even when visually
@@ -142,12 +142,37 @@ export default function PublicHomePage() {
     if (status === "authenticated") router.push("/dashboard");
   }, [status, router]);
 
+  // Swiper's coverflow effect measures each slide's real rendered size at
+  // init time to compute its 3D transforms. homepage.css now loads as a
+  // separate, asynchronously-fetched stylesheet (previously an inline
+  // <style jsx> block that applied synchronously) - if Swiper finishes
+  // initializing before that stylesheet has actually been applied, it
+  // measures unstyled (zero/collapsed-size) slides and never recalculates
+  // afterwards on its own, leaving every card sized/positioned wrong until
+  // something else (like a hover, which can trigger Swiper's own internal
+  // update on interaction) forces a recompute. Force one recalculation
+  // after mount, once the browser has had a chance to paint with the real
+  // stylesheet applied.
+  useEffect(() => {
+    const handleLoad = () => swiperRef.current?.update();
+    const raf1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        swiperRef.current?.update();
+      });
+    });
+    window.addEventListener("load", handleLoad);
+    return () => {
+      cancelAnimationFrame(raf1);
+      window.removeEventListener("load", handleLoad);
+    };
+  }, []);
+
   const goApply = () => router.push("/contractor/expressInterest");
 
   const toggleAutoplay = () => {
     const swiper = swiperRef.current;
     if (!swiper?.autoplay) return;
-    // Only trigger start()/stop() here â€” `isAutoplayPlaying` itself is kept
+    // Only trigger start()/stop() here — `isAutoplayPlaying` itself is kept
     // in sync via the Swiper instance's own autoplayStart/Stop/Pause/Resume
     // events (see <Swiper> props below), so it reflects reality even when
     // autoplay is paused/resumed by something other than this button (e.g.
@@ -187,11 +212,6 @@ export default function PublicHomePage() {
             Partnering with trusted renovation contractors to maintain outlets across our network of Singapore&rsquo;s
             leading beauty and wellness brands.
           </p>
-          <div className="mt-9 flex items-center justify-center">
-            <Button onClick={goApply} variant="heroLight" size="pill">
-              Submit Interest
-            </Button>
-          </div>
 
           <div className="outlet-map-card">
             <p className="outlet-map-title">Our outlets across Singapore</p>
@@ -213,7 +233,7 @@ export default function PublicHomePage() {
             style={{ paddingBottom: "56px" }}
             onFocus={() => {
               // Only arrow-key-drive the carousel while focus is actually
-              // inside it â€” with keyboard.enabled starting `false` and
+              // inside it — with keyboard.enabled starting `false` and
               // onlyInViewport left `true`, Swiper's Keyboard module attaches
               // a *document-wide* keydown listener the moment it's enabled
               // (see node_modules/swiper/modules/keyboard.mjs), so it must be
@@ -223,7 +243,7 @@ export default function PublicHomePage() {
             onBlur={(e) => {
               const next = e.relatedTarget;
               // Don't disable when focus is just moving between slides
-              // inside the carousel â€” only when it leaves the container.
+              // inside the carousel — only when it leaves the container.
               if (next instanceof Node && e.currentTarget.contains(next)) return;
               swiperRef.current?.keyboard.disable();
             }}
@@ -292,7 +312,7 @@ export default function PublicHomePage() {
                     >
                       <CardContent className="brand-card-content p-0">
                         <div className="brand-logo-wrap">
-                          <img src={brand.src} alt={brand.name} className="brand-logo" loading="lazy" />
+                          <img src={brand.src} alt={brand.name} className="brand-logo" />
                         </div>
 
                         <p className="brand-name">{brand.name}</p>
@@ -303,7 +323,7 @@ export default function PublicHomePage() {
                         <div className="brand-footer">
                           <span className="brand-year">Est. {brand.year}</span>
                           <span className="brand-visit">
-                            Visit site <span className="chev" aria-hidden="true">â€º</span>
+                            Visit site <span className="chev" aria-hidden="true">›</span>
                             <span className="sr-only"> (opens in a new window)</span>
                           </span>
                         </div>

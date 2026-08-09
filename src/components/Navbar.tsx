@@ -295,14 +295,6 @@ export default function Navbar() {
               <Logo cls="h-8 sm:h-10 md:h-12 w-auto object-contain" />
             </Link>
             <div className="flex items-center gap-3">
-              {isHomepage && (
-                <button
-                  onClick={() => router.push("/contractor/expressInterest")}
-                  className="text-sm font-medium text-gray-600 hover:text-[#15406a] transition-colors"
-                >
-                  Submit Interest
-                </button>
-              )}
               <button
                 onClick={() => router.push("/login")}
                 className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow-md transition-all duration-200 hover:-translate-y-0.5"

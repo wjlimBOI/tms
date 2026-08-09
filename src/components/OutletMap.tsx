@@ -165,26 +165,59 @@ export default function OutletMap() {
       const point: L.LatLngExpression = [first.lat, first.lng];
       points.push(point);
 
-      const brandRows = group
-        .map((o) => {
+      const buildingLabel = escapeHtml(first.buildingName || first.branchName);
+
+      if (group.length === 1) {
+        // Single brand at this location - no tabs needed.
+        const cleanedAddress = cleanAddress(first.address, first.buildingName, first.postalCode);
+        const brandColor = getBrandColor(first.brandName).borderColor;
+        L.marker(point, { icon: pinIcon })
+          .bindPopup(
+            `<div class="outlet-popup">
+              <strong class="outlet-popup-building">${buildingLabel}</strong>
+              <span class="outlet-popup-brand" style="color: ${brandColor}">
+                <span class="outlet-popup-brand-dot" style="background: ${brandColor}"></span>
+                ${escapeHtml(first.brandName)}
+              </span>
+              <span class="outlet-popup-address">${escapeHtml(cleanedAddress)}${first.postalCode ? ` (${escapeHtml(first.postalCode)})` : ""}</span>
+            </div>`,
+            { className: "outlet-popup-container", maxWidth: 280, minWidth: 220, closeButton: true, autoPanPadding: [16, 16] }
+          )
+          .addTo(markers);
+        return;
+      }
+
+      // Multiple brands sharing a building - they can (and often do) have
+      // different unit numbers within the same building, so each gets its
+      // own address, not one shared/collapsed address. Tabs let the popup
+      // show one brand's full detail at a time instead of a long list.
+      const tabs = group
+        .map((o, i) => {
           const brandColor = getBrandColor(o.brandName).borderColor;
-          return `<div class="outlet-popup-brand-row">
-            <span class="outlet-popup-brand" style="color: ${brandColor}">
-              <span class="outlet-popup-brand-dot" style="background: ${brandColor}"></span>
-              ${escapeHtml(o.brandName)}
-            </span>
+          return `<button
+            type="button"
+            class="outlet-popup-tab${i === 0 ? " outlet-popup-tab-active" : ""}"
+            data-tab-index="${i}"
+            style="--tab-color: ${brandColor}"
+          >${escapeHtml(o.brandName)}</button>`;
+        })
+        .join("");
+
+      const panels = group
+        .map((o, i) => {
+          const cleanedAddress = cleanAddress(o.address, o.buildingName, o.postalCode);
+          return `<div class="outlet-popup-panel${i === 0 ? " outlet-popup-panel-active" : ""}" data-panel-index="${i}">
+            <span class="outlet-popup-address">${escapeHtml(cleanedAddress)}${o.postalCode ? ` (${escapeHtml(o.postalCode)})` : ""}</span>
           </div>`;
         })
         .join("");
 
-      const cleanedAddress = cleanAddress(first.address, first.buildingName, first.postalCode);
-
       L.marker(point, { icon: pinIcon })
         .bindPopup(
           `<div class="outlet-popup">
-            <strong class="outlet-popup-building">${escapeHtml(first.buildingName || first.branchName)}</strong>
-            <div class="outlet-popup-brands">${brandRows}</div>
-            <span class="outlet-popup-address">${escapeHtml(cleanedAddress)}${first.postalCode ? ` (${escapeHtml(first.postalCode)})` : ""}</span>
+            <strong class="outlet-popup-building">${buildingLabel}</strong>
+            <div class="outlet-popup-tabs" role="tablist">${tabs}</div>
+            ${panels}
           </div>`,
           { className: "outlet-popup-container", maxWidth: 280, minWidth: 220, closeButton: true, autoPanPadding: [16, 16] }
         )
@@ -193,6 +226,36 @@ export default function OutletMap() {
 
     map.fitBounds(L.latLngBounds(points), { padding: [28, 28], maxZoom: 13 });
   }, [outlets]);
+
+  // Tab-switching for multi-brand popups. Wired up via a real event
+  // listener (delegated on the map container) rather than inline
+  // onclick="..." attributes in the popup HTML string, since this app's CSP
+  // (src/proxy.ts) has no 'unsafe-inline'/'unsafe-hashes' for script-src -
+  // inline event-handler attributes would be silently blocked by the
+  // browser regardless of how correct the markup looks.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const handleClick = (e: Event) => {
+      const target = e.target as HTMLElement;
+      const tab = target.closest<HTMLElement>(".outlet-popup-tab");
+      if (!tab) return;
+      const popupEl = tab.closest(".leaflet-popup");
+      if (!popupEl) return;
+      const index = tab.dataset.tabIndex;
+
+      popupEl.querySelectorAll(".outlet-popup-tab").forEach((el) => el.classList.remove("outlet-popup-tab-active"));
+      tab.classList.add("outlet-popup-tab-active");
+
+      popupEl.querySelectorAll(".outlet-popup-panel").forEach((el) => {
+        el.classList.toggle("outlet-popup-panel-active", (el as HTMLElement).dataset.panelIndex === index);
+      });
+    };
+
+    map.getContainer().addEventListener("click", handleClick);
+    return () => map.getContainer().removeEventListener("click", handleClick);
+  }, []);
 
   return (
     <div className="outlet-map-wrap">
