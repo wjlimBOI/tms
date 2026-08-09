@@ -72,6 +72,12 @@ const IconSearch = () => (
   </svg>
 );
 
+const IconApprovals = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+  </svg>
+);
+
 export default function Navbar() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -90,6 +96,7 @@ export default function Navbar() {
   const [logoError, setLogoError] = useState(false);
   const [notiItems, setNotiItems] = useState<NotificationItem[]>([]);
   const [msgItems, setMsgItems] = useState<RecentMessage[]>([]);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   const [isMobileSearchExpanded, setIsMobileSearchExpanded] = useState(false);
   const [searchType, setSearchType] = useState<"all" | "tender" | "bq">("all");
 
@@ -175,6 +182,24 @@ export default function Navbar() {
     const interval = setInterval(fetchRecentMessages, 30000);
     return () => clearInterval(interval);
   }, [isLoggedIn, fetchRecentMessages]);
+
+  const fetchPendingApprovals = useCallback(async () => {
+    try {
+      const res = await fetch("/api/approval/request/pending");
+      if (!res.ok) return;
+      const data = await res.json();
+      setPendingApprovalsCount(Array.isArray(data) ? data.length : 0);
+    } catch {
+      // ignore — best-effort badge count
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn || isContractor) return;
+    fetchPendingApprovals();
+    const interval = setInterval(fetchPendingApprovals, 30000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn, isContractor, fetchPendingApprovals]);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
@@ -424,6 +449,18 @@ export default function Navbar() {
               >
                 <IconSearch />
               </button>
+
+              {!isContractor && (
+                <Link
+                  href="/approvals"
+                  onClick={() => closeAll()}
+                  className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50"
+                  aria-label={pendingApprovalsCount > 0 ? `Approvals, ${pendingApprovalsCount} pending` : "Approvals"}
+                >
+                  <IconApprovals />
+                  <Badge count={pendingApprovalsCount} />
+                </Link>
+              )}
 
               <div className="relative" ref={notiRef}>
                 <button

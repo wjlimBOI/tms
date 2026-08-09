@@ -5,6 +5,7 @@ import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 import { sanitize } from "@/lib/sanitize";
+import { createApprovalRequestIfConfigured } from "@/lib/approvals";
 import { z } from "zod";
 
 const mainTendererSchema = z.object({
@@ -159,7 +160,7 @@ export async function POST(
     // 4. Check tender exists and is open
     await applyScheduledTenderTransitions();
     const tenderCheck = await query(
-      `SELECT ts.status_code, t.closing_date
+      `SELECT ts.status_code, t.closing_date, t.tender_name
        FROM tender t
        JOIN tender_status ts ON t.status_id = ts.status_id
        WHERE t.tender_id = $1`,
@@ -246,6 +247,18 @@ export async function POST(
          signature = EXCLUDED.signature,
          acknowledged_at = NOW()`,
       [tenderId, contractorId, declaration.signature || agreedName, JSON.stringify({})]
+    );
+
+    // Non-blocking: only creates an approval request if an admin has
+    // configured a "tender_submission" chain (admin/security > Workflow
+    // Config). No chain configured, no-op. Never delays or gates the
+    // submission itself — see src/lib/approvals.ts's header comment.
+    void createApprovalRequestIfConfigured(
+      "tender_submission",
+      submissionId,
+      contractorId,
+      `Bid submission for "${tender.tender_name}"`,
+      `/tenders/${tenderId}/submissions`
     );
 
     return NextResponse.json({ success: true, submissionId }, { status: 200 });

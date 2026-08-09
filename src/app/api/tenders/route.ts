@@ -14,6 +14,7 @@ import { syncTenderToCalendar } from "@/lib/syncTenderToCalendar";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
+import { createApprovalRequestIfConfigured } from "@/lib/approvals";
 
 // ---------- OPTIONS (CORS preflight) ----------
 export async function OPTIONS(request: NextRequest) {
@@ -295,6 +296,18 @@ export async function POST(request: NextRequest) {
         briefing_count: body.briefing_dates?.length || 0,
         source: "api" 
       }
+    );
+
+    // Non-blocking: only creates an approval request if an admin has
+    // actually configured a "tender_creation" chain (admin/security >
+    // Workflow Config). No chain configured, no-op. Never delays or gates
+    // the tender itself — see src/lib/approvals.ts's header comment.
+    void createApprovalRequestIfConfigured(
+      "tender_creation",
+      tenderId,
+      (session.user as any).id,
+      `New tender "${body.tender_name}"`,
+      `/tenders/${tenderId}`
     );
 
     return NextResponse.json(

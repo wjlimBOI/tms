@@ -8,6 +8,7 @@ import { logInsert, logUpdate, logAuthEvent } from "@/lib/audit";
 import { canEditSubmission } from "@/lib/permissions";
 import { ROLE_IDS } from "@/lib/roles";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
+import { createApprovalRequestIfConfigured } from "@/lib/approvals";
 
 // GET – fetch BQ submissions for current user
 export async function GET(req: Request) {
@@ -275,6 +276,21 @@ export async function PUT(req: Request) {
   const newDataRes = await query(`SELECT * FROM tender_submission WHERE submission_id = $1`, [submission_id]);
   const newData = newDataRes.rows[0];
   await logUpdate("tender_submission", submission_id, oldData, newData, session.user.id, req);
+
+  // Non-blocking: only fires on the actual Draft -> Submitted transition
+  // (not every unrelated header edit), and only creates an approval request
+  // if an admin has configured a "bq_submission" chain (admin/security >
+  // Workflow Config). No chain configured, no-op. Never delays or gates the
+  // BQ submission itself — see src/lib/approvals.ts's header comment.
+  if (oldData.status !== "Submitted" && newData.status === "Submitted") {
+    void createApprovalRequestIfConfigured(
+      "bq_submission",
+      submission_id,
+      session.user.id,
+      `${newData.bq_name || "BQ"} submission`,
+      `/bq/${submission_id}/view`
+    );
+  }
 
   return NextResponse.json({ success: true });
 }

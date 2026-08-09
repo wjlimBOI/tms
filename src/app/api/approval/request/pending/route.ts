@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
+import { enrichApprovalRows } from "@/lib/approvals";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
        ORDER BY ar.created_at DESC`,
       [userRoleIds]
     );
-    return NextResponse.json(result.rows);
+    return NextResponse.json(await enrichApprovalRows(result.rows));
   }
 
   const countRes = await query(`SELECT COUNT(*) AS total ${baseFrom}`, [userRoleIds]);
@@ -39,5 +40,5 @@ export async function GET(req: Request) {
     [userRoleIds, pagination.limit, pagination.offset]
   );
 
-  return NextResponse.json({ data: result.rows, ...paginationMeta(pagination, total) });
+  return NextResponse.json({ data: await enrichApprovalRows(result.rows), ...paginationMeta(pagination, total) });
 }
