@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useNotify } from "@/components/ui/notification-provider";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   FileSignature,
   Printer,
@@ -899,17 +900,16 @@ export default function TenderDocumentPage() {
         )}
 
         {/* --- Extension Request Modal --- */}
-        {showExtensionModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm print:hidden">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-6">
+        <Dialog open={showExtensionModal} onOpenChange={(open) => { if (!open) setShowExtensionModal(false); }}>
+          <DialogContent className="max-w-lg p-6 print:hidden">
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="w-6 h-6 text-blue-600" />
-                <h2 className="text-xl font-bold text-slate-900">Request Time Extension</h2>
+                <DialogTitle className="text-xl font-bold text-slate-900">Request Time Extension</DialogTitle>
               </div>
-              <p className="text-sm text-slate-600 mb-4">
+              <DialogDescription className="text-sm text-slate-600 mb-4">
                 You are requesting an extension for <strong>{tender.tender_name}</strong>. Current closing date:{" "}
                 <strong>{formatTenderDateTime(tender.closing_date)}</strong>.
-              </p>
+              </DialogDescription>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -949,9 +949,8 @@ export default function TenderDocumentPage() {
                   {isSubmittingExtension ? "Submitting..." : "Submit Request"}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* DOCUMENT CONTENT */}
         <div className="flex flex-col md:flex-row gap-8 print:block">

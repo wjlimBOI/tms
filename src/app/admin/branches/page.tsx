@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getBranchStatusBadgeStyle, getBranchStatusLabel } from "@/lib/statusColors";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useNotify } from "@/components/ui/notification-provider";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // ---------- Interfaces ----------
 interface Branch {
@@ -536,23 +537,23 @@ export default function AdminBranchesPage() {
       </div>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl transform transition-all border border-slate-200 overflow-hidden">
+      <Dialog open={showModal} onOpenChange={(open) => { if (!open) setShowModal(false); }}>
+        <DialogContent showCloseButton={false} className="max-w-2xl p-0 gap-0 overflow-hidden">
             <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-800 tracking-tight">
+                  <DialogTitle className="text-xl font-semibold text-slate-800 tracking-tight">
                     {editingBranch ? "Edit Branch" : "Create New Branch"}
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-0.5">
+                  </DialogTitle>
+                  <DialogDescription className="text-sm text-slate-500 mt-0.5">
                     {editingBranch
                       ? "Update branch details and operation status"
                       : "Add a new branch under a brand"}
-                  </p>
+                  </DialogDescription>
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
+                  aria-label="Close"
                   className="text-slate-400 hover:text-slate-600 transition"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -690,9 +691,8 @@ export default function AdminBranchesPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { sortRoles, type Role } from "@/lib/roleSort";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useNotify } from "@/components/ui/notification-provider";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // Extend User interface
 interface User {
@@ -622,27 +623,28 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Create/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all border border-slate-200"
-            style={{ scrollbarWidth: "thin" }}
-          >
+      <Dialog open={showModal} onOpenChange={(open) => { if (!open) setShowModal(false); }}>
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0"
+          style={{ scrollbarWidth: "thin" }}
+        >
             {/* Header */}
             <div className="sticky top-0 z-10 bg-slate-50 px-6 py-4 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-800 tracking-tight">
+                  <DialogTitle className="text-xl font-semibold text-slate-800 tracking-tight">
                     {editingUser ? "Edit User" : "Create New User"}
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-0.5">
+                  </DialogTitle>
+                  <DialogDescription className="text-sm text-slate-500 mt-0.5">
                     {editingUser
                       ? "Modify user details and permissions"
                       : "Add a new user to the system and send welcome credentials"}
-                  </p>
+                  </DialogDescription>
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
+                  aria-label="Close"
                   className="text-slate-400 hover:text-slate-600 transition"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -818,9 +820,8 @@ export default function AdminUsersPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
