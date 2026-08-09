@@ -206,7 +206,7 @@ export default function TenderDetailClient({ id }: { id: string }) {
                     )}
                   </div>
                 </div>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass}`}>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${statusBadgeClass}`}>
                   {statusLabel}
                 </span>
               </div>
@@ -319,7 +319,7 @@ export default function TenderDetailClient({ id }: { id: string }) {
                           </span>
                         )}
                         {index === 0 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 text-[10px] font-medium">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-700 text-[10px] font-medium">
                             Primary
                           </span>
                         )}

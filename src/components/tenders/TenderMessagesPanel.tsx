@@ -241,7 +241,7 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
                     <span className="font-medium text-slate-800">{m.sender_name}</span>
                     <div className="flex items-center gap-2 shrink-0">
                       {m.is_announcement && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-amber-100 text-amber-700">
                           Announcement
                         </span>
                       )}

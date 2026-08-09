@@ -297,7 +297,7 @@ export default function ViewBQPage() {
                   {submission?.version_name ? ` – ${submission.version_name}` : ""}
                 </div>
                 <div className="mt-1">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusBadgeClass}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${statusBadgeClass}`}>
                     {statusLabel}
                   </span>
                 </div>

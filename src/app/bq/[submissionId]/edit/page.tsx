@@ -664,7 +664,7 @@ export default function EditCostEstimatePage() {
               <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Bill of Quantities
               </span>
-              <div className="inline-flex items-center gap-1.5 flex-shrink-0 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+              <div className="inline-flex items-center gap-1.5 flex-shrink-0 px-2.5 py-0.5 rounded-md text-xs font-semibold">
                 <span
                   className={`w-2 h-2 rounded-full ${
                     currentStatus === 'Draft' ? 'bg-amber-500' :

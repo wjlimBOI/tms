@@ -554,7 +554,7 @@ export default function TendersListPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-1 mt-2">
                   {upcomingCount > 0 && (
-                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-medium bg-slate-100 text-slate-600">
+                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[8px] sm:text-[9px] font-medium bg-slate-100 text-slate-600">
                       <span className="w-1 h-1 rounded-full bg-slate-400" />
                       Upcoming: {upcomingCount}
                     </span>
@@ -564,7 +564,7 @@ export default function TendersListPage() {
                     return (
                       <span
                         key={stage}
-                        className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-medium ${getStagePillStyle(stage)}`}
+                        className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[8px] sm:text-[9px] font-medium ${getStagePillStyle(stage)}`}
                       >
                         <span className="w-1 h-1 rounded-full bg-current opacity-60" />
                         {stage}: {count}
@@ -739,7 +739,7 @@ export default function TendersListPage() {
                                 e.stopPropagation();
                                 setInterestModalTender(item);
                               }}
-                              className={`inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-medium transition ${
+                              className={`inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-md text-[8px] sm:text-[9px] font-medium transition ${
                                 item.interest_count
                                   ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
                                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"

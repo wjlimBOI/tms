@@ -246,7 +246,7 @@ export default function AdminBQByTenderPage() {
                         <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                           {tender.tender_name}
                         </h2>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
                           {tender.status_label}
                         </span>
                       </div>
@@ -362,7 +362,7 @@ export default function AdminBQByTenderPage() {
                                       {formatCurrency(bq.total_amount)}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
-                                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${statusStyles.bg} ${statusStyles.text} ${statusStyles.border}`}>
+                                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${statusStyles.bg} ${statusStyles.text} ${statusStyles.border}`}>
                                         <span className={`w-1.5 h-1.5 rounded-full ${statusStyles.dot}`} />
                                         {statusLabel}
                                       </span>

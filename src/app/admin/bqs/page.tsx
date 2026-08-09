@@ -125,7 +125,7 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: {
                 <>
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getBQStatusStyles(bqDetail.submission.status).bg} ${getBQStatusStyles(bqDetail.submission.status).text}`}>
+                      <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${getBQStatusStyles(bqDetail.submission.status).bg} ${getBQStatusStyles(bqDetail.submission.status).text}`}>
                         {getBQStatusLabel(bqDetail.submission.status)}
                       </span>
                       <span className="text-xs text-gray-500">#{bqDetail.submission.submission_id}</span>
@@ -226,7 +226,7 @@ const CollapsibleGroup = ({ title, status, count, children, defaultOpen = true }
         className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${statusStyles.bg} ${statusStyles.text} ${statusStyles.border}`}>
+          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${statusStyles.bg} ${statusStyles.text} ${statusStyles.border}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${statusStyles.dot}`} />
             {title}
           </span>

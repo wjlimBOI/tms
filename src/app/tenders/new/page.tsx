@@ -177,7 +177,7 @@ export default function CreateProjectPage() {
               </div>
               <p className="text-sm text-slate-500 mt-1 ml-9">
                 The tender will be created as{" "}
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 text-xs font-medium">
                   Upcoming
                 </span>{" "}
                 and can be opened later via the stage management.

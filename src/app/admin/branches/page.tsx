@@ -499,7 +499,7 @@ export default function AdminBranchesPage() {
                             {branch.address?.postal_code || "—"}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm text-center">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusClasses}`}>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${statusClasses}`}>
                               {getBranchStatusLabel(branch.operation_status)}
                             </span>
                           </td>

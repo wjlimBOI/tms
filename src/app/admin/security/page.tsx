@@ -2302,7 +2302,7 @@ function AuditLogs() {
                       <td className="px-4 py-3 text-xs font-mono">{format(new Date(log.timestamp), "dd/MM/yyyy HH:mm:ss")}</td>
                       <td className="px-4 py-3 text-sm">{log.username}</td>
                       <td className="px-4 py-3 text-sm">
-                        <span className="px-2 py-0.5 rounded-full bg-gray-200 text-xs">{log.action}</span>
+                        <span className="px-2 py-0.5 rounded-md bg-gray-200 text-xs">{log.action}</span>
                       </td>
                       <td className="px-4 py-3 text-sm">{log.resource_type}</td>
                       <td className="px-4 py-3 text-sm">

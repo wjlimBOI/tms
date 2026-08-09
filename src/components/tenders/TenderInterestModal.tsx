@@ -136,11 +136,11 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
                         {entry.full_name || entry.username || "Unnamed contractor"}
                       </p>
                       {entry.is_approved ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-emerald-100 text-emerald-700 shrink-0">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-emerald-100 text-emerald-700 shrink-0">
                           <Check className="w-2.5 h-2.5" /> Approved
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-amber-100 text-amber-700 shrink-0">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-amber-100 text-amber-700 shrink-0">
                           Pending
                         </span>
                       )}

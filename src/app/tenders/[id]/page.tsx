@@ -868,7 +868,7 @@ export default function TenderDocumentPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">Status:</span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDlpStatusBadgeStyle(status)}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getDlpStatusBadgeStyle(status)}`}>
                         {getDlpStatusLabel(status)}
                       </span>
                       <span className="text-xs text-slate-400">

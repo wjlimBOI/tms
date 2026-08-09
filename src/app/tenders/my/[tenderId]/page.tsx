@@ -105,7 +105,7 @@ export default function MyTenderDetailPage() {
       Approved: "bg-blue-100 text-blue-800 border-blue-300",
       Rejected: "bg-red-100 text-red-800 border-red-300",
     };
-    return `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status] || "bg-gray-100 text-gray-700 border-gray-300"}`;
+    return `inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${styles[status] || "bg-gray-100 text-gray-700 border-gray-300"}`;
   };
 
 

@@ -301,7 +301,7 @@ export default function MyTendersListPage() {
                         <h2 className="text-xl font-bold text-gray-900 line-clamp-2 flex-1">
                           {tender.tender_name}
                         </h2>
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getTenderStatusBadgeStyle(tender.display_status)}`}>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${getTenderStatusBadgeStyle(tender.display_status)}`}>
                           {getTenderStatusLabel(tender.display_status)}
                         </span>
                       </div>

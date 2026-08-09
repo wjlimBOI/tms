@@ -313,11 +313,11 @@ export default function DashboardPage() {
                             </p>
                             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                               {isPast ? (
-                                <span className="inline-block px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-200 text-slate-600">
+                                <span className="inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-200 text-slate-600">
                                   Past due
                                 </span>
                               ) : (
-                                <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium border ${getUrgencyColor(daysLeft)}`}>
+                                <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] font-medium border ${getUrgencyColor(daysLeft)}`}>
                                   {daysLeft}d
                                 </span>
                               )}
@@ -358,7 +358,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
                   DLP Deadlines
                   {!!stats?.dlpSummary?.overdueCases && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 normal-case tracking-normal">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 normal-case tracking-normal">
                       {stats.dlpSummary.overdueCases} overdue
                     </span>
                   )}
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                             <p className="font-medium text-slate-900 truncate max-w-[120px] sm:max-w-[180px]">{item.outlet}</p>
                             <p className="text-[10px] sm:text-xs text-slate-500">Due: {formatDate(item.dueDate)}</p>
                           </div>
-                          <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium ${getDlpStatusBadgeStyle(item.status || 'upcoming')}`}>
+                          <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] font-medium ${getDlpStatusBadgeStyle(item.status || 'upcoming')}`}>
                             {item.status === 'overdue' ? `${item.daysOverdue}d overdue` : `${item.daysLeft}d`}
                           </span>
                         </div>
@@ -635,7 +635,7 @@ export default function DashboardPage() {
                       <td className="px-4 py-3 text-sm text-slate-900">{item.outlet}</td>
                       <td className="px-4 py-3 text-sm text-slate-700">{formatDate(item.dueDate)}</td>
                       <td className="px-4 py-3 text-sm">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDlpStatusBadgeStyle(item.status || 'upcoming')}`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getDlpStatusBadgeStyle(item.status || 'upcoming')}`}>
                           {item.status === 'overdue' ? `${item.daysOverdue} days overdue` : `${item.daysLeft} days left`}
                         </span>
                       </td>

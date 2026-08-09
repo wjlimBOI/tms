@@ -76,7 +76,16 @@ override, not a rule to match.
   base radius, and most buttons/inputs/panels app-wide.
 - `rounded-xl` for slightly more prominent CTAs/panels.
 - `rounded-md` on form inputs and small buttons.
-- `rounded-full` for pills, badges, and avatars.
+- `rounded-full` for avatars, small count/notification circles, and tiny dot
+  indicators only.
+- `rounded-md` for status/label badges (2026-08-09: standardized away from
+  `rounded-full` pills app-wide — the shared `Badge` primitive
+  (`src/components/ui/Badge.tsx`) already used `rounded-md`, but most inline
+  status badges throughout the app were hand-rolled `<span>`s using
+  `rounded-full` instead, built from `src/lib/statusColors.ts`'s returned
+  classes. All of those were changed to `rounded-md` to match the shared
+  primitive's own convention — colors/backgrounds/borders/text are
+  unchanged, only the corner radius).
 - The shadcn `borderRadius` token scale (`--radius`, `rounded-lg`/`md`/`sm`
   mapped to it in `tailwind.config.js`) exists, but most components use the
   literal Tailwind class rather than reasoning about the token — this is

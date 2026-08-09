@@ -132,7 +132,7 @@ export default function TenderSubmissionsPage() {
               {fullCompanyName} – {tender.branch_name}
             </p>
           </div>
-          <span className={`ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getTenderStatusBadgeStyle(tender.status_label)}`}>
+          <span className={`ml-auto inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${getTenderStatusBadgeStyle(tender.status_label)}`}>
             {tender.status_label}
           </span>
         </div>
@@ -197,7 +197,7 @@ export default function TenderSubmissionsPage() {
                         {sub.bq_name || sub.version_name || "—"}
                       </td>
                       <td className="px-6 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getSubmissionStatusBadge(sub.status)}`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getSubmissionStatusBadge(sub.status)}`}>
                           {sub.status}
                         </span>
                       </td>

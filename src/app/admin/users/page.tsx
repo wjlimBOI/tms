@@ -535,12 +535,12 @@ export default function AdminUsersPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-left">{user.email}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-left">{user.company_name || "—"}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-left">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleColor(user.role_id)}`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${getRoleColor(user.role_id)}`}>
                             {getRoleName(user.role_id)}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-left">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${
                             user.is_active
                               ? "bg-emerald-100 text-emerald-800 border-emerald-200"
                               : "bg-red-100 text-red-800 border-red-200"
@@ -549,7 +549,7 @@ export default function AdminUsersPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-left">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-emerald-100 text-emerald-800 border-emerald-200">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-emerald-100 text-emerald-800 border-emerald-200">
                             Approved
                           </span>
                         </td>
