@@ -22,6 +22,7 @@ import { SortableItem } from "@/components/ui/SortableItem";
 import { format } from "date-fns";
 import { Lock, Clock, GitBranch, Mail } from "lucide-react";
 import { useNotify } from "@/components/ui/notification-provider";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // ============================================================
 // Types & Shared Helpers
@@ -1048,13 +1049,15 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
         </div>
       </div>
 
-      {showAcknowledgeModal && selectedNotification && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-white/20 overflow-hidden">
+      <Dialog
+        open={showAcknowledgeModal && !!selectedNotification}
+        onOpenChange={(open) => { if (!open) { setShowAcknowledgeModal(false); setSelectedNotification(null); } }}
+      >
+        <DialogContent showCloseButton={false} className="max-w-md p-0 gap-0 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">
+              <DialogTitle className="text-xl font-bold text-gray-900">
                 Second‑Level Approval Required
-              </h3>
+              </DialogTitle>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-2 text-amber-600">
@@ -1097,9 +1100,8 @@ function Notifications({ userRoleId }: { userRoleId: number | null }) {
                 {acknowledging ? "Processing..." : "Acknowledge & Go Live"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -1813,11 +1815,20 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
       </div>
 
       {/* Add Permission Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-white/20 overflow-hidden">
+      <Dialog
+        open={showAddModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowAddModal(false);
+            setAddError(null);
+            setNewPermName("");
+            setNewPermModule("");
+          }
+        }}
+      >
+        <DialogContent showCloseButton={false} className="max-w-md p-0 gap-0 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900">Add New Permission</h3>
+              <DialogTitle className="text-xl font-bold text-gray-900">Add New Permission</DialogTitle>
               <button
                 onClick={() => {
                   setShowAddModal(false);
@@ -1825,6 +1836,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                   setNewPermName("");
                   setNewPermModule("");
                 }}
+                aria-label="Close"
                 className="text-gray-400 hover:text-gray-600"
               >
                 ✕
@@ -1897,9 +1909,8 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                 {adding ? "Creating..." : "Create Permission"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -2167,12 +2178,11 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
         </div>
       </div>
 
-      {showDisclaimer && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-white/20 overflow-hidden">
+      <Dialog open={showDisclaimer} onOpenChange={(open) => { if (!open) setShowDisclaimer(false); }}>
+        <DialogContent showCloseButton={false} className="max-w-2xl p-0 gap-0 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900">Time‑Locked Envelope – Legal Framework</h3>
-              <button onClick={() => setShowDisclaimer(false)} className="text-gray-400 hover:text-gray-600">
+              <DialogTitle className="text-xl font-bold text-gray-900">Time‑Locked Envelope – Legal Framework</DialogTitle>
+              <button onClick={() => setShowDisclaimer(false)} aria-label="Close" className="text-gray-400 hover:text-gray-600">
                 ✕
               </button>
             </div>
@@ -2194,9 +2204,8 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
                 OK
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -2322,12 +2331,11 @@ function AuditLogs() {
         </div>
       </div>
 
-      {showDisclaimer && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-white/20 overflow-hidden">
+      <Dialog open={showDisclaimer} onOpenChange={(open) => { if (!open) setShowDisclaimer(false); }}>
+        <DialogContent showCloseButton={false} className="max-w-2xl p-0 gap-0 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900">Compliance & Legal Framework</h3>
-              <button onClick={() => setShowDisclaimer(false)} className="text-gray-400 hover:text-gray-600">
+              <DialogTitle className="text-xl font-bold text-gray-900">Compliance & Legal Framework</DialogTitle>
+              <button onClick={() => setShowDisclaimer(false)} aria-label="Close" className="text-gray-400 hover:text-gray-600">
                 ✕
               </button>
             </div>
@@ -2350,9 +2358,8 @@ function AuditLogs() {
                 OK
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
