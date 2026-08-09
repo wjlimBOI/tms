@@ -254,6 +254,8 @@ export default function CalendarPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editEventData, setEditEventData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAddingEvent, setIsAddingEvent] = useState(false);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const confirm = useConfirm();
 
   // ---------- Permission check ----------
@@ -551,6 +553,7 @@ export default function CalendarPage() {
     });
     if (!proceed) return;
 
+    setIsDeletingEvent(true);
     try {
       const res = await fetch(`/api/calendar/events/${eventId}`, { method: "DELETE" });
       if (res.ok) {
@@ -563,6 +566,8 @@ export default function CalendarPage() {
       }
     } catch (err) {
       toast.error("An unexpected error occurred.");
+    } finally {
+      setIsDeletingEvent(false);
     }
   };
 
@@ -571,6 +576,7 @@ export default function CalendarPage() {
       toast.error("Title and start date are required.");
       return;
     }
+    setIsAddingEvent(true);
     try {
       const res = await fetch("/api/calendar/events", {
         method: "POST",
@@ -606,6 +612,8 @@ export default function CalendarPage() {
       }
     } catch (err) {
       toast.error("An unexpected error occurred.");
+    } finally {
+      setIsAddingEvent(false);
     }
   };
 
@@ -775,11 +783,11 @@ export default function CalendarPage() {
                   </div>
                   {canEditEvent(selectedEvent) && !selectedEvent.extendedProps?.children && (
                     <div className="flex gap-3 mt-6">
-                      <button onClick={openEditModal} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition text-sm font-medium shadow-md">
+                      <button onClick={openEditModal} disabled={isDeletingEvent} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition text-sm font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
                         Edit
                       </button>
-                      <button onClick={openDeleteConfirm} className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition text-sm font-medium shadow-md">
-                        Delete
+                      <button onClick={openDeleteConfirm} disabled={isDeletingEvent} className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition text-sm font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                        {isDeletingEvent ? "Deleting…" : "Delete"}
                       </button>
                     </div>
                   )}
@@ -889,7 +897,7 @@ export default function CalendarPage() {
               </div>
               <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
                 <button onClick={() => setShowAddModal(false)} className="px-5 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-50 transition font-medium">Cancel</button>
-                <button onClick={handleAddEvent} className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl font-medium shadow-md transition">Create Event</button>
+                <button onClick={handleAddEvent} disabled={isAddingEvent} className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl font-medium shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed">{isAddingEvent ? "Creating…" : "Create Event"}</button>
               </div>
           </DialogContent>
         </Dialog>

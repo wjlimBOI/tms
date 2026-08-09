@@ -324,7 +324,8 @@ export default function EditCostEstimatePage() {
     setIsSubmitting(true);
     setShowSubmitModal(false);
     try {
-      await updateStatus("Submitted");
+      const succeeded = await updateStatus("Submitted");
+      if (!succeeded) throw new Error("Submission was not accepted");
       setShowSuccessModal(true);
       setIsDirty(false);
       isDirtyRef.current = false;
@@ -345,7 +346,6 @@ export default function EditCostEstimatePage() {
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
-    window.location.reload();
   };
 
   const formatDate = (dateStr: string | null | undefined) => (dateStr ? new Date(dateStr).toLocaleString() : "—");

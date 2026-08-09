@@ -762,18 +762,33 @@ export default function BQTemplateEditPage() {
       item_id: item.item_id,
       sort_order: idx,
     }));
+    const sortOrderById = new Map(updates.map((u) => [u.item_id, u.sort_order]));
 
-    await Promise.all(
-      updates.map(({ item_id, sort_order }) =>
-        fetch("/api/admin/bq-template/item", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ item_id, sort_order }),
-        })
-      )
-    );
+    // Optimistic: apply the new order immediately — dnd-kit already shows
+    // the row being dragged mid-air, so without this it visibly snaps back
+    // to its old position until every PUT + a full refetch complete.
+    const previousItems = items;
+    setItems((prev) => prev.map((item) => (sortOrderById.has(item.item_id) ? { ...item, sort_order: sortOrderById.get(item.item_id)! } : item)));
 
-    fetchItems();
+    try {
+      const results = await Promise.all(
+        updates.map(({ item_id, sort_order }) =>
+          fetch("/api/admin/bq-template/item", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ item_id, sort_order }),
+          })
+        )
+      );
+      if (results.some((res) => !res.ok)) {
+        setItems(previousItems);
+        toast.error("Couldn't save the new order. Please try again.");
+      }
+    } catch (err) {
+      setItems(previousItems);
+      console.error(err);
+      toast.error("Couldn't reach the server. Please check your connection and try again.");
+    }
   };
 
   const handleSaveCategories = async () => {

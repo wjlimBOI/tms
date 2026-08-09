@@ -100,6 +100,23 @@ export default function ApprovalsPage() {
       return;
     }
     setActioningId(row.request_id);
+
+    // Optimistic: remove it from the pending list immediately, before the
+    // request even resolves — approve/reject is a simple terminal action,
+    // easy to roll back by re-inserting the row (we already have the full
+    // object) if the request fails.
+    const originalIndex = pending.findIndex((r) => r.request_id === row.request_id);
+    setPending((prev) => prev.filter((r) => r.request_id !== row.request_id));
+
+    const rollback = () => {
+      setPending((prev) => {
+        if (prev.some((r) => r.request_id === row.request_id)) return prev;
+        const next = [...prev];
+        next.splice(Math.max(originalIndex, 0), 0, row);
+        return next;
+      });
+    };
+
     try {
       const res = await fetch("/api/approval/request/action", {
         method: "POST",
@@ -108,13 +125,21 @@ export default function ApprovalsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        rollback();
         toast.error(data.error || "Couldn't process this action. Please try again.");
         return;
       }
       toast.success(decision === "approve" ? "Approved" : "Rejected");
-      setPending((prev) => prev.filter((r) => r.request_id !== row.request_id));
-      fetchAll();
+      // History tab isn't visible right now — refresh it quietly in the
+      // background so it's accurate whenever the user switches to it,
+      // without re-fetching (and flickering) the pending list we already
+      // updated locally.
+      fetch("/api/approval/request/all")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => { if (Array.isArray(data)) setHistory(data); })
+        .catch(() => {});
     } catch (err) {
+      rollback();
       console.error(err);
       toast.error("Couldn't reach the server. Please check your connection and try again.");
     } finally {

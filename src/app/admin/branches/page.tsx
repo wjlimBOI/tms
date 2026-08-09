@@ -240,8 +240,29 @@ export default function AdminBranchesPage() {
         throw new Error(err.error || "Operation failed");
       }
 
+      // This list is small and unpaginated (client-side filtered/sorted via
+      // useMemo below), unlike admin/users' paginated list — so merging the
+      // server's response directly is safe and avoids a wasted full
+      // refetch, UNLESS a brand filter is active and this branch belongs to
+      // a different brand: fetchBranches() applies that filter server-side
+      // (?brand_id=...), and the local view has no equivalent client-side
+      // brand filter to re-derive it from, so a real refetch is required to
+      // keep the filtered view correct rather than showing a branch that
+      // doesn't match it.
+      const saved = await res.json();
+      const brandName = brands.find((b) => b.brand_id === saved.brand_id)?.brand_name || "";
+      const savedBranch: Branch = { ...saved, brand_name: brandName };
+      if (brandFilter && String(saved.brand_id) !== brandFilter) {
+        await fetchBranches();
+      } else {
+        setBranches((prev) =>
+          editingBranch
+            ? prev.map((b) => (b.branch_id === savedBranch.branch_id ? savedBranch : b))
+            : [...prev, savedBranch]
+        );
+      }
+
       setShowModal(false);
-      await fetchBranches();
       toast.success(`Branch ${editingBranch ? "updated" : "created"} successfully.`);
     } catch (err: any) {
       toast.error(err.message);
@@ -257,12 +278,18 @@ export default function AdminBranchesPage() {
     });
     if (!proceed) return;
 
+    // Optimistic: this list is unpaginated and held entirely in local
+    // state, so removing the row immediately (with rollback on failure) is
+    // safe — no server-computed pagination/count to fall out of sync with.
+    const previousBranches = branches;
+    setBranches((prev) => prev.filter((b) => b.branch_id !== branchId));
+
     try {
       const res = await fetch(`/api/branches/${branchId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Deletion failed");
-      await fetchBranches();
       toast.success("Branch deleted successfully.");
     } catch (err) {
+      setBranches(previousBranches);
       toast.error("Could not delete branch.");
     }
   };

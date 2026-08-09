@@ -79,23 +79,36 @@ export function useBQ(submissionId: string | string[] | undefined) {
     fetchBQ();
   }, [fetchBQ]);
 
-  // Update submission header (client, branch, etc.)
-  const updateSubmission = useCallback(async (fields: any) => {
-    if (!submission) return;
+  // Update submission header (client, branch, etc.). Returns whether the
+  // update succeeded — most callers here are fire-and-forget (client/branch/
+  // renovation-type edits), but updateStatus's caller needs to know whether
+  // a submit actually went through before showing a success confirmation.
+  const updateSubmission = useCallback(async (fields: any): Promise<boolean> => {
+    if (!submission) return false;
+    // Optimistic: reflect the change immediately, roll back if the request
+    // fails so the UI never shows a change that didn't actually persist.
+    const previous = submission;
+    setSubmission((prev: any) => ({ ...prev, ...fields }));
     try {
       const res = await fetch("/api/bq/submission", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ submission_id: submission.submission_id, ...fields }),
       });
-      if (res.ok) {
-        setSubmission((prev: any) => ({ ...prev, ...fields }));
-        await fetchBQ();
-      } else {
+      if (!res.ok) {
+        setSubmission(previous);
         console.error("Update failed");
+        return false;
       }
+      // Re-sync in the background (e.g. canEdit depends on server-derived
+      // state like status) — the optimistic set above already gave the user
+      // immediate feedback, this just corrects anything it couldn't know.
+      await fetchBQ();
+      return true;
     } catch (err) {
+      setSubmission(previous);
       console.error("Failed to update submission header", err);
+      return false;
     }
   }, [submission, fetchBQ]);
 
@@ -107,9 +120,9 @@ export function useBQ(submissionId: string | string[] | undefined) {
     updateSubmission({ renovation_type_override: typeId });
   }, [updateSubmission]);
 
-  const updateStatus = useCallback((newStatus: string) => {
-    if (!canEdit) return;
-    updateSubmission({ status: newStatus });
+  const updateStatus = useCallback((newStatus: string): Promise<boolean> => {
+    if (!canEdit) return Promise.resolve(false);
+    return updateSubmission({ status: newStatus });
   }, [canEdit, updateSubmission]);
 
   const updateBranch = useCallback((branchName: string) => {
@@ -221,7 +234,29 @@ export function useBQ(submissionId: string | string[] | undefined) {
     }
   }, [canEdit]);
 
-  // Add new item
+  // Recursively collect a line item and every descendant's line_item_id
+  // (mirrors the DB's ON DELETE CASCADE on parent_item_id) so an optimistic
+  // local removal matches what the server will actually end up deleting.
+  const collectWithDescendants = useCallback((cats: Category[], rootIds: number[]): Set<number> => {
+    const allItems = cats.flatMap((c) => c.items);
+    const result = new Set<number>(rootIds);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const item of allItems) {
+        if (item.parent_item_id != null && result.has(item.parent_item_id) && !result.has(item.line_item_id)) {
+          result.add(item.line_item_id);
+          added = true;
+        }
+      }
+    }
+    return result;
+  }, []);
+
+  // Add new item (optimistic — placeholder appears immediately with a
+  // temporary negative id, reconciled with the real id once the server
+  // responds, or removed on failure). sort_order/level are recomputed
+  // server-side the same simple way they're derived here.
   const addNewItem = useCallback(async (categoryId: number, parentId: number | null = null) => {
     if (!canEdit || !submissionId) return;
     const newItem: CreateItemDto = {
@@ -237,6 +272,26 @@ export function useBQ(submissionId: string | string[] | undefined) {
       unit_price: 0,
       discount: 0,
     };
+
+    const tempId = -Date.now();
+    setCategories((prev) => {
+      const allItems = prev.flatMap((c) => c.items);
+      const siblings = allItems.filter((i) => i.category_id === categoryId && i.parent_item_id === parentId);
+      const nextSort = siblings.length > 0 ? Math.max(...siblings.map((i) => i.sort_order)) + 1 : 0;
+      const parent = parentId != null ? allItems.find((i) => i.line_item_id === parentId) : null;
+      const targetCategory = prev.find((c) => c.category_id === categoryId);
+      const placeholder: LineItem = {
+        ...newItem,
+        line_item_id: tempId,
+        amount: 0,
+        sort_order: nextSort,
+        item_no: "",
+        category_name: targetCategory?.category_name || "",
+        depth: parent ? (parent.depth ?? 0) + 1 : 0,
+      };
+      return prev.map((cat) => (cat.category_id === categoryId ? { ...cat, items: [...cat.items, placeholder] } : cat));
+    });
+
     try {
       const res = await fetch("/api/bq/items", {
         method: "POST",
@@ -244,17 +299,39 @@ export function useBQ(submissionId: string | string[] | undefined) {
         body: JSON.stringify(newItem),
       });
       if (!res.ok) throw new Error("Failed to add item");
-      await fetchBQ();
+      const data = await res.json();
+      const realId = data?.line_item_id;
+      if (realId) {
+        setCategories((prev) =>
+          prev.map((cat) => ({
+            ...cat,
+            items: cat.items.map((i) => (i.line_item_id === tempId ? { ...i, line_item_id: realId } : i)),
+          }))
+        );
+      } else {
+        // Response didn't include the new id — fall back to a full refetch
+        // rather than leave a placeholder with a fake negative id in place.
+        await fetchBQ();
+      }
     } catch (err) {
+      setCategories((prev) =>
+        prev.map((cat) => ({ ...cat, items: cat.items.filter((i) => i.line_item_id !== tempId) }))
+      );
       console.error(err);
       toast.error("Could not add item");
     }
   }, [submissionId, canEdit, fetchBQ]);
 
-  // Delete single item
+  // Delete single item (optimistic — removes it and its sub-items locally
+  // immediately, restores them on failure)
   const deleteItem = useCallback(async (line_item_id: number) => {
     if (!canEdit) return;
     if (!(await confirm({ description: "Delete this line item and its sub‑items?", confirmText: "Delete", variant: "destructive" }))) return;
+
+    const previousCategories = categories;
+    const toRemove = collectWithDescendants(categories, [line_item_id]);
+    setCategories((prev) => prev.map((cat) => ({ ...cat, items: cat.items.filter((i) => !toRemove.has(i.line_item_id)) })));
+
     try {
       const res = await fetch("/api/bq/items", {
         method: "DELETE",
@@ -262,17 +339,22 @@ export function useBQ(submissionId: string | string[] | undefined) {
         body: JSON.stringify({ line_item_id }),
       });
       if (!res.ok) throw new Error("Delete failed");
-      await fetchBQ();
     } catch (err) {
+      setCategories(previousCategories);
       console.error(err);
       toast.error("Could not delete item");
     }
-  }, [canEdit, fetchBQ, confirm]);
+  }, [canEdit, confirm, categories, collectWithDescendants]);
 
-  // Batch delete selected items
+  // Batch delete selected items (optimistic, same rollback shape as deleteItem)
   const deleteSelectedItems = useCallback(async (ids: number[]) => {
     if (!canEdit || !ids.length) return;
     if (!(await confirm({ description: `Delete ${ids.length} selected item(s) and their sub‑items?`, confirmText: "Delete", variant: "destructive" }))) return;
+
+    const previousCategories = categories;
+    const toRemove = collectWithDescendants(categories, ids);
+    setCategories((prev) => prev.map((cat) => ({ ...cat, items: cat.items.filter((i) => !toRemove.has(i.line_item_id)) })));
+
     try {
       const res = await fetch("/api/bq/items", {
         method: "DELETE",
@@ -280,12 +362,12 @@ export function useBQ(submissionId: string | string[] | undefined) {
         body: JSON.stringify({ line_item_ids: ids }),
       });
       if (!res.ok) throw new Error("Delete failed");
-      await fetchBQ();
     } catch (err) {
+      setCategories(previousCategories);
       console.error(err);
       toast.error("Could not delete selected items");
     }
-  }, [canEdit, fetchBQ, confirm]);
+  }, [canEdit, confirm, categories, collectWithDescendants]);
 
   // Add category
   const addCategory = useCallback(async (categoryId: number) => {
@@ -298,16 +380,28 @@ export function useBQ(submissionId: string | string[] | undefined) {
     await fetchBQ();
   }, [submission, fetchBQ]);
 
-  // Remove category
+  // Remove category (optimistic — the full category object, including its
+  // items, is already in local state so it can be restored exactly on
+  // failure; unlike addCategory this needs no server-derived data to apply
+  // locally)
   const removeCategory = useCallback(async (categoryId: number) => {
     if (!submission) return;
     if (!(await confirm({ description: "Remove entire category and all its items?", confirmText: "Remove", variant: "destructive" }))) return;
-    await fetch("/api/bq/category", {
-      method: "DELETE",
-      body: JSON.stringify({ submission_id: submission.submission_id, category_id: categoryId }),
-    });
-    await fetchBQ();
-  }, [submission, fetchBQ, confirm]);
+    const previousCategories = categories;
+    setCategories((prev) => prev.filter((cat) => cat.category_id !== categoryId));
+    try {
+      const res = await fetch("/api/bq/category", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submission_id: submission.submission_id, category_id: categoryId }),
+      });
+      if (!res.ok) throw new Error("Remove category failed");
+    } catch (err) {
+      setCategories(previousCategories);
+      console.error(err);
+      toast.error("Could not remove the category");
+    }
+  }, [submission, categories, confirm]);
 
   // ** NEW: Reset BQ to original template (admin only) **
   const resetToTemplate = useCallback(async () => {

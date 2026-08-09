@@ -78,6 +78,8 @@ export default function AdminUsersPage() {
     company_name: "",
   });
   const [sending, setSending] = useState<number | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
+  const [formSubmitting, setFormSubmitting] = useState(false);
 
   // Filters and pagination
   const [search, setSearch] = useState(() => searchParams.get("search") || "");
@@ -214,15 +216,22 @@ export default function AdminUsersPage() {
     setCurrentPage(1);
   };
 
-  // Handle delete
+  // Handle delete. The list is paginated (page size/counts/sort come from
+  // the server), so removing the row locally risks the page showing a stale
+  // count or one fewer row than pagination says — instead this shows
+  // immediate per-row "deleting…" feedback and lets the real fetchUsers()
+  // apply the authoritative result.
   const handleDelete = async (userId: number) => {
     if (!(await confirm({ description: "Delete this user permanently? This action cannot be undone.", confirmText: "Delete", variant: "destructive" }))) return;
+    setDeletingUserId(userId);
     try {
       const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Deletion failed");
-      fetchUsers();
+      await fetchUsers();
     } catch (err) {
       toast.error("Error deleting user");
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -268,9 +277,16 @@ export default function AdminUsersPage() {
     setShowModal(true);
   };
 
-  // Submit create/edit
+  // Submit create/edit. Not made optimistic (unlike the row-level actions
+  // elsewhere in this pass) because where a new/edited row lands depends on
+  // server-side sort order and pagination that can't be guessed client-side
+  // — instead this adds the loading feedback that was missing entirely
+  // (AGENTS.md: every async action needs one), disabling Save instead of
+  // letting a user fire a duplicate submit with no visible indication
+  // anything is happening.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormSubmitting(true);
     try {
       let url = "/api/admin/users";
       let method = "POST";
@@ -300,9 +316,11 @@ export default function AdminUsersPage() {
         throw new Error(err.error || "Operation failed");
       }
       setShowModal(false);
-      fetchUsers();
+      await fetchUsers();
     } catch (err: any) {
       toast.error(err.message);
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
@@ -564,8 +582,10 @@ export default function AdminUsersPage() {
                             >
                               {sending === user.user_id ? "Sending…" : "Send Email"}
                             </button>
-                            <button onClick={() => openEditModal(user)} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 transition-all">Edit</button>
-                            <button onClick={() => handleDelete(user.user_id)} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-800 border-red-200 hover:bg-red-200 transition-all">Delete</button>
+                            <button onClick={() => openEditModal(user)} disabled={deletingUserId === user.user_id} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed">Edit</button>
+                            <button onClick={() => handleDelete(user.user_id)} disabled={deletingUserId === user.user_id} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-800 border-red-200 hover:bg-red-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                              {deletingUserId === user.user_id ? "Deleting…" : "Delete"}
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -808,15 +828,17 @@ export default function AdminUsersPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  disabled={formSubmitting}
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-lg text-sm font-medium text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+                  disabled={formSubmitting}
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-lg text-sm font-medium text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingUser ? "Update User" : "Create User"}
+                  {formSubmitting ? "Saving…" : editingUser ? "Update User" : "Create User"}
                 </button>
               </div>
             </form>

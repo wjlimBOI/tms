@@ -196,6 +196,7 @@ export default function TendersListPage() {
   const [loadingExtensions, setLoadingExtensions] = useState(false);
 
   const [applyingInterestId, setApplyingInterestId] = useState<number | null>(null);
+  const [advancingStageId, setAdvancingStageId] = useState<number | null>(null);
   const [interestModalTender, setInterestModalTender] = useState<Tender | null>(null);
   const [awardModalTender, setAwardModalTender] = useState<Tender | null>(null);
   const [handoverModalTender, setHandoverModalTender] = useState<Tender | null>(null);
@@ -889,6 +890,16 @@ export default function TendersListPage() {
                                         setAwardModalTender(item);
                                         return;
                                       }
+                                      // The server enforces the real transition rules
+                                      // (permissions, current stage, auto-transitions) and
+                                      // its response's stage/status aren't known until it
+                                      // replies, so this shows immediate "in progress"
+                                      // feedback on just this row rather than guessing the
+                                      // final state — the full list refetch afterward is
+                                      // what actually applies it everywhere (filters,
+                                      // counts, sort order all depend on fields this
+                                      // response doesn't return).
+                                      setAdvancingStageId(item.tender_id);
                                       try {
                                         const res = await fetch(`/api/tenders/${item.tender_id}/stage`, {
                                           method: 'PUT',
@@ -900,17 +911,25 @@ export default function TendersListPage() {
                                           toast.error(err.error || "Unable to advance the stage.");
                                         } else {
                                           toast.success("The stage was advanced successfully.");
-                                          fetchTenders();
+                                          await fetchTenders();
                                         }
                                       } catch {
                                         toast.error("Could not connect to the server. Try again later.");
+                                      } finally {
+                                        setAdvancingStageId(null);
                                       }
                                     }}
-                                    disabled={stageIdx >= 3}
+                                    disabled={stageIdx >= 3 || advancingStageId === item.tender_id}
                                     className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                                   >
-                                    <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                    {stageIdx === 0 ? "Open Tender" : stageIdx === 1 ? "Close Tender" : stageIdx === 2 ? "Award Tender" : "Advance"}
+                                    {advancingStageId === item.tender_id ? (
+                                      <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                                    ) : (
+                                      <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    )}
+                                    {advancingStageId === item.tender_id
+                                      ? "Advancing…"
+                                      : stageIdx === 0 ? "Open Tender" : stageIdx === 1 ? "Close Tender" : stageIdx === 2 ? "Award Tender" : "Advance"}
                                   </button>
                                 </>
                               )}
