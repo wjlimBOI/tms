@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { decryptLocal } from "@/lib/encryption";
+import { logEvent, extractAuditContext } from "@/lib/audit";
 import crypto from "crypto";
 
 function maskVendorName(originalName: string): string {
@@ -51,16 +52,16 @@ export async function GET(
   const techOpen = new Date(tender.technical_opening_time);
   if (now < techOpen) {
     // Log unauthorized attempt
-    await fetch(`${process.env.NEXTAUTH_URL}/api/audit/log`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "unauthorized_technical_bid_access",
-        resource_type: "tender",
-        resource_id: tenderId.toString(),
-        details: { reason: "before_opening_time" },
-        ip_address: req.headers.get("x-forwarded-for"),
-      }),
+    const ctx = extractAuditContext(req);
+    await logEvent({
+      tableName: "tender",
+      recordId: tenderId,
+      action: "unauthorized_technical_bid_access",
+      userId: session.user.id,
+      ipAddress: ctx.ipAddress,
+      userAgent: ctx.userAgent,
+      requestId: ctx.requestId,
+      details: { reason: "before_opening_time" },
     });
     return NextResponse.json({ error: "Technical bid not yet available" }, { status: 403 });
   }
@@ -68,16 +69,16 @@ export async function GET(
   // Role check
   const isEligible = await isTechnicalEvaluator(session.user.id);
   if (!isEligible) {
-    await fetch(`${process.env.NEXTAUTH_URL}/api/audit/log`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "unauthorized_technical_bid_access",
-        resource_type: "tender",
-        resource_id: tenderId.toString(),
-        details: { reason: "insufficient_role" },
-        ip_address: req.headers.get("x-forwarded-for"),
-      }),
+    const ctx = extractAuditContext(req);
+    await logEvent({
+      tableName: "tender",
+      recordId: tenderId,
+      action: "unauthorized_technical_bid_access",
+      userId: session.user.id,
+      ipAddress: ctx.ipAddress,
+      userAgent: ctx.userAgent,
+      requestId: ctx.requestId,
+      details: { reason: "insufficient_role" },
     });
     return NextResponse.json({ error: "Forbidden – you are not a technical evaluator" }, { status: 403 });
   }
@@ -98,17 +99,19 @@ export async function GET(
   }
 
   // Log successful access
-  await fetch(`${process.env.NEXTAUTH_URL}/api/audit/log`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  {
+    const ctx = extractAuditContext(req);
+    await logEvent({
+      tableName: "tender",
+      recordId: tenderId,
       action: "view_technical_bid",
-      resource_type: "tender",
-      resource_id: tenderId.toString(),
+      userId: session.user.id,
+      ipAddress: ctx.ipAddress,
+      userAgent: ctx.userAgent,
+      requestId: ctx.requestId,
       details: { vendor_masked: vendorDisplay !== tender.vendor_name },
-      ip_address: req.headers.get("x-forwarded-for"),
-    }),
-  });
+    });
+  }
 
   return NextResponse.json({
     tenderId,

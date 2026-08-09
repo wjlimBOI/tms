@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
-import { MessageSquare, Send, Megaphone } from "lucide-react";
+import { MessageSquare, Send, Megaphone, FileText, HelpCircle } from "lucide-react";
 import { ROLE_IDS } from "@/lib/roles";
 import { useNotify } from "@/components/ui/notification-provider";
 import { Button } from "@/components/ui/Button";
@@ -43,6 +43,7 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [requestingType, setRequestingType] = useState<"drawings" | "information" | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchThread = useCallback(
@@ -151,6 +152,39 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
     }
   };
 
+  // Contractor-only structured request: reuses the same draft text, but
+  // posts to tender_requests instead of tender_message - this emails the
+  // tender's project manager directly (a heavier-weight signal than a
+  // regular chat message) rather than just appearing in-thread. Documents
+  // are still sent back manually by staff via email, not through this flow.
+  const handleRequest = async (requestType: "drawings" | "information") => {
+    if (!draft.trim()) {
+      toast.error("Add a short message describing what you need before requesting it.");
+      return;
+    }
+    setRequestingType(requestType);
+    try {
+      const res = await fetch(`/api/tender-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tender_id: tenderId, request_type: requestType, message: draft.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to send the request.");
+
+      setDraft("");
+      toast.success(
+        requestType === "drawings"
+          ? "Drawings request sent — the project manager has been notified by email."
+          : "Information request sent — the project manager has been notified by email."
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Unable to send the request.");
+    } finally {
+      setRequestingType(null);
+    }
+  };
+
   if (accessible === false) return null; // no access — panel doesn't render at all
 
   return (
@@ -239,6 +273,36 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
               <Send className="w-3.5 h-3.5" /> {sending ? "Sending…" : "Send"}
             </Button>
           </div>
+
+          {isContractor && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleRequest("drawings")}
+                disabled={requestingType !== null || !draft.trim()}
+                className="gap-1.5"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                {requestingType === "drawings" ? "Sending…" : "Request Drawings"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleRequest("information")}
+                disabled={requestingType !== null || !draft.trim()}
+                className="gap-1.5"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                {requestingType === "information" ? "Sending…" : "Request More Info"}
+              </Button>
+              <p className="text-[11px] text-slate-400 self-center">
+                Type your request above, then choose an option — the project manager is notified by email.
+              </p>
+            </div>
+          )}
         </>
       )}
 
