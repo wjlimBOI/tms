@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   // Enable React strict mode for development
   reactStrictMode: true,
 
+  // Next.js re-adds X-Powered-By after proxy.ts runs, so deleting it there
+  // doesn't stick - this is the actual supported way to remove it.
+  poweredByHeader: false,
+
   // Security headers
   async headers() {
     const isProduction = process.env.NODE_ENV === 'production';
