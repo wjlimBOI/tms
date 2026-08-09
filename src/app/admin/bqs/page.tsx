@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useId } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,6 +57,30 @@ const formatCurrency = (value?: number) => {
 
 // ------------------------- Detail Drawer -----------------
 const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: { isOpen: boolean; onClose: () => void; bq: BQ | null; bqDetail: BQDetail | null; loading: boolean; onSetStatus: (submissionId: number, status: "approved" | "rejected" | "revert") => void }) => {
+  const titleId = useId();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  // Not a base-ui/vaul primitive - this drawer's custom right-slide width
+  // (480px/560px, wider than the shared Drawer component's default) is
+  // hand-rolled with framer-motion, so accessibility is added directly
+  // here rather than via the Dialog/Drawer primitives, matching the same
+  // manual pattern already used by src/components/ui/AlertModal.tsx.
+  useEffect(() => {
+    if (!isOpen) return;
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused.current?.focus();
+    };
+  }, [isOpen, onClose]);
+
   if (!bq) return null;
   const totalFromItems = bqDetail?.items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
 
@@ -78,10 +102,13 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: {
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed right-0 top-0 h-full w-full sm:w-[480px] lg:w-[560px] bg-white/95 backdrop-blur-xl shadow-2xl z-50 border-l border-white/20 flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
           >
             <div className="flex items-center justify-between p-5 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">BQ Details</h2>
-              <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 transition">
+              <h2 id={titleId} className="text-lg font-semibold text-gray-900">BQ Details</h2>
+              <button ref={closeButtonRef} onClick={onClose} aria-label="Close" className="p-1 rounded-full hover:bg-gray-100 transition">
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
