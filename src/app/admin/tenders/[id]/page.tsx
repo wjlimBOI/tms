@@ -267,6 +267,7 @@ export default function AdminEditTenderPage() {
   const [branches, setBranches] = useState<DropdownOption[]>([]);
   const [renovationTypes, setRenovationTypes] = useState<DropdownOption[]>([]);
   const [projectManagers, setProjectManagers] = useState<DropdownOption[]>([]);
+  const [pmContacts, setPmContacts] = useState<{ id: number; name: string; email: string; phone: string | null }[]>([]);
 
   const userRoleIds = (session?.user as any)?.roleIds || [];
   const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
@@ -400,25 +401,22 @@ export default function AdminEditTenderPage() {
 
         updateDynamicClauses(tender);
 
+        // Prefer the PM's current, live contact details (joined in the same
+        // tender response as project_manager_*_joined) over the tender's own
+        // denormalized snapshot, in case the PM's info changed since this
+        // tender was last saved. No extra fetch needed - the data is already
+        // in `tender` from the request above.
         if (tender.project_manager_id) {
-          try {
-            const pmDetailRes = await fetch(`/api/project-managers/${tender.project_manager_id}`);
-            if (pmDetailRes.ok) {
-              const pmDetail = await pmDetailRes.json();
-              setFormData((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      project_manager_name: pmDetail.name || prev.project_manager_name || "",
-                      project_manager_email: pmDetail.email || prev.project_manager_email || "",
-                      project_manager_phone: pmDetail.phone || prev.project_manager_phone || "",
-                    }
-                  : null
-              );
-            }
-          } catch (e) {
-            // ignore
-          }
+          setFormData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  project_manager_name: tender.project_manager_name_joined || prev.project_manager_name || "",
+                  project_manager_email: tender.project_manager_email_joined || prev.project_manager_email || "",
+                  project_manager_phone: tender.project_manager_phone_joined || prev.project_manager_phone || "",
+                }
+              : null
+          );
         }
 
         const statusData = await statusRes.json();
@@ -429,6 +427,7 @@ export default function AdminEditTenderPage() {
         setStatuses(parseOptions(statusData, ["status_id", "id"], ["label", "status_code", "name"]));
         setBranches(parseOptions(branchData, ["branch_id", "id"], ["branch_name", "name"]));
         setProjectManagers(parseOptions(pmData, ["id", "project_manager_id"], ["name", "full_name"]));
+        setPmContacts(Array.isArray(pmData) ? pmData : []);
         setRenovationTypes(parseOptions(typeData, ["type_id", "id"], ["type_name", "name"]));
 
         setLoading(false);
@@ -477,7 +476,7 @@ export default function AdminEditTenderPage() {
     setFormData({ ...formData, [name]: parsedValue });
   };
 
-  const handlePMChange = async (pmId: number | null) => {
+  const handlePMChange = (pmId: number | null) => {
     if (!formData) return;
     if (!pmId) {
       setFormData({
@@ -489,23 +488,16 @@ export default function AdminEditTenderPage() {
       });
       return;
     }
-    try {
-      const res = await fetch(`/api/project-managers/${pmId}`);
-      if (res.ok) {
-        const pmDetail = await res.json();
-        setFormData({
-          ...formData,
-          project_manager_id: pmId,
-          project_manager_name: pmDetail.name || "",
-          project_manager_email: pmDetail.email || "",
-          project_manager_phone: pmDetail.phone || "",
-        });
-      } else {
-        setFormData({ ...formData, project_manager_id: pmId });
-      }
-    } catch (e) {
-      setFormData({ ...formData, project_manager_id: pmId });
-    }
+    // pmContacts is already populated from the same /api/project-managers
+    // list that backs this dropdown's options - no extra fetch needed.
+    const pmDetail = pmContacts.find((pm) => pm.id === pmId);
+    setFormData({
+      ...formData,
+      project_manager_id: pmId,
+      project_manager_name: pmDetail?.name || "",
+      project_manager_email: pmDetail?.email || "",
+      project_manager_phone: pmDetail?.phone || "",
+    });
   };
 
   // ===== Clause update functions =====
