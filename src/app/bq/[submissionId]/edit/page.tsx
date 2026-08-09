@@ -7,6 +7,7 @@ import { BQTable } from "@/components/bq/BQTable";
 import { useBQ } from "@/hooks/useBQ";
 import { getBrandColor } from "@/lib/brandColors";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const ALL_CATEGORIES = [
   { id: 1, name: "1. Preliminary & Demolition Works" },
@@ -352,8 +353,8 @@ export default function EditCostEstimatePage() {
   const availableCategories = ALL_CATEGORIES.filter(cat => !categories.some(c => c.category_id === cat.id));
 
   const InfoModal = () => (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
+    <Dialog open onOpenChange={(open) => { if (!open) handleInfoModalClose(); }}>
+      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className={`w-10 h-10 rounded-full ${
@@ -377,7 +378,7 @@ export default function EditCostEstimatePage() {
                 </svg>
               )}
             </div>
-            <h3 className="text-xl font-bold text-gray-900">{infoModal.title}</h3>
+            <DialogTitle className="text-xl font-bold text-gray-900">{infoModal.title}</DialogTitle>
           </div>
           <p className="text-gray-600 mb-6">
             {infoModal.message}
@@ -396,8 +397,8 @@ export default function EditCostEstimatePage() {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 
   if (loading) return (
@@ -438,10 +439,9 @@ export default function EditCostEstimatePage() {
         )}
 
         {/* Category Management Modal */}
-        {showCategoryModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl p-5 max-w-md w-full max-h-[85vh] overflow-auto border border-gray-200">
-              <h2 className="text-xl font-bold mb-4 text-gray-900">Manage Categories</h2>
+        <Dialog open={showCategoryModal} onOpenChange={(open) => { if (!open) setShowCategoryModal(false); }}>
+          <DialogContent showCloseButton={false} className="max-w-md max-h-[85vh] overflow-auto p-5 gap-0">
+              <DialogTitle className="text-xl font-bold mb-4 text-gray-900">Manage Categories</DialogTitle>
               <div className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-2">Current Categories</h3>
@@ -474,14 +474,12 @@ export default function EditCostEstimatePage() {
               <button onClick={() => setShowCategoryModal(false)} className="mt-5 w-full bg-gray-100 text-gray-800 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
                 Close
               </button>
-            </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* Submit Confirmation Modal */}
-        {showSubmitModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border overflow-hidden">
+        <Dialog open={showSubmitModal} onOpenChange={(open) => { if (!open) setShowSubmitModal(false); }}>
+          <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -489,7 +487,7 @@ export default function EditCostEstimatePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Submit BQ</h3>
+                  <DialogTitle className="text-xl font-bold text-gray-900">Submit BQ</DialogTitle>
                 </div>
                 <p className="text-gray-600 mb-6">
                   Are you sure you want to submit this Bill of Quantities?
@@ -514,14 +512,12 @@ export default function EditCostEstimatePage() {
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* Success Modal (after submission) */}
-        {showSuccessModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-emerald-200 overflow-hidden">
+        <Dialog open={showSuccessModal} onOpenChange={(open) => { if (!open) handleSuccessModalClose(); }}>
+          <DialogContent className="max-w-md p-0 gap-0 overflow-hidden border border-emerald-200">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -529,7 +525,7 @@ export default function EditCostEstimatePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Submission Successful</h3>
+                  <DialogTitle className="text-xl font-bold text-gray-900">Submission Successful</DialogTitle>
                 </div>
                 <p className="text-gray-600 mb-6">
                   Your Bill of Quantities has been submitted successfully.
@@ -547,9 +543,8 @@ export default function EditCostEstimatePage() {
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* General Info Modal (for upload results) */}
         {showInfoModal && <InfoModal />}
