@@ -8,6 +8,8 @@ import { useNotify } from "@/components/ui/notification-provider";
 import { ArrowLeft, Save, Eye, Menu, X, RotateCw, Plus } from "lucide-react";
 import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
 import { isoToLocalDateTime } from "@/lib/dateUtils";
+import DatePicker from "@/components/ui/DatePicker";
+import DateTimePicker from "@/components/ui/DateTimePicker";
 import { ROLE_IDS } from "@/lib/roles";
 import { DEFAULT_CRITICAL, DEFAULT_SCOPE, DEFAULT_TERMS } from "@/lib/tenderClauses";
 import {
@@ -211,11 +213,9 @@ function BriefingDatesEditor({
               <label className="block text-xs font-medium text-slate-600 mb-1">
                 Briefing Date & Time {index === 0 && <span className="text-rose-500">*</span>}
               </label>
-              <input
-                type="datetime-local"
+              <DateTimePicker
                 value={briefing.briefing_date}
                 onChange={(e) => updateBriefingDate(briefing.id!, "briefing_date", e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
               />
             </div>
             <div>
@@ -981,79 +981,44 @@ export default function AdminEditTenderPage() {
               {/* Dates */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {formData.tender_date !== undefined && (
-                  <div>
-                    <label htmlFor="tender_date" className="block font-semibold mb-1 text-slate-700">
-                      Tender Start
-                    </label>
-                    <input
-                      type="datetime-local"
-                      id="tender_date"
-                      name="tender_date"
-                      value={isoToLocalDateTime(formData.tender_date)}
-                      onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-                    />
-                  </div>
+                  <DateTimePicker
+                    label="Tender Start"
+                    name="tender_date"
+                    value={isoToLocalDateTime(formData.tender_date)}
+                    onChange={handleChange}
+                  />
                 )}
                 {formData.closing_date !== undefined && (
-                  <div>
-                    <label htmlFor="closing_date" className="block font-semibold mb-1 text-slate-700">
-                      Closing Date
-                    </label>
-                    <input
-                      type="datetime-local"
-                      id="closing_date"
-                      name="closing_date"
-                      value={isoToLocalDateTime(formData.closing_date)}
-                      onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-                    />
-                  </div>
+                  <DateTimePicker
+                    label="Closing Date"
+                    name="closing_date"
+                    value={isoToLocalDateTime(formData.closing_date)}
+                    onChange={handleChange}
+                  />
                 )}
                 {formData.renovation_start_date !== undefined && (
-                  <div>
-                    <label htmlFor="renovation_start_date" className="block font-semibold mb-1 text-slate-700">
-                      Renovation Start
-                    </label>
-                    <input
-                      type="datetime-local"
-                      id="renovation_start_date"
-                      name="renovation_start_date"
-                      value={isoToLocalDateTime(formData.renovation_start_date)}
-                      onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-                    />
-                  </div>
+                  <DateTimePicker
+                    label="Renovation Start"
+                    name="renovation_start_date"
+                    value={isoToLocalDateTime(formData.renovation_start_date)}
+                    onChange={handleChange}
+                  />
                 )}
                 {formData.renovation_end_date !== undefined && (
-                  <div>
-                    <label htmlFor="renovation_end_date" className="block font-semibold mb-1 text-slate-700">
-                      Renovation End
-                    </label>
-                    <input
-                      type="datetime-local"
-                      id="renovation_end_date"
-                      name="renovation_end_date"
-                      value={isoToLocalDateTime(formData.renovation_end_date)}
-                      onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-                    />
-                  </div>
+                  <DateTimePicker
+                    label="Renovation End"
+                    name="renovation_end_date"
+                    value={isoToLocalDateTime(formData.renovation_end_date)}
+                    onChange={handleChange}
+                  />
                 )}
                 {formData.expected_handover_date !== undefined && (
-                  <div>
-                    <label htmlFor="expected_handover_date" className="block font-semibold mb-1 text-slate-700">
-                      Expected Handover Date <span className="font-normal text-slate-400">(planning estimate)</span>
-                    </label>
-                    <input
-                      type="date"
-                      id="expected_handover_date"
-                      name="expected_handover_date"
-                      value={formData.expected_handover_date ? formData.expected_handover_date.slice(0, 10) : ""}
-                      onChange={handleChange}
-                      className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-                    />
-                  </div>
+                  <DatePicker
+                    label={<>Expected Handover Date <span className="font-normal text-slate-400">(planning estimate)</span></>}
+                    name="expected_handover_date"
+                    value={formData.expected_handover_date ? formData.expected_handover_date.slice(0, 10) : ""}
+                    onChange={handleChange}
+                  />
                 )}
                 {formData.defect_liability_months !== undefined && (
                   <div>

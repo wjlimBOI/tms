@@ -8,6 +8,7 @@ import { sortRoles, type Role } from "@/lib/roleSort";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useNotify } from "@/components/ui/notification-provider";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import DatePicker from "@/components/ui/DatePicker";
 
 // Extend User interface
 interface User {
@@ -800,28 +801,16 @@ export default function AdminUsersPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-700">
-                    Access Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.access_start_date}
-                    onChange={(e) => setFormData({ ...formData, access_start_date: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-700">
-                    Access End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.access_end_date}
-                    onChange={(e) => setFormData({ ...formData, access_end_date: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
-                  />
-                </div>
+                <DatePicker
+                  label="Access Start Date"
+                  value={formData.access_start_date}
+                  onChange={(e) => setFormData({ ...formData, access_start_date: e.target.value })}
+                />
+                <DatePicker
+                  label="Access End Date"
+                  value={formData.access_end_date}
+                  onChange={(e) => setFormData({ ...formData, access_end_date: e.target.value })}
+                />
               </div>
 
               <div className="sticky bottom-0 bg-white pt-4 pb-0 -mx-6 px-6 border-t border-slate-200 flex justify-end gap-3">

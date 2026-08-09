@@ -16,6 +16,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import TenderInterestModal from "@/components/tenders/TenderInterestModal";
 import AwardTenderModal from "@/components/tenders/AwardTenderModal";
 import HandoverModal from "@/components/tenders/HandoverModal";
+import DatePicker from "@/components/ui/DatePicker";
 
 // ---------- Interfaces ----------
 interface Tender {
@@ -769,20 +770,18 @@ export default function TendersListPage() {
                           <div className="flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <div className="flex flex-col xs:flex-row items-center gap-0.5 xs:gap-1">
                               <span className="text-[8px] xs:text-[10px] text-slate-500">From:</span>
-                              <input
-                                type="date"
+                              <DatePicker
                                 value={editStart}
                                 onChange={(e) => setEditStart(e.target.value)}
-                                className="w-20 xs:w-24 sm:w-28 border border-slate-300 rounded px-0.5 xs:px-1 py-0.5 bg-white text-slate-900 text-[10px] xs:text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-24 sm:w-28 text-xs"
                               />
                             </div>
                             <div className="flex flex-col xs:flex-row items-center gap-0.5 xs:gap-1">
                               <span className="text-[8px] xs:text-[10px] text-slate-500">To:</span>
-                              <input
-                                type="date"
+                              <DatePicker
                                 value={editEnd}
                                 onChange={(e) => setEditEnd(e.target.value)}
-                                className="w-20 xs:w-24 sm:w-28 border border-slate-300 rounded px-0.5 xs:px-1 py-0.5 bg-white text-slate-900 text-[10px] xs:text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-24 sm:w-28 text-xs"
                               />
                             </div>
                             <div className="flex gap-1 mt-0.5">

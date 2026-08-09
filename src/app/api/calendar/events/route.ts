@@ -49,6 +49,25 @@ export async function GET(request: NextRequest) {
     // Build date range (assuming start/end are in YYYY-MM-DD format)
     const startDate = new Date(start + "T00:00:00.000Z");
     const endDate = new Date(end + "T23:59:59.999Z");
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid start/end date" },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Sanity cap — the real UI only ever requests a fixed 9-month window
+    // (-3/+6 months from today); nothing legitimate needs more than a
+    // couple of years in one request, and an unbounded range has no upper
+    // limit on rows returned.
+    const MAX_RANGE_DAYS = 730;
+    const rangeDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (rangeDays < 0 || rangeDays > MAX_RANGE_DAYS) {
+      return NextResponse.json(
+        { error: `Date range must be between 0 and ${MAX_RANGE_DAYS} days` },
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
     // Fetch events using Prisma
     const events = await prisma.calendar_events.findMany({

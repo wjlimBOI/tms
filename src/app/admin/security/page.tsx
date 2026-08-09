@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { Lock, Clock, GitBranch, Mail } from "lucide-react";
 import { useNotify } from "@/components/ui/notification-provider";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import DateTimePicker from "@/components/ui/DateTimePicker";
 
 // ============================================================
 // Types & Shared Helpers
@@ -2010,14 +2011,14 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
                     </td>
                     <td className="px-4 py-3">
                       {editing ? (
-                        <input type="datetime-local" value={win.can_view_from?.slice(0, 16) || ""} onChange={(e) => updateWindow(idx, "can_view_from", e.target.value)} className="border rounded-md px-2 py-1 text-sm" />
+                        <DateTimePicker value={win.can_view_from?.slice(0, 16) || ""} onChange={(e) => updateWindow(idx, "can_view_from", e.target.value)} className="w-44 text-sm" />
                       ) : (
                         <span className="text-sm">{win.can_view_from ? format(new Date(win.can_view_from), "dd/MM/yyyy HH:mm") : "—"}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       {editing ? (
-                        <input type="datetime-local" value={win.can_view_until?.slice(0, 16) || ""} onChange={(e) => updateWindow(idx, "can_view_until", e.target.value)} className="border rounded-md px-2 py-1 text-sm" />
+                        <DateTimePicker value={win.can_view_until?.slice(0, 16) || ""} onChange={(e) => updateWindow(idx, "can_view_until", e.target.value)} className="w-44 text-sm" />
                       ) : (
                         <span className="text-sm">{win.can_view_until ? format(new Date(win.can_view_until), "dd/MM/yyyy HH:mm") : "—"}</span>
                       )}

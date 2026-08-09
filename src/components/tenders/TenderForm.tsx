@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { getLogoPath } from "@/lib/brandLogos";
 import { brandOrder } from "@/lib/brandOrder";
 import { isoToLocalDateTime } from "@/lib/dateUtils";
+import DatePicker from "@/components/ui/DatePicker";
+import DateTimePicker from "@/components/ui/DateTimePicker";
 import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
 import { useNotify } from "@/components/ui/notification-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -58,54 +60,6 @@ const formatBranchOption = (brandName: string, branchName: string) => {
   const branchCode = branchName.includes("-") ? branchName.split("-").pop()?.trim() : branchName;
   return `${shortBrand} - ${branchCode}`;
 };
-
-// --- DateTimeLocalInput component ---
-function DateTimeLocalInput({
-  name,
-  value,
-  onChange,
-  label,
-  required = false,
-}: {
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  label: string;
-  required?: boolean;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const handleContainerClick = () => {
-    if (inputRef.current) {
-      if (typeof inputRef.current.showPicker === "function") {
-        inputRef.current.showPicker();
-      } else {
-        inputRef.current.focus();
-      }
-    }
-  };
-  return (
-    <div>
-      {label && (
-        <label className="block text-sm font-medium text-slate-700 mb-1">
-          {label} {required && <span className="text-rose-500">*</span>}
-        </label>
-      )}
-      <div
-        onClick={handleContainerClick}
-        className="w-full rounded-lg border border-slate-300 bg-white focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition cursor-text"
-      >
-        <input
-          ref={inputRef}
-          type="datetime-local"
-          name={name}
-          value={value}
-          onChange={onChange}
-          className="w-full px-3 py-2 bg-transparent text-slate-900 focus:outline-none [color-scheme:light]"
-        />
-      </div>
-    </div>
-  );
-}
 
 // --- Briefing Dates Section ---
 function BriefingDatesSection({
@@ -193,12 +147,10 @@ function BriefingDatesSection({
               <label className="block text-xs font-medium text-slate-600 mb-1">
                 Briefing Date & Time {index === 0 && <span className="text-rose-500">*</span>}
               </label>
-              <DateTimeLocalInput
+              <DateTimePicker
                 name={`briefing_date_${briefing.id}`}
                 value={briefing.date}
                 onChange={(e) => updateBriefingDate(briefing.id!, "date", e.target.value)}
-                label=""
-                required={index === 0}
               />
             </div>
             <div>
@@ -841,75 +793,40 @@ export default function TenderForm({
       <div className="border-t border-slate-200 pt-6">
         <h3 className="text-md font-semibold text-slate-800 mb-4">Timeline</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="tender_date" className="block font-semibold mb-1 text-slate-700">
-              Tender Start
-            </label>
-            <input
-              type="datetime-local"
-              id="tender_date"
-              name="tender_date"
-              value={formData.tender_date}
-              onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-            />
-          </div>
+          <DateTimePicker
+            label="Tender Start"
+            name="tender_date"
+            value={formData.tender_date}
+            onChange={handleChange}
+          />
 
-          <div>
-            <label htmlFor="closing_date" className="block font-semibold mb-1 text-slate-700">
-              Closing Date
-            </label>
-            <input
-              type="datetime-local"
-              id="closing_date"
-              name="closing_date"
-              value={formData.closing_date}
-              onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-            />
-          </div>
+          <DateTimePicker
+            label="Closing Date"
+            name="closing_date"
+            value={formData.closing_date}
+            onChange={handleChange}
+          />
 
-          <div>
-            <label htmlFor="renovation_start_date" className="block font-semibold mb-1 text-slate-700">
-              Renovation Start
-            </label>
-            <input
-              type="datetime-local"
-              id="renovation_start_date"
-              name="renovation_start_date"
-              value={formData.renovation_start_date}
-              onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-            />
-          </div>
+          <DateTimePicker
+            label="Renovation Start"
+            name="renovation_start_date"
+            value={formData.renovation_start_date}
+            onChange={handleChange}
+          />
 
-          <div>
-            <label htmlFor="renovation_end_date" className="block font-semibold mb-1 text-slate-700">
-              Renovation End
-            </label>
-            <input
-              type="datetime-local"
-              id="renovation_end_date"
-              name="renovation_end_date"
-              value={formData.renovation_end_date}
-              onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-            />
-          </div>
+          <DateTimePicker
+            label="Renovation End"
+            name="renovation_end_date"
+            value={formData.renovation_end_date}
+            onChange={handleChange}
+          />
 
-          <div>
-            <label htmlFor="expected_handover_date" className="block font-semibold mb-1 text-slate-700">
-              Expected Handover Date <span className="font-normal text-slate-400">(planning estimate)</span>
-            </label>
-            <input
-              type="date"
-              id="expected_handover_date"
-              name="expected_handover_date"
-              value={formData.expected_handover_date}
-              onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light]"
-            />
-          </div>
+          <DatePicker
+            label={<>Expected Handover Date <span className="font-normal text-slate-400">(planning estimate)</span></>}
+            name="expected_handover_date"
+            value={formData.expected_handover_date}
+            onChange={handleChange}
+          />
 
           <div>
             <label htmlFor="defect_liability_months" className="block font-semibold mb-1 text-slate-700">
