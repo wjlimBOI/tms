@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Megaphone } from "lucide-react";
 import { useNotify } from "@/components/ui/notification-provider";
 import { Button } from "@/components/ui/Button";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface Props {
   tenderId: number;
@@ -48,20 +49,20 @@ export default function AnnouncementModal({ tenderId, tenderName, onClose, onSen
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="w-full max-w-lg max-h-[85vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200"
-        onClick={(e) => e.stopPropagation()}
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-lg max-h-[85vh] flex flex-col p-0 gap-0"
       >
         <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-200">
           <div>
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Megaphone className="w-4 h-4 text-amber-500" />
               Send Announcement
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">{tenderName}</p>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-0.5">{tenderName}</DialogDescription>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 shrink-0">
+          <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-600 shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -93,7 +94,7 @@ export default function AnnouncementModal({ tenderId, tenderName, onClose, onSen
             {submitting ? "Sending…" : "Send Announcement"}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
