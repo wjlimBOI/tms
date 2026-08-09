@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface AwardedTender {
   tender_id: number;
@@ -217,13 +218,15 @@ export default function AdminAwardsPage() {
       </div>
 
       {/* Document Modal – Opens in new tab or downloads */}
-      {selectedDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col border border-slate-200">
+      <Dialog open={!!selectedDoc} onOpenChange={(open) => { if (!open) setSelectedDoc(null); }}>
+        <DialogContent showCloseButton={false} className="max-w-2xl flex flex-col p-0 gap-0">
+          {selectedDoc && (
+          <>
             <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
-              <h3 className="text-lg font-semibold text-slate-900">Tender Document</h3>
+              <DialogTitle className="text-lg font-semibold text-slate-900">Tender Document</DialogTitle>
               <button
                 onClick={() => setSelectedDoc(null)}
+                aria-label="Close"
                 className="text-slate-400 hover:text-slate-600 transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,9 +266,10 @@ export default function AdminAwardsPage() {
                 Close
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -21,6 +21,7 @@ import ExcelJS from "exceljs"; // ✅ replaced xlsx
 import { useNotify } from "@/components/ui/notification-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Badge } from "@/components/ui/Badge";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { RateStats } from "@/lib/rateStats";
 import type { FlaggedItem } from "@/lib/bqRateSummary";
 
@@ -1094,12 +1095,11 @@ export default function BQTemplateEditPage() {
         </datalist>
 
         {/* Category Modal */}
-        {showCategoryModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full max-h-[80vh] overflow-auto border border-gray-200">
-              <h2 className="text-xl font-bold mb-4 text-gray-900">
+        <Dialog open={showCategoryModal} onOpenChange={(open) => { if (!open) setShowCategoryModal(false); }}>
+          <DialogContent showCloseButton={false} className="max-w-md max-h-[80vh] overflow-auto">
+              <DialogTitle className="text-xl font-bold mb-4 text-gray-900">
                 Select Categories
-              </h2>
+              </DialogTitle>
               <div className="space-y-2">
                 {allCategories.map((cat) => (
                   <label
@@ -1138,9 +1138,8 @@ export default function BQTemplateEditPage() {
                   Cancel
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* Categories and items */}
         <div className="space-y-6">

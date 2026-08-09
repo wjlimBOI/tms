@@ -8,6 +8,7 @@ import { AlertCircle, CheckCircle, ArrowLeft, FileCheck, X } from "lucide-react"
 import TenderForm from "@/components/tenders/TenderForm";
 import { ROLE_IDS } from "@/lib/roles";
 import AlertModal, { AlertModalData } from "@/components/ui/AlertModal";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export default function CreateProjectPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -116,11 +117,13 @@ export default function CreateProjectPage() {
         }}
       />
 
-      {showSuccessModal && createdTender && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 sm:p-8 text-center transform animate-in zoom-in-95 duration-300">
+      <Dialog open={showSuccessModal && !!createdTender} onOpenChange={(open) => { if (!open) setShowSuccessModal(false); }}>
+        <DialogContent showCloseButton={false} className="max-w-md text-center">
+          {createdTender && (
+          <>
             <button
               onClick={() => setShowSuccessModal(false)}
+              aria-label="Close"
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
             >
               <X className="w-5 h-5" />
@@ -130,9 +133,9 @@ export default function CreateProjectPage() {
               <CheckCircle className="w-12 h-12 text-emerald-600" />
             </div>
 
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">
+            <DialogTitle className="text-2xl font-bold text-slate-900 mb-2">
               Tender Created!
-            </h2>
+            </DialogTitle>
             <p className="text-slate-600 text-sm mb-1">
               <span className="font-medium">Tender ID:</span> #{createdTender.id}
             </p>
@@ -157,9 +160,10 @@ export default function CreateProjectPage() {
                 Go to Tenders List
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50/80 via-white to-slate-100/80 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">

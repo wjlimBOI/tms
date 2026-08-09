@@ -7,6 +7,7 @@ import React from "react";
 import Link from "next/link";
 import { getBrandColor } from "@/lib/brandColors";
 import { highlightMatches } from "@/lib/search-utils";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 // ==================== INTERFACES ====================
 interface Submission {
@@ -1090,9 +1091,22 @@ export default function CompareBQPage() {
       </div>
 
       {/* ---- AI SEARCH MODAL ---- */}
-      {showAISearch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-opacity">
-          <div className="relative w-full max-w-4xl max-h-[90vh] rounded-2xl p-[2px] bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 shadow-2xl shadow-cyan-500/30">
+      <Dialog
+        open={showAISearch}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowAISearch(false);
+            setAiSearchQuery("");
+            setSearchResults([]);
+            setShowDetailedResults(false);
+            setShowFullSummary(false);
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-4xl max-h-[90vh] p-[2px] gap-0 rounded-2xl ring-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 shadow-2xl shadow-cyan-500/30"
+        >
             <div className="flex flex-col h-full w-full bg-white rounded-2xl overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0">
@@ -1103,9 +1117,9 @@ export default function CompareBQPage() {
                     </svg>
                     <span className="text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">AI</span>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Search Estimates</h3>
+                  <DialogTitle className="text-lg font-semibold text-gray-900">Search Estimates</DialogTitle>
                 </div>
-                <button onClick={() => { setShowAISearch(false); setAiSearchQuery(""); setSearchResults([]); setShowDetailedResults(false); setShowFullSummary(false); }} className="p-1 rounded-lg hover:bg-gray-100 transition-colors shrink-0">
+                <button onClick={() => { setShowAISearch(false); setAiSearchQuery(""); setSearchResults([]); setShowDetailedResults(false); setShowFullSummary(false); }} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 transition-colors shrink-0">
                   <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -1260,9 +1274,8 @@ export default function CompareBQPage() {
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useNotify } from "@/components/ui/notification-provider";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface ProjectManager {
   id: number;
@@ -223,10 +224,9 @@ export default function ProjectManagerSelect({
       </div>
 
       {/* Modal – already responsive */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-slate-200 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold text-slate-900 mb-4">Add Project Manager</h3>
+      <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) setIsModalOpen(false); }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogTitle className="text-xl font-semibold text-slate-900 mb-4">Add Project Manager</DialogTitle>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -285,9 +285,8 @@ export default function ProjectManagerSelect({
                 {isCreating ? "Creating..." : "Create"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
