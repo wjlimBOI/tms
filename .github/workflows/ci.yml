@@ -27,6 +27,12 @@ jobs:
       # at all, same reasoning as the vars above.
       UPSTASH_REDIS_REST_URL: "https://ci-placeholder.upstash.io"
       UPSTASH_REDIS_REST_TOKEN: "ci-placeholder-token-not-for-production-use"
+      # Only needed once the security-headers smoke test below actually
+      # starts the server — src/instrumentation.ts's register() runs
+      # validateEnv() at server startup (not at build time), and it hard-
+      # requires this to be set. Never a real key; nothing in this workflow
+      # calls src/lib/encryption.ts.
+      LOCAL_ENCRYPTION_KEY: "ci-placeholder-encryption-key-not-for-production-use"
     steps:
       - uses: actions/checkout@v4
 
@@ -56,3 +62,64 @@ jobs:
       - name: Lint (report only, non-blocking)
         run: npm run lint
         continue-on-error: true
+
+      # Report-only, matching the lint step above: there is currently one
+      # known, deliberately-deferred high finding (nodemailer, needs a 7->9
+      # major bump across all 12 email call sites - see the commit that
+      # bumped js-yaml/nanoid/postcss the same day this step was added).
+      # Blocking on it would just train everyone to ignore a permanently
+      # red check. Still runs on every push so a genuinely NEW high/critical
+      # shows up immediately in the log instead of waiting for the next
+      # manual `npm audit` pass.
+      - name: Dependency audit (report only, non-blocking)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      # Guards against the exact class of bug found manually this session:
+      # proxy.ts existed, looked correct on read-through, and was silently
+      # never invoked because it lived one directory level above where this
+      # Next.js version actually looks for it (must sit next to src/app, not
+      # at the repo root). Code review didn't catch that - only curling a
+      # real `next start` response did. This re-proves the same six headers
+      # on every push so a future regression fails CI immediately instead of
+      # waiting for another manual audit to notice.
+      - name: Security headers smoke test
+        run: |
+          npm start -- -p 3100 &
+          SERVER_PID=$!
+
+          READY=0
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null "http://localhost:3100/login"; then READY=1; break; fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then
+            echo "::error::Server never became ready on :3100"
+            kill "$SERVER_PID" 2>/dev/null || true
+            exit 1
+          fi
+
+          HEADERS=$(curl -s -D - -o /dev/null "http://localhost:3100/login")
+          echo "$HEADERS"
+          kill "$SERVER_PID" 2>/dev/null || true
+
+          fail=0
+          check() {
+            if ! echo "$HEADERS" | grep -qiE "$1"; then
+              echo "::error::Missing or incorrect header, expected to match: $1"
+              fail=1
+            fi
+          }
+          check "^content-security-policy:.*nonce-"
+          check "^x-frame-options: *DENY"
+          check "^x-content-type-options: *nosniff"
+          check "^referrer-policy: *strict-origin-when-cross-origin"
+          check "^permissions-policy:"
+          check "^strict-transport-security:.*max-age="
+
+          if echo "$HEADERS" | grep -qi "^x-powered-by:"; then
+            echo "::error::X-Powered-By is present - poweredByHeader: false in next.config.ts isn't taking effect"
+            fail=1
+          fi
+
+          exit $fail
