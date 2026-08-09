@@ -6,6 +6,7 @@ import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useNotify } from "@/components/ui/notification-provider";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   FileSignature,
   Printer,
@@ -1313,12 +1314,11 @@ export default function TenderEditPage() {
       </div>
 
       {/* ===== ERROR MODAL (missing fields) ===== */}
-      {showErrorModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm print:hidden">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8">
+      <Dialog open={showErrorModal} onOpenChange={(open) => { if (!open) setShowErrorModal(false); }}>
+        <DialogContent className="max-w-md p-8 print:hidden">
             <div className="flex items-center gap-3 mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
-              <h2 className="text-xl font-bold text-slate-900">Missing Required Fields</h2>
+              <DialogTitle className="text-xl font-bold text-slate-900">Missing Required Fields</DialogTitle>
             </div>
             <p className="text-slate-600 mb-4">Please complete the following before submitting:</p>
             <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
@@ -1332,17 +1332,23 @@ export default function TenderEditPage() {
             >
               OK, I'll fix that
             </button>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* ===== DISCLAIMER MODAL ===== */}
-      {showDisclaimerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm print:hidden p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
+      <Dialog
+        open={showDisclaimerModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDisclaimerModal(false);
+            setDisclaimerAgreed(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-8 print:hidden">
             <div className="flex items-center gap-3 mb-6">
               <ShieldCheck className="w-8 h-8 text-amber-600" />
-              <h2 className="text-2xl font-bold text-slate-900">CONTRACTOR'S DECLARATION</h2>
+              <DialogTitle className="text-2xl font-bold text-slate-900">CONTRACTOR'S DECLARATION</DialogTitle>
             </div>
 
             <div className="prose prose-sm max-w-none">
@@ -1418,20 +1424,26 @@ export default function TenderEditPage() {
                 {isSubmitting ? "Submitting..." : "Confirm & Submit Tender"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* ===== SUCCESS MODAL ===== */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm print:hidden">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 text-center relative">
+      <Dialog
+        open={showSuccessModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowSuccessModal(false);
+            router.push(`/tenders/${id}`);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md p-8 text-center print:hidden">
             <div className="flex justify-center mb-4">
               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center">
                 <CheckCircle className="w-12 h-12 text-emerald-600" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Tender Submitted Successfully</h2>
+            <DialogTitle className="text-2xl font-bold text-slate-900 mb-2">Tender Submitted Successfully</DialogTitle>
             <p className="text-slate-600 mb-6">Your submission has been received.</p>
 
             <div className="bg-slate-50 rounded-lg p-4 mb-6 text-left">
@@ -1461,9 +1473,8 @@ export default function TenderEditPage() {
             >
               View Tender
             </button>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* ===== PRINT STYLES ===== */}
       <style jsx global>{`
