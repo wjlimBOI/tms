@@ -305,8 +305,14 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 10px;
   color: #fff;
-  padding: 8px 10px;
+  padding: 10px 12px;
   box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.6);
+  /* Leaflet's own base .leaflet-tooltip rule sets white-space: nowrap, which
+     is inherited by every descendant (including .outlet-tooltip below)
+     unless overridden - that's what was forcing the address onto one long
+     line and pushing the tooltip box wider than its max-width instead of
+     wrapping. Reset it back to normal at the source. */
+  white-space: normal;
 }
 .leaflet-tooltip-top::before {
   border-top-color: rgba(7, 28, 46, 0.95);
@@ -314,21 +320,41 @@
 .outlet-tooltip {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   font-size: 0.72rem;
-  line-height: 1.4;
-  max-width: 200px;
+  line-height: 1.45;
+  max-width: 220px;
+  white-space: normal;
 }
-.outlet-tooltip strong {
-  font-size: 0.78rem;
+.outlet-tooltip-building {
+  font-size: 0.8rem;
+  font-weight: 600;
   color: #fff;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 .outlet-tooltip-brand {
-  color: #96b4d2;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  /* color set inline per-brand via getBrandColor() (src/lib/brandColors.ts) */
 }
-.outlet-tooltip span {
+.outlet-tooltip-brand-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.outlet-tooltip-address {
+  display: block;
   color: rgba(255, 255, 255, 0.75);
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 .leaflet-control-attribution {
   background: rgba(7, 28, 46, 0.7) !important;

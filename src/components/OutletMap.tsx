@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { getBrandColor } from "@/lib/brandColors";
 
 interface Outlet {
   branchId: number;
@@ -33,6 +34,22 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+// full_address and building_name are two separate free-text fields entered
+// independently in the branch admin form (src/app/admin/branches/page.tsx),
+// so it's common for an admin to have typed the building name at the start
+// of the address too (e.g. "Kovan Heartland Mall, 200 Hougang Ave 3,
+// #01-25") - which then shows up twice in the tooltip, since buildingName is
+// already displayed on its own line above. Strip a leading, comma-separated
+// occurrence of the building name from the address before display; a no-op
+// for records where the admin didn't duplicate it.
+function stripLeadingBuildingName(address: string, buildingName: string | null): string {
+  if (!buildingName) return address;
+  const trimmedBuilding = buildingName.trim();
+  if (!trimmedBuilding) return address;
+  const prefix = new RegExp(`^\\s*${trimmedBuilding.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*,?\\s*`, "i");
+  return address.replace(prefix, "").trim();
 }
 
 export default function OutletMap() {
@@ -105,12 +122,17 @@ export default function OutletMap() {
     outlets.forEach((o) => {
       const point: L.LatLngExpression = [o.lat, o.lng];
       points.push(point);
+      const brandColor = getBrandColor(o.brandName).borderColor;
+      const cleanedAddress = stripLeadingBuildingName(o.address, o.buildingName);
       L.marker(point, { icon: pinIcon })
         .bindTooltip(
           `<div class="outlet-tooltip">
-            <strong>${escapeHtml(o.buildingName || o.branchName)}</strong>
-            <span class="outlet-tooltip-brand">${escapeHtml(o.brandName)}</span>
-            <span>${escapeHtml(o.address)}${o.postalCode ? ` (${escapeHtml(o.postalCode)})` : ""}</span>
+            <strong class="outlet-tooltip-building">${escapeHtml(o.buildingName || o.branchName)}</strong>
+            <span class="outlet-tooltip-brand" style="color: ${brandColor}">
+              <span class="outlet-tooltip-brand-dot" style="background: ${brandColor}"></span>
+              ${escapeHtml(o.brandName)}
+            </span>
+            <span class="outlet-tooltip-address">${escapeHtml(cleanedAddress)}${o.postalCode ? ` (${escapeHtml(o.postalCode)})` : ""}</span>
           </div>`,
           { direction: "top", offset: [0, -8] }
         )
