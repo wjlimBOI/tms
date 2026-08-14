@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           </button>
         </div>
 
-        <div className="mt-10 max-w-3xl">
+        <div className="mt-10">
           <DocumentHeader
             title="Privacy Policy"
             effectiveDate="19 June 2026"
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
           </div>
 
           {/* Content */}
-          <div className="min-w-0 flex-1 max-w-3xl">
+          <div className="min-w-0 flex-1">
             <div className="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-semibold prose-headings:tracking-tight prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-base prose-a:text-[#15406a] print:prose-p:text-black print:prose-headings:text-black print:prose-a:text-black print:prose-strong:text-black">
 
               <p className="lead text-slate-600 text-lg">
