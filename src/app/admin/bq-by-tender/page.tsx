@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getBQStatusStyles, getBQStatusLabel } from "@/lib/statusColors";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useNotify } from "@/components/ui/notification-provider";
+import { isSuperUser } from "@/lib/roles";
 
 interface Tender {
   tender_id: number;
@@ -48,50 +49,80 @@ export default function AdminBQByTenderPage() {
   const [loadingTenders, setLoadingTenders] = useState(true);
   const [loadingBQs, setLoadingBQs] = useState<Record<number, boolean>>({});
   const [deletingBqId, setDeletingBqId] = useState<number | null>(null);
+  const [tenderError, setTenderError] = useState<string | null>(null);
 
   const isDeletingRef = useRef(false);
 
-  // ✅ FIXED: fetch with pagination params + credentials
+  // Use the main /api/tenders endpoint which is known to work with pagination
   useEffect(() => {
     if (sessionStatus === "loading") return;
-    if (!session || (session.user as any)?.role_id !== 1) {
+    if (!session || !isSuperUser((session.user as any)?.roleIds || [])) {
       router.push("/");
       return;
     }
 
-    fetch("/api/admin/tenders?page=1&limit=100", {
-      credentials: "include",
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
+    const fetchTenders = async () => {
+      setLoadingTenders(true);
+      setTenderError(null);
+      try {
+        // Use the main tenders endpoint (not /admin/tenders) to avoid validation issues
+        const res = await fetch("/api/tenders?page=1&limit=100", {
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          let errorMsg = `HTTP ${res.status}`;
+          try {
+            const errorData = await res.json();
+            errorMsg = errorData.error || errorData.message || errorMsg;
+          } catch {
+            // ignore
+          }
+          throw new Error(errorMsg);
+        }
+
+        const data = await res.json();
         // The API returns { data: [...], total, page, limit }
         setTenders(data.data || []);
-        setLoadingTenders(false);
-      })
-      .catch((err) => {
+      } catch (err: any) {
         console.error("Failed to load tenders:", err);
-        setTenders([]);
+        const message = err.message || "Failed to load tenders";
+        setTenderError(message);
+        toast.error(message);
+      } finally {
         setLoadingTenders(false);
-      });
-  }, [session, sessionStatus, router]);
+      }
+    };
+
+    fetchTenders();
+  }, [session, sessionStatus, router, toast]);
 
   const fetchBQsForTender = async (tenderId: number, force = false) => {
     if (!force && bqsMap[tenderId]) return;
     setLoadingBQs(prev => ({ ...prev, [tenderId]: true }));
     try {
-      const res = await fetch(`/api/admin/tenders/${tenderId}/bqs`);
-      if (!res.ok) throw new Error(`Failed to load BQs (HTTP ${res.status})`);
+      const res = await fetch(`/api/admin/tenders/${tenderId}/bqs`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        let errorMsg = `HTTP ${res.status}`;
+        try {
+          const errorData = await res.json();
+          errorMsg = errorData.error || errorData.message || errorMsg;
+        } catch {
+          // ignore
+        }
+        throw new Error(errorMsg);
+      }
       const data = await res.json();
       const bqArray = Array.isArray(data) ? data : [];
       const filteredBqs = bqArray.filter((bq: BQ) => 
         bq.status === 'Draft' || bq.status === 'Submitted'
       );
       setBqsMap(prev => ({ ...prev, [tenderId]: filteredBqs }));
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Error loading BQs for tender ${tenderId}:`, err);
+      toast.error(err.message || "Failed to load BQs for this tender");
       setBqsMap(prev => ({ ...prev, [tenderId]: [] }));
     } finally {
       setLoadingBQs(prev => ({ ...prev, [tenderId]: false }));
@@ -121,17 +152,18 @@ export default function AdminBQByTenderPage() {
     try {
       const res = await fetch(`/api/admin/bqs/${bq.submission_id}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (!res.ok) {
-        let errorMessage = `HTTP ${res.status}`;
+        let errorMsg = `HTTP ${res.status}`;
         try {
           const errorData = await res.json();
-          errorMessage = errorData.error || errorMessage;
+          errorMsg = errorData.error || errorData.message || errorMsg;
         } catch {
-          // keep errorMessage
+          // keep errorMsg
         }
-        throw new Error(errorMessage);
+        throw new Error(errorMsg);
       }
 
       await fetchBQsForTender(tenderId, true);
@@ -197,6 +229,23 @@ export default function AdminBQByTenderPage() {
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-gray-500">Loading tenders…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tenderError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="bg-white rounded-xl border border-red-200 p-6 max-w-md text-center shadow-sm">
+          <div className="text-red-600 text-lg font-semibold mb-2">Unable to load tenders</div>
+          <p className="text-gray-600 text-sm">{tenderError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md transition"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

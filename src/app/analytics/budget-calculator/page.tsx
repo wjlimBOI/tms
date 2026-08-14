@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { CapExCalculator } from '@/components/capex/CapExCalculator';
-import { ROLE_IDS } from '@/lib/roles';
+import { isSuperUser } from '@/lib/roles';
 import { useNotify } from '@/components/ui/notification-provider';
 
 export default function BudgetPlannerPage() {
@@ -20,8 +20,8 @@ export default function BudgetPlannerPage() {
         router.push('/login');
         return;
       }
-      const userRole = (session.user as any)?.role_id;
-      if (userRole === ROLE_IDS.ADMIN) {
+      const roleIds = ((session.user as any)?.roleIds || []) as number[];
+      if (isSuperUser(roleIds)) {
         setHasAccess(true);
         return;
       }

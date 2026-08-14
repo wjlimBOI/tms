@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperUser } from "@/lib/roles";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   const userId = session.user.id;
   const userRoleIds = (session.user as any)?.roleIds || [];
-  const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+  const isAdmin = isSuperUser(userRoleIds);
 
   // Fetch submission details
   const submissionResult = await query(

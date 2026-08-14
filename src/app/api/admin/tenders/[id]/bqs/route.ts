@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { z } from "zod";
+import { ROLE_IDS } from "@/lib/roles";
 
 // Zod schema for route parameter
 const paramsSchema = z.object({
@@ -14,7 +15,7 @@ const paramsSchema = z.object({
 // Helper: check if user is admin (role_id = 1)
 async function isAdmin(userId: number): Promise<boolean> {
   const userRole = await prisma.user_roles.findFirst({
-    where: { user_id: userId, role_id: 1 },
+    where: { user_id: userId, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   return !!userRole;
 }
@@ -55,7 +56,7 @@ export async function GET(
   const tenderId = idResult.data.id;
 
   try {
-    // Use raw SQL with parameterised query to preserve subqueries and complex joins
+    // Use raw SQL with parameterised query - fixed column names
     const bqs = await prisma.$queryRaw`
       SELECT 
         ts.submission_id,
@@ -79,7 +80,7 @@ export async function GET(
           SELECT COUNT(*) FROM bq_line_item WHERE submission_id = ts.submission_id
         ), 0) AS line_item_count,
         COALESCE((
-          SELECT SUM(amount) FROM bq_line_item WHERE submission_id = ts.submission_id
+          SELECT SUM(total_price) FROM bq_line_item WHERE submission_id = ts.submission_id
         ), 0) AS total_amount
       FROM tender_submission ts
       JOIN tender t ON ts.tender_id = t.tender_id
@@ -92,10 +93,15 @@ export async function GET(
     `;
 
     return NextResponse.json(bqs, { headers: corsHeaders });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching BQs:", error);
+    // Return more detailed error for debugging
     return NextResponse.json(
-      { error: "Failed to fetch BQs" },
+      { 
+        error: "Failed to fetch BQs", 
+        details: error.message || "Unknown error",
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+      },
       { status: 500, headers: corsHeaders }
     );
   }

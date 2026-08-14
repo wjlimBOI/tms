@@ -6,13 +6,14 @@ import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { z } from "zod";
 import { computeStats } from "@/lib/rateStats";
+import { ROLE_IDS } from "@/lib/roles";
 
 // Helper: check if user is admin (matches the sibling admin/bq-template/*
 // routes' convention of querying user_roles directly, rather than trusting
 // session.user.roleIds).
 async function isAdmin(userId: number): Promise<boolean> {
   const userRole = await prisma.user_roles.findFirst({
-    where: { user_id: userId, role_id: 1 },
+    where: { user_id: userId, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   return !!userRole;
 }

@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle, ArrowLeft, FileCheck, X } from "lucide-react";
 import TenderForm from "@/components/tenders/TenderForm";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperUser } from "@/lib/roles";
 import AlertModal, { AlertModalData } from "@/components/ui/AlertModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
@@ -22,8 +22,18 @@ export default function CreateProjectPage() {
 
   useEffect(() => {
     if (sessionStatus === "unauthenticated") router.push("/login");
+    if (sessionStatus !== "authenticated") return;
     const roleIds = (session?.user as any)?.roleIds || [];
-    if (sessionStatus === "authenticated" && !roleIds.includes(ROLE_IDS.ADMIN)) router.push("/");
+    if (isSuperUser(roleIds)) return;
+    // Non-admin/developer roles can still be granted create_tender via the
+    // permission matrix (admin/security) — mirrors the backend check in
+    // POST /api/tenders, and the pattern used by analytics/budget-calculator.
+    fetch("/api/user/permissions")
+      .then((res) => (res.ok ? res.json() : { permissions: [] }))
+      .then((data) => {
+        if (!data.permissions?.includes("create_tender")) router.push("/");
+      })
+      .catch(() => router.push("/"));
   }, [session, sessionStatus, router]);
 
 

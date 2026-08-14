@@ -212,7 +212,7 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
           <select
             value={selectedContractorId ?? ""}
             onChange={(e) => handleSelectContractor(parseInt(e.target.value))}
-            className="w-full sm:w-72 rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             {contractors.map((c) => (
               <option key={c.contractor_id} value={c.contractor_id}>

@@ -87,7 +87,12 @@
 
 /* ---- Partner cards — full brand color, white logo chip so every logo
    (transparent or white-bg) sits cleanly. Composed on top of Card/
-   CardContent (see JSX). ---- */
+   CardContent (see JSX). Colors are applied via a per-brand class
+   (.brand-card-<slug>, one per src/app/page.tsx `partnerBrands` entry)
+   rather than an inline `style="--card-bg: ..."` attribute - this app's CSP
+   (src/proxy.ts) has no 'unsafe-inline' for style-src, so inline style
+   attributes are silently dropped and every card fell back to this rule's
+   solid fallback color instead of its real brand color. ---- */
 .brand-card-shell {
   position: relative;
   border-radius: 28px;
@@ -96,13 +101,63 @@
   width: 280px;
   height: 380px;
   flex-shrink: 0;
+  background-color: #15406a;
   transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, background-color 0.3s ease;
   box-shadow: 0 14px 34px -18px rgba(0, 0, 0, 0.35);
+}
+.brand-card-yun-nam {
+  background-color: #ff7600;
+}
+.brand-card-london {
+  background-color: #cd0008;
+}
+.brand-card-new-york {
+  background-color: #0082d7;
+}
+.brand-card-dorra {
+  background-color: #480a87;
+}
+.brand-card-shakura {
+  background-color: #e61994;
+}
+.brand-card-jonsson {
+  background-color: #b29014;
+}
+.brand-card-victoria {
+  background-color: #0aaf8a;
 }
 .brand-card-link:hover .brand-card-shell,
 .brand-card-link:focus-visible .brand-card-shell {
   transform: translateY(-6px);
   box-shadow: 0 26px 50px -18px rgba(0, 0, 0, 0.45);
+}
+.brand-card-link:hover .brand-card-yun-nam,
+.brand-card-link:focus-visible .brand-card-yun-nam {
+  background-color: #e56a00;
+}
+.brand-card-link:hover .brand-card-london,
+.brand-card-link:focus-visible .brand-card-london {
+  background-color: #b00008;
+}
+.brand-card-link:hover .brand-card-new-york,
+.brand-card-link:focus-visible .brand-card-new-york {
+  background-color: #0072c0;
+}
+.brand-card-link:hover .brand-card-dorra,
+.brand-card-link:focus-visible .brand-card-dorra {
+  background-color: #3d0875;
+}
+.brand-card-link:hover .brand-card-shakura,
+.brand-card-link:focus-visible .brand-card-shakura {
+  background-color: #cc1685;
+}
+.brand-card-link:hover .brand-card-jonsson,
+.brand-card-link:focus-visible .brand-card-jonsson {
+  background-color: #9e7f12;
+}
+.brand-card-link:hover .brand-card-victoria,
+.brand-card-link:focus-visible .brand-card-victoria {
+  background-color: #089c7a;
 }
 .swiper-slide:not(.swiper-slide-active) .brand-card-shell {
   transform: scale(0.9);
@@ -306,11 +361,11 @@
    .outlet-popup-container (passed as bindPopup's `className`) so it doesn't
    affect popups anywhere else the app might add later. ---- */
 .outlet-popup-container .leaflet-popup-content-wrapper {
-  background: rgba(7, 28, 46, 0.97);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
-  color: #fff;
-  box-shadow: 0 14px 32px -12px rgba(0, 0, 0, 0.65);
+  color: #1d1d1f;
+  box-shadow: 0 14px 32px -12px rgba(0, 0, 0, 0.35);
 }
 .outlet-popup-container .leaflet-popup-content {
   /* Leaflet sets an explicit inline width here based on the bindPopup
@@ -319,11 +374,11 @@
   margin: 12px 14px;
 }
 .outlet-popup-container .leaflet-popup-tip {
-  background: rgba(7, 28, 46, 0.97);
+  background: #ffffff;
   box-shadow: none;
 }
 .outlet-popup-container a.leaflet-popup-close-button {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(0, 0, 0, 0.45);
   /* Default close button is a small 24x24 hit area - too small to
      comfortably tap on a phone (WCAG 2.5.8 wants >=24px, but touch devices
      benefit from more); padding widens the real tap target without
@@ -332,7 +387,7 @@
 }
 .outlet-popup-container a.leaflet-popup-close-button:hover,
 .outlet-popup-container a.leaflet-popup-close-button:focus {
-  color: #fff;
+  color: #000;
 }
 .outlet-popup {
   display: flex;
@@ -345,7 +400,7 @@
 .outlet-popup-building {
   font-size: 0.86rem;
   font-weight: 600;
-  color: #fff;
+  color: #1d1d1f;
   overflow-wrap: break-word;
 }
 .outlet-popup-brands {
@@ -361,7 +416,7 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  /* color set inline per-brand via getBrandColor() (src/lib/brandColors.ts) */
+  color: var(--brand-color, #9ca3af);
 }
 .outlet-popup-brand-dot {
   display: inline-block;
@@ -369,17 +424,55 @@
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+  background: var(--brand-color, #9ca3af);
+}
+
+/* Fixed per-brand color set (src/lib/brandColors.ts / getBrandColorSlug()).
+   Applied via class instead of an inline `style="--brand-color: ..."` /
+   `style="color: ..."` attribute because this app's CSP (src/proxy.ts) has
+   no 'unsafe-inline' for style-src - inline style attributes are silently
+   dropped by the browser, which is what made every outlet-map pin and popup
+   fall back to default/invisible colors despite the color values being
+   computed correctly in JS. Same CSP constraint the delegated click
+   listener below already works around for script-src. */
+.brand-color-yun-nam {
+  --brand-color: #f97316;
+}
+.brand-color-london {
+  --brand-color: #ef4444;
+}
+.brand-color-new-york {
+  --brand-color: #3b82f6;
+}
+.brand-color-dorra {
+  --brand-color: #a855f7;
+}
+.brand-color-shakura {
+  --brand-color: #ec4899;
+}
+.brand-color-jonsson {
+  --brand-color: #eab308;
+}
+.brand-color-victoria {
+  --brand-color: #14b8a6;
+}
+.brand-color-default {
+  --brand-color: #9ca3af;
 }
 .outlet-popup-address {
   display: block;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(29, 29, 31, 0.65);
   overflow-wrap: break-word;
 }
 
-/* Multi-brand popups: one tab per brand (colored via the --tab-color custom
-   property, set inline per-brand from getBrandColor()), only the active
-   tab's panel visible. Switching is wired up in OutletMap.tsx via a real
-   delegated click listener, not inline onclick (blocked by this app's CSP). */
+/* Multi-brand popups: one tab per brand, always color-coded to that brand
+   (via the .brand-color-* classes above, keyed off getBrandColorSlug()) so
+   every option is identifiable and clickable at a glance - not just neutral
+   gray until hovered. Kept to a light tint + colored outline/text rather
+   than a solid fill for a calmer, professional look; the active tab gets
+   the solid brand-color fill as the "you're looking at this brand now"
+   signal. Switching is wired up in OutletMap.tsx via a real delegated click
+   listener, not inline onclick (blocked by this app's CSP). */
 .outlet-popup-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -388,9 +481,9 @@
 }
 .outlet-popup-tab {
   appearance: none;
-  border: 1px solid var(--tab-color);
-  background: transparent;
-  color: var(--tab-color);
+  border: 1px solid var(--brand-color, #9ca3af);
+  background: color-mix(in srgb, var(--brand-color, #9ca3af) 10%, #fff);
+  color: var(--brand-color, #9ca3af);
   border-radius: 6px;
   padding: 3px 8px;
   font-size: 0.66rem;
@@ -398,14 +491,21 @@
   text-transform: uppercase;
   letter-spacing: 0.02em;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.outlet-popup-tab:hover {
-  background: rgba(255, 255, 255, 0.08);
+.outlet-popup-tab:hover,
+.outlet-popup-tab:focus-visible {
+  background: color-mix(in srgb, var(--brand-color, #9ca3af) 22%, #fff);
 }
 .outlet-popup-tab-active {
-  background: var(--tab-color);
-  color: #071c2e;
+  background: var(--brand-color, #9ca3af);
+  border-color: var(--brand-color, #9ca3af);
+  color: #fff;
+}
+.outlet-popup-tab-active:hover,
+.outlet-popup-tab-active:focus-visible {
+  background: var(--brand-color, #9ca3af);
+  color: #fff;
 }
 .outlet-popup-panel {
   display: none;

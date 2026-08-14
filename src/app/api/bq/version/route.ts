@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sanitize } from "@/lib/sanitize";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperUser } from "@/lib/roles";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -18,11 +18,14 @@ export async function POST(req: Request) {
 
   // Fetch source submission
   const sourceRes = await query(
-    `SELECT tender_id, contractor_id, round_no,
-            bq_date, area_size, client_name_override, logo_url,
-            renovation_type_override, branch_name_override, bq_name
-     FROM tender_submission
-     WHERE submission_id = $1 AND is_deleted = false`,
+    `SELECT ts.tender_id, ts.contractor_id, ts.round_no,
+            ts.bq_date, ts.area_size, ts.client_name_override, ts.logo_url,
+            ts.renovation_type_override, ts.branch_name_override, ts.bq_name,
+            tstat.status_code AS tender_status_code
+     FROM tender_submission ts
+     JOIN tender t ON t.tender_id = ts.tender_id
+     JOIN tender_status tstat ON tstat.status_id = t.status_id
+     WHERE ts.submission_id = $1 AND ts.is_deleted = false`,
     [submission_id]
   );
   if (sourceRes.rows.length === 0) {
@@ -33,12 +36,32 @@ export async function POST(req: Request) {
   // Only the owning contractor (or an admin) may branch a new version off
   // this submission - matches the owner-or-admin pattern in bq/reset/route.ts.
   const userRoleIds = (session.user as any)?.roleIds || [];
-  const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+  const isAdmin = isSuperUser(userRoleIds);
   const isOwner = String(source.contractor_id) === String(session.user.id);
   if (!isAdmin && !isOwner) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const newRound = source.round_no + 1;
+
+  // Once the tender closes, a contractor can no longer spontaneously branch
+  // a new round — the only way to resubmit after Closed is a specific,
+  // staff-initiated resubmission_request targeting exactly this next round
+  // number (2026-08-10 negotiation-workflow decision). Admin/Developer are
+  // exempt (they may need to fix things directly).
+  if (!isAdmin && source.tender_status_code !== "Open") {
+    const grantRes = await query(
+      `SELECT 1 FROM resubmission_request
+       WHERE tender_id = $1 AND contractor_id = $2 AND next_round_no = $3
+       LIMIT 1`,
+      [source.tender_id, source.contractor_id, newRound]
+    );
+    if (grantRes.rows.length === 0) {
+      return NextResponse.json(
+        { error: "This tender is no longer open for submissions. Contact the project team if you were asked to resubmit." },
+        { status: 403 }
+      );
+    }
+  }
   const finalVersionName = version_name?.trim() ? sanitize(version_name.trim()) : `Round ${newRound}`;
 
   const client = await (await import("@/lib/db")).default.connect();

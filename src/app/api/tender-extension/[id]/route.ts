@@ -6,7 +6,7 @@ import { query } from "@/lib/db";
 import { logUpdate } from "@/lib/audit";
 import { sendExtensionDecisionEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notifications";
-import { ROLE_IDS } from "@/lib/roles";
+import { canApproveExtension } from "@/lib/permissions";
 import { sanitize } from "@/lib/sanitize";
 
 // GET – fetch a single extension request (unchanged)
@@ -20,8 +20,7 @@ export async function GET(
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  const isFmRd = userRoleIds.includes(ROLE_IDS.FM_REGIONAL_DIRECTOR);
-  if (!isFmRd) {
+  if (!(await canApproveExtension(userRoleIds))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -63,8 +62,7 @@ export async function PUT(
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  const isFmRd = userRoleIds.includes(ROLE_IDS.FM_REGIONAL_DIRECTOR);
-  if (!isFmRd) {
+  if (!(await canApproveExtension(userRoleIds))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

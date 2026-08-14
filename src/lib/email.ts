@@ -443,6 +443,53 @@ export async function sendBqDecisionEmail({
   });
 }
 
+// ==================== RESUBMISSION REQUEST EMAIL ====================
+// Deliberately never includes exact competitor figures — only relative
+// standing ("higher"/"lower" than other bids) — so a contractor can't infer
+// another contractor's actual pricing from this email (2026-08-10).
+export async function sendResubmissionRequestEmail({
+  to,
+  recipientName,
+  tenderName,
+  tenderId,
+  standing,
+  instructions,
+  dueBy,
+}: {
+  to: string;
+  recipientName: string;
+  tenderName: string;
+  tenderId: number;
+  standing: "higher" | "lower" | "mixed";
+  instructions?: string | null;
+  dueBy?: string | null;
+}): Promise<void> {
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
+  const tenderUrl = `${baseUrl}/tenders/${tenderId}`;
+  const subject = `Revised Quote Requested: ${tenderName}`;
+
+  const standingText =
+    standing === "higher"
+      ? "your submitted pricing is on the higher end compared to other bids received"
+      : standing === "lower"
+      ? "your submitted pricing is on the lower end compared to other bids received"
+      : "your submitted pricing varies compared to other bids received";
+
+  const body = `
+    <p style="margin:0 0 14px;">Dear ${escapeHtml(recipientName)},</p>
+    <p style="margin:0 0 14px;">Following our review of <strong>${escapeHtml(tenderName)}</strong>, ${standingText}. We would like to invite you to review and submit a revised quote.</p>
+    ${instructions ? `<p style="margin:0 0 14px;"><span style="font-weight:600;color:#334155;">Notes from our team:</span><br/>${escapeHtml(instructions)}</p>` : ""}
+    ${dueBy ? `<p style="margin:0;"><span style="font-weight:600;color:#334155;">Please submit your revised quote by:</span> ${escapeHtml(dueBy)}</p>` : ""}
+  `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to,
+    subject,
+    html: renderEmail({ title: "Revised Quote Requested", bodyHtml: body, cta: { text: "View Tender", url: tenderUrl } }),
+  });
+}
+
 // ==================== DLP REMINDER EMAIL ====================
 export async function sendDlpReminderEmail({
   to,

@@ -12,6 +12,7 @@ import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
 import { sendTrackedEmail } from "@/lib/notifications";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { sanitize } from "@/lib/sanitize";
+import { ROLE_IDS } from "@/lib/roles";
 
 // Zod schemas
 const paramsSchema = z.object({
@@ -41,7 +42,7 @@ const updateUserSchema = z.object({
 // Helper: check if user is admin
 async function isAdmin(userId: number): Promise<boolean> {
   const userRole = await prisma.user_roles.findFirst({
-    where: { user_id: userId, role_id: 1 },
+    where: { user_id: userId, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   return !!userRole;
 }

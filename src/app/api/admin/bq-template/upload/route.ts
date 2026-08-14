@@ -10,6 +10,7 @@ import { getClient } from "@/lib/db";
 import ExcelJS from "exceljs";
 import { logUpdate, logAuthEvent } from "@/lib/audit"; // ✅ audit import
 import { isValidXlsxSignature } from "@/lib/fileValidation";
+import { ROLE_IDS } from "@/lib/roles";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -22,7 +23,7 @@ const formSchema = z.object({
 // Helper: check if user is admin
 async function isAdmin(userId: number): Promise<boolean> {
   const userRole = await prisma.user_roles.findFirst({
-    where: { user_id: userId, role_id: 1 },
+    where: { user_id: userId, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   return !!userRole;
 }

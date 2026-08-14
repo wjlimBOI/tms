@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import ExcelJS from "exceljs"; // ✅ replaced xlsx
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperUser } from "@/lib/roles";
 import { canEditSubmission } from "@/lib/permissions";
 import { isValidXlsxSignature } from "@/lib/fileValidation";
 import { sanitize } from "@/lib/sanitize";
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
   const userRoleIds = (session.user as any)?.roleIds || [];
   const userId = session.user.id;
   let hasAccess = false;
-  if (userRoleIds.includes(ROLE_IDS.ADMIN)) {
+  if (isSuperUser(userRoleIds)) {
     hasAccess = true;
   } else {
     const check = await query(

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperUser } from "@/lib/roles";
 
 export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export async function PUT(req: Request) {
     `SELECT 1 FROM tender_submission WHERE submission_id = $1 AND contractor_id = $2 AND is_deleted = false`,
     [submissionId, userId]
   );
-  if (check.rows.length === 0 && !((session.user as any).roleIds || []).includes(ROLE_IDS.ADMIN)) {
+  if (check.rows.length === 0 && !isSuperUser((session.user as any).roleIds || [])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

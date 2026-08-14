@@ -9,6 +9,10 @@ import { getBrandColor } from "@/lib/brandColors";
 import "./bq-compare.css";
 import { highlightMatches } from "@/lib/search-utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useNotify } from "@/components/ui/notification-provider";
+import { isSuperUser, ROLE_IDS } from "@/lib/roles";
+import BqNotesPanel from "@/components/bq/BqNotesPanel";
+import FinanceSummaryPanel from "@/components/bq/FinanceSummaryPanel";
 
 // ==================== INTERFACES ====================
 interface Submission {
@@ -17,11 +21,15 @@ interface Submission {
   round_no: number;
   client_name: string;
   job_site: string;
+  tender_id?: number;
   tender_name: string;
   status: string;
   bq_name?: string;
   work_type?: string;
+  contractor_id?: number;
   contractor_name?: string;
+  contractor_email?: string;
+  contractor_phone?: string | null;
 }
 
 interface ItemData {
@@ -118,8 +126,20 @@ const getShortBrand = (fullBrand: string): string => {
 // ==================== MAIN COMPONENT ====================
 export default function CompareBQPage() {
   const { data: session, status } = useSession();
+  const toast = useNotify();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const canRequestResubmission =
+    isSuperUser((session?.user as any)?.roleIds || []) ||
+    ((session?.user as any)?.roleIds || []).includes(ROLE_IDS.PROJECT_MANAGER) ||
+    ((session?.user as any)?.roleIds || []).includes(ROLE_IDS.SENIOR_PROJECT_MANAGER);
+  const [resubmitTarget, setResubmitTarget] = useState<Submission | null>(null);
+  const [resubmitInstructions, setResubmitInstructions] = useState("");
+  const [resubmitDueBy, setResubmitDueBy] = useState("");
+  const [submittingResubmit, setSubmittingResubmit] = useState(false);
+  const [resubmissionByContractor, setResubmissionByContractor] = useState<Record<number, { fulfilled: boolean }>>({});
+  const [notesTarget, setNotesTarget] = useState<Submission | null>(null);
+  const [financeTarget, setFinanceTarget] = useState<Submission | null>(null);
   const urlIds = searchParams.get("ids")?.split(",").map(Number).filter(id => !isNaN(id)) || [];
 
   const [availableBQs, setAvailableBQs] = useState<Submission[]>([]);
@@ -283,6 +303,24 @@ export default function CompareBQPage() {
       .finally(() => setLoading(false));
   }, [selectedIds, hasAccess]);
 
+  // --- Resubmission-request status per contractor (badge on each card) ---
+  useEffect(() => {
+    if (!canRequestResubmission || !comparisonData?.submissions.length) {
+      setResubmissionByContractor({});
+      return;
+    }
+    const tenderId = comparisonData.submissions[0]?.tender_id;
+    if (!tenderId) return;
+    fetch(`/api/tenders/${tenderId}/resubmission-requests`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((rows: { contractor_id: number; fulfilled: boolean }[]) => {
+        const map: Record<number, { fulfilled: boolean }> = {};
+        rows.forEach((r) => { map[r.contractor_id] = { fulfilled: r.fulfilled }; });
+        setResubmissionByContractor(map);
+      })
+      .catch(() => setResubmissionByContractor({}));
+  }, [comparisonData, canRequestResubmission]);
+
   // --- Selection toggles ---
   const toggleSelection = (id: number) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -396,6 +434,39 @@ export default function CompareBQPage() {
     if (!originalName) return "Unknown";
     if (!maskContractors) return originalName;
     return maskedContractorMap.get(originalName) || originalName;
+  };
+
+  // Opening the resubmission modal always shows the real identity/contact
+  // info, regardless of the Mask Contractors toggle — staff need it to
+  // actually negotiate (by phone, on top of email) with this contractor.
+  const openResubmitModal = (sub: Submission) => {
+    setResubmitInstructions("");
+    setResubmitDueBy("");
+    setResubmitTarget(sub);
+  };
+
+  const handleRequestResubmission = async () => {
+    if (!resubmitTarget?.tender_id) return;
+    setSubmittingResubmit(true);
+    try {
+      const res = await fetch(`/api/tenders/${resubmitTarget.tender_id}/resubmission-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submission_id: resubmitTarget.submission_id,
+          instructions: resubmitInstructions.trim() || undefined,
+          due_by: resubmitDueBy ? new Date(resubmitDueBy).toISOString() : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to request resubmission");
+      toast.success(`Resubmission requested from ${resubmitTarget.contractor_name}.`);
+      setResubmitTarget(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to request resubmission. Please try again.");
+    } finally {
+      setSubmittingResubmit(false);
+    }
   };
 
   // ==================== AI SEARCH (Global API) ====================
@@ -877,10 +948,121 @@ export default function CompareBQPage() {
                       <div className="text-xs text-gray-500">Project: {sub.tender_name}</div>
                       <div className="text-xs text-gray-500">Contractor: {displayContractor}</div>
                       <div className="text-xs text-gray-500">Status: {sub.status}</div>
+                      {canRequestResubmission && sub.contractor_id && resubmissionByContractor[sub.contractor_id] && (
+                        <div className={`mt-2 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium ${
+                          resubmissionByContractor[sub.contractor_id].fulfilled
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}>
+                          {resubmissionByContractor[sub.contractor_id].fulfilled ? "Resubmitted" : "Resubmission requested"}
+                        </div>
+                      )}
+                      <div className="mt-3 flex gap-2">
+                        {canRequestResubmission && sub.tender_id && (
+                          <button
+                            onClick={() => openResubmitModal(sub)}
+                            className="flex-1 text-xs font-medium px-3 py-1.5 rounded-lg border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+                          >
+                            Request Resubmission
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setNotesTarget(sub)}
+                          className="flex-1 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                        >
+                          Notes
+                        </button>
+                        {canRequestResubmission && (
+                          <button
+                            onClick={() => setFinanceTarget(sub)}
+                            className="flex-1 text-xs font-medium px-3 py-1.5 rounded-lg border border-cyan-300 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 transition-colors"
+                          >
+                            Finance Summary
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
+
+              {/* Finance Summary modal — per-submission cost analysis (finance_budget_summary) */}
+              <Dialog open={!!financeTarget} onOpenChange={(open) => { if (!open) setFinanceTarget(null); }}>
+                <DialogContent className="max-w-2xl p-6 max-h-[85vh] overflow-y-auto">
+                  <DialogTitle className="text-lg font-bold text-gray-900 mb-1">
+                    Finance Summary — {financeTarget?.contractor_name}
+                  </DialogTitle>
+                  <p className="text-sm text-gray-600 mb-4">{financeTarget?.tender_name}</p>
+                  {financeTarget && <FinanceSummaryPanel submissionId={financeTarget.submission_id} />}
+                </DialogContent>
+              </Dialog>
+
+              {/* Notes modal — staff notes on this specific BQ (review_comment) */}
+              <Dialog open={!!notesTarget} onOpenChange={(open) => { if (!open) setNotesTarget(null); }}>
+                <DialogContent className="max-w-lg p-6 max-h-[85vh] overflow-y-auto">
+                  <DialogTitle className="text-lg font-bold text-gray-900 mb-1">
+                    Notes — {notesTarget?.contractor_name}
+                  </DialogTitle>
+                  <p className="text-sm text-gray-600 mb-4">{notesTarget?.tender_name}</p>
+                  {notesTarget && <BqNotesPanel submissionId={notesTarget.submission_id} canAddNotes={canRequestResubmission} />}
+                </DialogContent>
+              </Dialog>
+
+              {/* Request Resubmission modal — always shows real identity/
+                  contact info regardless of the Mask Contractors toggle,
+                  since staff need it to negotiate by phone as well as email. */}
+              <Dialog open={!!resubmitTarget} onOpenChange={(open) => { if (!open) setResubmitTarget(null); }}>
+                <DialogContent className="max-w-md p-6">
+                  <DialogTitle className="text-lg font-bold text-gray-900 mb-1">Request Resubmission</DialogTitle>
+                  {resubmitTarget && (
+                    <>
+                      <p className="text-sm text-gray-600 mb-4">
+                        For <strong>{resubmitTarget.tender_name}</strong>
+                      </p>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 text-sm space-y-0.5">
+                        <div><span className="text-gray-500">Contractor:</span> <span className="font-medium text-gray-900">{resubmitTarget.contractor_name}</span></div>
+                        {resubmitTarget.contractor_email && (
+                          <div><span className="text-gray-500">Email:</span> <span className="font-medium text-gray-900">{resubmitTarget.contractor_email}</span></div>
+                        )}
+                        {resubmitTarget.contractor_phone && (
+                          <div><span className="text-gray-500">Phone:</span> <span className="font-medium text-gray-900">{resubmitTarget.contractor_phone}</span></div>
+                        )}
+                      </div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Instructions (optional, shared with contractor)</label>
+                      <textarea
+                        value={resubmitInstructions}
+                        onChange={(e) => setResubmitInstructions(e.target.value)}
+                        rows={3}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        placeholder="e.g. Please review section 3 pricing and resubmit with a revised quote."
+                      />
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Due by (optional)</label>
+                      <input
+                        type="date"
+                        value={resubmitDueBy}
+                        onChange={(e) => setResubmitDueBy(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <div className="flex gap-3 justify-end">
+                        <button
+                          onClick={() => setResubmitTarget(null)}
+                          disabled={submittingResubmit}
+                          className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleRequestResubmission}
+                          disabled={submittingResubmit}
+                          className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition disabled:opacity-50"
+                        >
+                          {submittingResubmit ? "Sending..." : "Send Request"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </DialogContent>
+              </Dialog>
 
               {/* Comparison table */}
               {filteredData && filteredData.categories.length === 0 ? (

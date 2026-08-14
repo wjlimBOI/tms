@@ -8,10 +8,11 @@ import { getAnthropicClient } from "@/lib/anthropic";
 import { computeStats } from "@/lib/rateStats";
 import { classifyDeviation, buildLocalSummary, type FlaggedItem } from "@/lib/bqRateSummary";
 import { z } from "zod";
+import { ROLE_IDS } from "@/lib/roles";
 
 async function isAdmin(userId: number): Promise<boolean> {
   const userRole = await prisma.user_roles.findFirst({
-    where: { user_id: userId, role_id: 1 },
+    where: { user_id: userId, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   return !!userRole;
 }

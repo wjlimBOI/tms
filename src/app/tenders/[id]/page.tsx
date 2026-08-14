@@ -29,15 +29,18 @@ import {
 } from "@/lib/tenderConstants";
 import { DATE_LABELS, EXTRA_DATE_NOTES } from "@/lib/tenderDateConfig";
 import { FORM_OF_TENDER_ITEMS } from "@/lib/tenderFormItems";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser, isSuperViewer } from "@/lib/roles";
 import { numberToWords } from "@/lib/numberToWords";
 import { formatTenderDate, formatTenderDateTime, formatTenderDateLong } from "@/lib/dateUtils";
 import { computeDlpExpiry, getDlpStatus } from "@/lib/dlp";
-import { getDlpStatusBadgeStyle, getDlpStatusLabel } from "@/lib/statusColors";
+import { getDlpStatusBadgeStyle, getDlpStatusLabel, getTenderStatusLabel, getTenderStatusStyles } from "@/lib/statusColors";
 import { SignaturePad } from "@/components/tenders/SignaturePad";
 import { CompanyStampUpload } from "@/components/tenders/CompanyStampUpload";
 import TenderMessagesPanel from "@/components/tenders/TenderMessagesPanel";
 import TenderDocumentsPanel from "@/components/tenders/TenderDocumentsPanel";
+import TenderBqsPanel from "@/components/tenders/TenderBqsPanel";
+import SavedComparisonPanel from "@/components/tenders/SavedComparisonPanel";
+import StatusBanner from "@/components/ui/StatusBanner";
 import AlertModal, { AlertModalData } from "@/components/ui/AlertModal";
 
 const PrintDateCleanup = dynamic(() => import("@/components/PrintDateCleanup"), { ssr: false });
@@ -102,15 +105,15 @@ interface TenderData {
   };
   stage: number;
   stage_updated_at?: string;
+  award_id?: number | null;
+  winning_contractor_id?: number | null;
+  winning_contractor_name?: string | null;
+  contract_value?: string | null;
+  awarded_date?: string | null;
+  contract_received_at?: string | null;
+  contract_received_by?: number | null;
+  contract_received_by_name?: string | null;
 }
-
-// ========== STAGE HELPERS ==========
-const STAGES = ["Upcoming", "Open", "Closed", "Awarded"];
-
-const getStageName = (stage: number): string => {
-  if (stage < 0 || stage >= STAGES.length) return "Unknown";
-  return STAGES[stage];
-};
 
 // ========== Read-only document field renderers ==========
 // This page only ever renders in read-only mode (see `readOnly` in the main
@@ -222,9 +225,22 @@ export default function TenderDocumentPage() {
 
   const userRoleIds = (session?.user as any)?.roleIds || [];
   const userRole = (session?.user as any)?.role_id;
-  const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+  const isAdmin = isSuperUser(userRoleIds);
   const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
-  const canManageStage = userRole === ROLE_IDS.ADMIN;
+  const canManageStage = isSuperUser(userRoleIds);
+  const canViewBqs = isSuperViewer(userRoleIds);
+  const canManageComparison =
+    isSuperUser(userRoleIds) ||
+    userRoleIds.includes(ROLE_IDS.PROJECT_MANAGER) ||
+    userRoleIds.includes(ROLE_IDS.SENIOR_PROJECT_MANAGER) ||
+    userRoleIds.includes(ROLE_IDS.FINANCE_MANAGER) ||
+    userRoleIds.includes(ROLE_IDS.FINANCE_GENERAL_MANAGER) ||
+    userRoleIds.includes(ROLE_IDS.FINANCE_TEAM);
+  const canMarkContractReceived =
+    isSuperUser(userRoleIds) ||
+    userRoleIds.includes(ROLE_IDS.PROJECT_MANAGER) ||
+    userRoleIds.includes(ROLE_IDS.SENIOR_PROJECT_MANAGER);
+  const [contractReceivedSaving, setContractReceivedSaving] = useState(false);
   const readOnly = true;
 
   // ---- Alert modal state ----
@@ -244,6 +260,38 @@ export default function TenderDocumentPage() {
 
   // ---- Stage update state ----
   const [updatingStage, setUpdatingStage] = useState(false);
+
+  // ---- Contract-received toggle (staff record-keeping only — the signed
+  // contract itself is exchanged over email, not through the app) ----
+  const handleToggleContractReceived = async (received: boolean) => {
+    if (!tender) return;
+    setContractReceivedSaving(true);
+    try {
+      const res = await fetch(`/api/tenders/${tender.tender_id}/award`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ received }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update contract status");
+      }
+      const data = await res.json();
+      setTender((prev) =>
+        prev
+          ? { ...prev, contract_received_at: data.contract_received_at, contract_received_by: data.contract_received_by }
+          : prev
+      );
+    } catch (err: any) {
+      setAlert({
+        type: "error",
+        title: "Update Failed",
+        message: err.message || "Could not update the contract-received status. Please try again.",
+      });
+    } finally {
+      setContractReceivedSaving(false);
+    }
+  };
 
   // ---- fetch tender data ----
   const fetchTender = async () => {
@@ -369,6 +417,9 @@ export default function TenderDocumentPage() {
   };
 
   // ---- can request extension? ----
+  // Mirrors the server-side window in POST /api/tender-extension: EOT
+  // requests are a last-chance option, only accepted in the final 48 hours
+  // before closing (and only while there's still time left at all).
   const canRequestExtension = (): boolean => {
     if (!tender) return false;
     if (!isContractor) return false;
@@ -377,7 +428,7 @@ export default function TenderDocumentPage() {
     const now = new Date();
     const closing = new Date(tender.closing_date);
     const diffHours = (closing.getTime() - now.getTime()) / (1000 * 60 * 60);
-    return diffHours >= 1;
+    return diffHours > 0 && diffHours <= 48;
   };
 
   // ---- handle extension request submission ----
@@ -697,7 +748,7 @@ export default function TenderDocumentPage() {
             </div>
             <hr className="print:border-t-2 print:border-black print:my-6 print:w-1/2 print:mx-auto" />
             <div className="print:mb-6">
-              <p className="print:text-xl print:font-medium print:text-black">Location:</p>
+              <p className="print:text-xl print:font-medium print:text-black">Address:</p>
               <p className="print:text-xl print:font-medium print:text-black print:mt-1">
                 {displayAddress.split("\n").map((line, i) => (
                   <span key={i} className="print:block">
@@ -714,10 +765,10 @@ export default function TenderDocumentPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#15406a] border-2 border-[#15406a] rounded-md bg-white hover:bg-[#15406a] hover:text-white transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium uppercase tracking-wide">Back</span>
+              <span className="uppercase tracking-wide">Back</span>
             </button>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -731,7 +782,7 @@ export default function TenderDocumentPage() {
             {isAdmin && (
               <Link
                 href={`/admin/tenders/${id}`}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-blue-500 rounded hover:bg-blue-50 text-blue-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-[#15406a] rounded hover:bg-[#15406a]/5 text-[#15406a] transition-colors"
               >
                 <Pencil className="w-4 h-4" />
                 Edit Tender
@@ -750,17 +801,13 @@ export default function TenderDocumentPage() {
                 {canRequestExtension() && (
                   <button
                     onClick={() => setShowExtensionModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-blue-500 rounded hover:bg-blue-50 text-blue-700 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-[#15406a] rounded hover:bg-[#15406a]/5 text-[#15406a] transition-colors"
                   >
                     <Clock className="w-4 h-4" />
                     Request Extension
                   </button>
                 )}
               </>
-            ) : isContractor ? (
-              <div className="px-4 py-2 text-sm border border-amber-200 bg-amber-50 text-amber-800 rounded">
-                Status: <span className="font-mono">{tender.status_label}</span> — Not open for submission
-              </div>
             ) : null}
 
             {/* Show extension status if any */}
@@ -779,57 +826,63 @@ export default function TenderDocumentPage() {
                 Extension Rejected
               </span>
             )}
+
+            {/* Status badge — rightmost, next to the extension controls */}
+            {tender && (() => {
+              const s = getTenderStatusStyles(tender.status_label);
+              return (
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${s.bg} ${s.text} ${s.border}`}>
+                  {getTenderStatusLabel(tender.status_label)}
+                </span>
+              );
+            })()}
           </div>
         </div>
 
-        {/* ===== STAGE MANAGEMENT SECTION ===== */}
-        {tender && (
+        {/* Contractor status banner — explains document/chat access instead
+            of leaving hidden panels unexplained (2026-08-10) */}
+        {isContractor && tender && (
+          <div className="print:hidden mb-6">
+            {(tender.stage ?? 0) === 3 ? (
+              <StatusBanner
+                variant="locked"
+                title="This tender has been awarded"
+                message="Document access has closed for everyone. Messaging remains available only to the awarded contractor — for anything else, please contact us by email or phone."
+              />
+            ) : (tender.stage ?? 0) === 2 ? (
+              <StatusBanner
+                variant="warning"
+                title="This tender is closed for submissions"
+                message="Our team is reviewing submitted quotes and may reach out to negotiate. Document access has closed, but messaging remains available until an award decision is made."
+              />
+            ) : null}
+          </div>
+        )}
+
+        {/* ===== STAGE MANAGEMENT (admin-only controls; status itself now
+            lives in the action bar above, next to Print) ===== */}
+        {tender && canManageStage && (
           <div className="print:hidden mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-slate-600">Workflow:</span>
-                <div className="flex items-center gap-1">
-                  {STAGES.map((label, idx) => {
-                    const currentStage = tender.stage ?? 0;
-                    const isComplete = idx < currentStage;
-                    const isActive = idx === currentStage;
-                    let dotColor = "bg-slate-300";
-                    if (isComplete) dotColor = "bg-emerald-500";
-                    else if (isActive) dotColor = "bg-blue-500";
-                    return (
-                      <div key={idx} className="flex items-center">
-                        <div className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
-                        {idx < STAGES.length - 1 && (
-                          <div className={`w-6 h-0.5 ${isComplete ? "bg-emerald-400" : "bg-slate-300"}`} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                  {getStageName(tender.stage ?? 0)}
-                </span>
-              </div>
-              {canManageStage && (
-                <div className="flex gap-2">
+              <span className="text-sm font-medium text-slate-600">Stage management</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleStageAction("revert")}
+                  disabled={updatingStage || (tender.stage ?? 0) <= 0}
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {updatingStage ? "..." : "⬅ Revert"}
+                </button>
+                {(tender.stage ?? 0) < 2 && (
                   <button
-                    onClick={() => handleStageAction("revert")}
-                    disabled={updatingStage || (tender.stage ?? 0) <= 0}
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    onClick={() => handleStageAction("advance")}
+                    disabled={updatingStage}
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
-                    {updatingStage ? "..." : "⬅ Revert"}
+                    {updatingStage ? "..." : (tender.stage === 0 ? "📢 Open Tender" : "🔒 Close Tender")}
                   </button>
-                  {(tender.stage ?? 0) < 2 && (
-                    <button
-                      onClick={() => handleStageAction("advance")}
-                      disabled={updatingStage}
-                      className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      {updatingStage ? "..." : (tender.stage === 0 ? "📢 Open Tender" : "🔒 Close Tender")}
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -844,6 +897,49 @@ export default function TenderDocumentPage() {
             Expected handover date (planning estimate): <span className="font-medium text-slate-700">{formatTenderDate(tender.expected_handover_date)}</span>
           </div>
         )}
+        {/* ===== CONTRACT STATUS (staff-only, awarded tenders) — the signed
+            contract itself is exchanged over email, not through the app;
+            this is a manual record-keeping toggle only ===== */}
+        {tender && (tender.stage ?? 0) === 3 && canMarkContractReceived && (
+          <div className="print:hidden mb-6 p-4 bg-white rounded-lg border border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">Signed Contract Status</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="text-sm">
+                {tender.contract_received_at ? (
+                  <>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-100 text-emerald-700">
+                      Received
+                    </span>
+                    <span className="ml-2 text-slate-600">
+                      {formatTenderDate(tender.contract_received_at)}
+                      {tender.contract_received_by_name && ` · recorded by ${tender.contract_received_by_name}`}
+                    </span>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">
+                    Awaiting signed contract
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => handleToggleContractReceived(!tender.contract_received_at)}
+                disabled={contractReceivedSaving}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 ${
+                  tender.contract_received_at
+                    ? "border border-slate-300 text-slate-700 hover:bg-slate-50"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                }`}
+              >
+                {contractReceivedSaving
+                  ? "Saving..."
+                  : tender.contract_received_at
+                  ? "Mark as Not Received"
+                  : "Mark Contract as Received"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {tender && (tender.stage ?? 0) === 3 && (
           <div className="print:hidden mb-6 p-4 bg-white rounded-lg border border-slate-200">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">Defect Liability Period</h3>
@@ -896,21 +992,28 @@ export default function TenderDocumentPage() {
           </div>
         )}
 
+        {/* ===== SUBMITTED BQs (staff oversight only) ===== */}
+        {tender && canViewBqs && (
+          <TenderBqsPanel tenderId={tender.tender_id} />
+        )}
+
+        {/* ===== SAVED COMPARISON (persisted rank/total/notes snapshot) ===== */}
+        {tender && canViewBqs && (
+          <div className="mt-6">
+            <SavedComparisonPanel tenderId={tender.tender_id} canManage={canManageComparison} />
+          </div>
+        )}
+
         {/* ===== DOCUMENTS ===== */}
         {tender && (
           <TenderDocumentsPanel tenderId={tender.tender_id} />
-        )}
-
-        {/* ===== MESSAGES (contractor Q&A + staff announcements) ===== */}
-        {tender && (
-          <TenderMessagesPanel tenderId={tender.tender_id} tenderName={tender.tender_name} />
         )}
 
         {/* --- Extension Request Modal --- */}
         <Dialog open={showExtensionModal} onOpenChange={(open) => { if (!open) setShowExtensionModal(false); }}>
           <DialogContent className="max-w-lg p-6 print:hidden">
               <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-6 h-6 text-blue-600" />
+                <Clock className="w-6 h-6 text-[#15406a]" />
                 <DialogTitle className="text-xl font-bold text-slate-900">Request Time Extension</DialogTitle>
               </div>
               <DialogDescription className="text-sm text-slate-600 mb-4">
@@ -927,7 +1030,7 @@ export default function TenderDocumentPage() {
                     min="1"
                     value={extensionDays}
                     onChange={(e) => setExtensionDays(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#15406a]"
                   />
                 </div>
                 <div>
@@ -937,7 +1040,7 @@ export default function TenderDocumentPage() {
                     value={extensionReason}
                     onChange={(e) => setExtensionReason(e.target.value)}
                     placeholder="Please provide a detailed reason..."
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#15406a]"
                   />
                 </div>
               </div>
@@ -951,7 +1054,7 @@ export default function TenderDocumentPage() {
                 <button
                   onClick={handleExtensionSubmit}
                   disabled={isSubmittingExtension}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-50"
                 >
                   {isSubmittingExtension ? "Submitting..." : "Submit Request"}
                 </button>
@@ -962,7 +1065,7 @@ export default function TenderDocumentPage() {
         {/* DOCUMENT CONTENT */}
         <div className="flex flex-col md:flex-row gap-8 print:block">
           {/* Sidebar */}
-          <aside className="hidden md:block w-64 flex-shrink-0 sticky top-24 self-start print:hidden">
+          <aside className="w-full md:w-64 flex-shrink-0 md:sticky md:top-24 md:self-start print:hidden space-y-4">
             <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200/50 p-4 shadow-lg">
               <h3 className="text-xs font-semibold uppercase text-slate-500 mb-3">Contents</h3>
               <nav className="space-y-1">
@@ -979,7 +1082,7 @@ export default function TenderDocumentPage() {
                     onClick={() => scrollTo(item.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
                       activeSection === item.id
-                        ? "bg-cyan-50 text-cyan-700 font-medium"
+                        ? "bg-[#15406a]/5 text-[#15406a] font-medium"
                         : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
@@ -988,6 +1091,15 @@ export default function TenderDocumentPage() {
                 ))}
               </nav>
             </div>
+
+            {/* Messages sits directly under Contents and travels with it,
+                so contractors can ask a question without hunting for the
+                panel further down the page. */}
+            {tender && (
+              <div className="md:max-h-[calc(100vh-14rem)] md:overflow-y-auto">
+                <TenderMessagesPanel tenderId={tender.tender_id} tenderName={tender.tender_name} />
+              </div>
+            )}
           </aside>
 
           <div className="flex-1 space-y-10 print:space-y-8">
@@ -1003,7 +1115,7 @@ export default function TenderDocumentPage() {
                   <p>{displayTitle}</p>
                 </div>
                 <div className="text-base sm:text-lg font-medium text-slate-600 mt-2">
-                  <p>Location:</p>
+                  <p>Address:</p>
                   <p className="whitespace-pre-line">{displayAddress}</p>
                 </div>
               </div>

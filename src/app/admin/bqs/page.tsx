@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getBQStatusStyles, getBQStatusLabel } from "@/lib/statusColors";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useNotify } from "@/components/ui/notification-provider";
+import { isSuperUser } from "@/lib/roles";
 
 // ------------------------- Types ---------------------------------
 interface Tender {
@@ -293,7 +294,7 @@ export default function AdminTenderBQsPage() {
   // ------------------------- Fetch Tenders -----------------
   useEffect(() => {
     if (sessionStatus === "loading") return;
-    if (!session || (session.user as any)?.role_id !== 1) {
+    if (!session || !isSuperUser((session.user as any)?.roleIds || [])) {
       router.push("/");
       return;
     }

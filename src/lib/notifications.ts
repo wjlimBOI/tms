@@ -51,16 +51,23 @@ export async function logEmailNotification(params: {
   }
 }
 
+// The 4 user-choosable categories on the profile page (src/app/account/profile/page.tsx).
+// Only non-security-critical events are ever gated by this — login alerts and
+// admin-triggered password resets always send regardless of user preference.
+export type NotificationPreferenceKey = "newTenders" | "statusChanges" | "announcements" | "alerts";
+
 // Single choke point for every email this app sends for a tracked event:
 // checks the admin-configurable per-event toggle (notification_event_settings),
-// sends, then records delivery success/failure. Never throws — the
-// underlying action (award, approval, login, ...) must always succeed
-// independent of email delivery or settings.
+// then (if preferenceKey is given and the recipient is a known user) the
+// recipient's own per-user preference, sends, then records delivery
+// success/failure. Never throws — the underlying action (award, approval,
+// login, ...) must always succeed independent of email delivery or settings.
 export async function sendTrackedEmail(
   eventType: string,
   recipient: { userId?: number | null; email: string },
   tenderId: number | null,
-  sendFn: () => Promise<void>
+  sendFn: () => Promise<void>,
+  preferenceKey?: NotificationPreferenceKey
 ): Promise<void> {
   const settingRes = await query(
     `SELECT email_enabled FROM notification_event_settings WHERE event_type = $1`,
@@ -71,6 +78,18 @@ export async function sendTrackedEmail(
   // that would otherwise have sent; only an explicit false disables it.
   if (settingRes && settingRes.rows.length > 0 && settingRes.rows[0].email_enabled === false) {
     return;
+  }
+
+  if (preferenceKey && recipient.userId) {
+    const prefRes = await query(
+      `SELECT notification_preferences FROM users WHERE user_id = $1`,
+      [recipient.userId]
+    ).catch(() => null);
+    // Same fail-open rule as above: only an explicit false on this specific
+    // key suppresses the email; a missing row/key/lookup error does not.
+    if (prefRes && prefRes.rows.length > 0 && prefRes.rows[0].notification_preferences?.[preferenceKey] === false) {
+      return;
+    }
   }
 
   try {

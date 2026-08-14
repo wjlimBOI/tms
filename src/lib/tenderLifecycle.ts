@@ -219,8 +219,13 @@ export async function sendUpcomingSubmissionDeadlineReminders(): Promise<void> {
       `/tenders/${c.tender_id}`
     ).catch((err) => console.error(`Submission-deadline in-app notify failed for tender ${c.tender_id}:`, err));
 
-    await sendTrackedEmail("submission_deadline_reminder", { userId: c.contractor_id, email: c.email }, c.tender_id, () =>
-      sendSubmissionDeadlineReminderEmail({ to: c.email, recipientName: c.username, tenderName: c.tender_name, tenderId: c.tender_id, closingDate: closingDateStr })
+    await sendTrackedEmail(
+      "submission_deadline_reminder",
+      { userId: c.contractor_id, email: c.email },
+      c.tender_id,
+      () =>
+        sendSubmissionDeadlineReminderEmail({ to: c.email, recipientName: c.username, tenderName: c.tender_name, tenderId: c.tender_id, closingDate: closingDateStr }),
+      "alerts"
     );
   }
 }

@@ -86,7 +86,7 @@ Two data-access layers coexist by design, not by accident: Prisma Client (`src/l
 
 ## 9. Existing docs to read, not duplicate
 
-`docs/api-conventions.md` (versioning, pagination), `docs/rbac.md` (canonical RBAC family, Contractor incident), and `docs/design-system.md` (colors, typography, spacing, radius, shadows, breakpoints, icon sizing — documents actual usage, not an aspirational scale) already exist in the repo. Also check `CLAUDE.md`/`AGENTS.md` for existing AI-agent instructions before treating this file as the sole source of truth.
+`docs/api-conventions.md` (versioning, pagination), `docs/rbac.md` (canonical RBAC family, Contractor incident), `docs/design-system.md` (colors, typography, spacing, radius, shadows, breakpoints, icon sizing — documents actual usage, not an aspirational scale), and `docs/system-workflow.md` (plain-language walkthrough of the full tender/BQ workflow, feature by feature) already exist in the repo. Also check `CLAUDE.md`/`AGENTS.md` for existing AI-agent instructions before treating this file as the sole source of truth.
 
 ## 10. Scale — target vs. reality
 

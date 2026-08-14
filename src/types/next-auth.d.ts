@@ -5,6 +5,7 @@ declare module "next-auth" {
     user: {
       id: number;
       role_id: number;
+      roleIds?: number[];
       must_change_password?: boolean;
       name?: string | null;
       email?: string | null;

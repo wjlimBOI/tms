@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
 import { sanitize } from "@/lib/sanitize";
+import { ROLE_IDS } from "@/lib/roles";
 
 export async function PUT(
   req: NextRequest,
@@ -32,7 +33,7 @@ export async function PUT(
 
   // 2. Check permission: admin (role_id=1) or creator
   const isAdmin = await prisma.user_roles.findFirst({
-    where: { user_id: session.user.id, role_id: 1 },
+    where: { user_id: session.user.id, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   const isCreator = oldEvent.created_by === session.user.id;
   const canEdit = isCreator || !!isAdmin;
@@ -106,7 +107,7 @@ export async function DELETE(
 
   // 2. Check permission
   const isAdmin = await prisma.user_roles.findFirst({
-    where: { user_id: session.user.id, role_id: 1 },
+    where: { user_id: session.user.id, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   const isCreator = oldEvent.created_by === session.user.id;
   const canDelete = isCreator || !!isAdmin;

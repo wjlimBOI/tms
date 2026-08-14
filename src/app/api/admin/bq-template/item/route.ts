@@ -7,6 +7,7 @@ import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { sanitize } from "@/lib/sanitize";
 import { z } from "zod";
 import { logInsert, logUpdate, logDelete, logAuthEvent } from "@/lib/audit"; // ✅ audit imports
+import { ROLE_IDS } from "@/lib/roles";
 
 // Zod schemas
 const createSchema = z.object({
@@ -44,7 +45,7 @@ const deleteQuerySchema = z.object({
 // Helper: check if user is admin
 async function isAdmin(userId: number): Promise<boolean> {
   const userRole = await prisma.user_roles.findFirst({
-    where: { user_id: userId, role_id: 1 },
+    where: { user_id: userId, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   return !!userRole;
 }

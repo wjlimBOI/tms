@@ -4,7 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 
 interface SearchResult {
   id: number;
@@ -110,8 +110,9 @@ export default function Navbar() {
   const debounceTimer = useRef<number | undefined>(undefined);
 
   const userRole = (session?.user as any)?.role_id;
+  const roleIds = ((session?.user as any)?.roleIds || []) as number[];
   const isContractor = userRole === ROLE_IDS.CONTRACTOR;
-  const isAdmin = userRole === ROLE_IDS.ADMIN;
+  const isAdmin = isSuperUser(roleIds);
   const isManagement = userRole === 2 || userRole === 3 || userRole === 4;
   const isFinance =
     userRole === ROLE_IDS.FINANCE_MANAGER ||
@@ -122,7 +123,8 @@ export default function Navbar() {
   const isHomepage = pathname === "/";
   const isLoginPage = pathname === "/login";
   const isExpressInterest = pathname === "/contractor/expressInterest";
-  const isPublicMode = (!isLoggedIn && (isHomepage || isLoginPage)) || isExpressInterest;
+  const isPrivacyOrTerms = pathname === "/privacy" || pathname === "/terms";
+  const isPublicMode = (!isLoggedIn && (isHomepage || isLoginPage || isPrivacyOrTerms)) || isExpressInterest;
 
   const unreadNoti = notiItems.filter((n) => !n.is_read).length;
 
@@ -322,7 +324,7 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push("/login")}
-                className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow-md transition-all duration-200 hover:-translate-y-0.5"
+                className="bg-[#15406a] hover:bg-[#0d2d4a] text-white px-5 py-2 rounded-full text-sm font-medium shadow-md transition-all duration-200 hover:-translate-y-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50 focus-visible:ring-offset-2"
               >
                 Login
               </button>
@@ -377,9 +379,9 @@ export default function Navbar() {
             {isSearchOpen && (searchResults.tenders.length > 0 || searchResults.bqs.length > 0) && (
               <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto">
                 <div className="flex gap-1 px-4 pt-2 pb-1 border-b border-gray-100 sticky top-0 bg-white z-10">
-                  <button onClick={() => setSearchType("all")} className={`text-xs px-2 py-0.5 rounded-full transition ${searchType === "all" ? "bg-cyan-100 text-cyan-700" : "text-gray-500 hover:bg-gray-100"}`}>All</button>
-                  <button onClick={() => setSearchType("tender")} className={`text-xs px-2 py-0.5 rounded-full transition ${searchType === "tender" ? "bg-cyan-100 text-cyan-700" : "text-gray-500 hover:bg-gray-100"}`}>Projects</button>
-                  <button onClick={() => setSearchType("bq")} className={`text-xs px-2 py-0.5 rounded-full transition ${searchType === "bq" ? "bg-cyan-100 text-cyan-700" : "text-gray-500 hover:bg-gray-100"}`}>BQs</button>
+                  <button onClick={() => setSearchType("all")} className={`text-xs px-2 py-0.5 rounded-full transition ${searchType === "all" ? "bg-[#15406a]/10 text-[#15406a]" : "text-gray-500 hover:bg-gray-100"}`}>All</button>
+                  <button onClick={() => setSearchType("tender")} className={`text-xs px-2 py-0.5 rounded-full transition ${searchType === "tender" ? "bg-[#15406a]/10 text-[#15406a]" : "text-gray-500 hover:bg-gray-100"}`}>Projects</button>
+                  <button onClick={() => setSearchType("bq")} className={`text-xs px-2 py-0.5 rounded-full transition ${searchType === "bq" ? "bg-[#15406a]/10 text-[#15406a]" : "text-gray-500 hover:bg-gray-100"}`}>BQs</button>
                 </div>
                 {searchResults.tenders.length > 0 && (
                   <div>
@@ -388,7 +390,7 @@ export default function Navbar() {
                       <button key={`t-${item.id}`} onClick={() => handleSearchClick(item.link)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors">
                         <p className="text-sm font-medium text-gray-800">{item.title}</p>
                         <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>
-                        {item.matchedOn && <p className="text-[10px] text-cyan-600 mt-1">Matched on: {item.matchedOn}</p>}
+                        {item.matchedOn && <p className="text-[10px] text-[#15406a] mt-1">Matched on: {item.matchedOn}</p>}
                       </button>
                     ))}
                   </div>
@@ -400,7 +402,7 @@ export default function Navbar() {
                       <button key={`bq-${item.id}`} onClick={() => handleSearchClick(item.link)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors">
                         <p className="text-sm font-medium text-gray-800">{item.title}</p>
                         <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>
-                        {item.matchedOn && <p className="text-[10px] text-cyan-600 mt-1">Matched on: {item.matchedOn}</p>}
+                        {item.matchedOn && <p className="text-[10px] text-[#15406a] mt-1">Matched on: {item.matchedOn}</p>}
                       </button>
                     ))}
                   </div>
@@ -456,11 +458,58 @@ export default function Navbar() {
                   onClick={() => closeAll()}
                   className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50"
                   aria-label={pendingApprovalsCount > 0 ? `Approvals, ${pendingApprovalsCount} pending` : "Approvals"}
+                  title={pendingApprovalsCount > 0 ? `Approvals (${pendingApprovalsCount} pending)` : "Approvals"}
                 >
                   <IconApprovals />
                   <Badge count={pendingApprovalsCount} />
                 </Link>
               )}
+
+              <div className="relative" ref={inboxRef}>
+                <button
+                  onClick={() => { closeAll("inbox"); setIsInboxOpen((o) => !o); }}
+                  className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50"
+                  aria-label="Messages"
+                  aria-expanded={isInboxOpen}
+                  aria-haspopup="true"
+                  aria-controls="navbar-inbox-panel"
+                >
+                  <IconInbox />
+                </button>
+                {isInboxOpen && (
+                  <div id="navbar-inbox-panel" className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-800">Messages</p>
+                      <p className="text-[11px] text-gray-400">Recent activity across your tenders</p>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto divide-y divide-gray-50">
+                      {msgItems.length === 0 ? (
+                        <p className="px-4 py-6 text-center text-xs text-gray-400">No messages yet.</p>
+                      ) : (
+                        msgItems.map((m, idx) => (
+                          <button
+                            key={`${m.tender_id}-${m.created_at}-${idx}`}
+                            onClick={() => { setIsInboxOpen(false); router.push(m.link); }}
+                            className="w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-semibold text-gray-800 truncate">{m.sender_name}</p>
+                                <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">{relativeTime(m.created_at)}</span>
+                              </div>
+                              <p className="text-[11px] text-gray-500 truncate">{m.tender_name}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 truncate">{m.preview}</p>
+                              {m.is_announcement && (
+                                <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700">Announcement</span>
+                              )}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="relative" ref={notiRef}>
                 <button
@@ -510,52 +559,6 @@ export default function Navbar() {
                               <div className="flex items-center justify-between gap-2"><p className={`text-xs font-semibold truncate ${!n.is_read ? "text-gray-900" : "text-gray-600"}`}>{n.title}{!n.is_read && <span className="sr-only"> (unread)</span>}</p>{!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" aria-hidden="true" />}</div>
                               <p className="text-xs text-gray-500 mt-0.5 leading-snug line-clamp-2">{n.body}</p>
                               <p className="text-[10px] text-gray-400 mt-1">{relativeTime(n.created_at)}</p>
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="relative" ref={inboxRef}>
-                <button
-                  onClick={() => { closeAll("inbox"); setIsInboxOpen((o) => !o); }}
-                  className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50"
-                  aria-label="Messages"
-                  aria-expanded={isInboxOpen}
-                  aria-haspopup="true"
-                  aria-controls="navbar-inbox-panel"
-                >
-                  <IconInbox />
-                </button>
-                {isInboxOpen && (
-                  <div id="navbar-inbox-panel" className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-semibold text-gray-800">Messages</p>
-                      <p className="text-[11px] text-gray-400">Recent activity across your tenders</p>
-                    </div>
-                    <div className="max-h-72 overflow-y-auto divide-y divide-gray-50">
-                      {msgItems.length === 0 ? (
-                        <p className="px-4 py-6 text-center text-xs text-gray-400">No messages yet.</p>
-                      ) : (
-                        msgItems.map((m, idx) => (
-                          <button
-                            key={`${m.tender_id}-${m.created_at}-${idx}`}
-                            onClick={() => { setIsInboxOpen(false); router.push(m.link); }}
-                            className="w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-xs font-semibold text-gray-800 truncate">{m.sender_name}</p>
-                                <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">{relativeTime(m.created_at)}</span>
-                              </div>
-                              <p className="text-[11px] text-gray-500 truncate">{m.tender_name}</p>
-                              <p className="text-xs text-gray-500 mt-0.5 truncate">{m.preview}</p>
-                              {m.is_announcement && (
-                                <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700">Announcement</span>
-                              )}
                             </div>
                           </button>
                         ))

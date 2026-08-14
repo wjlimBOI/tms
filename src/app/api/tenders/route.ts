@@ -12,7 +12,8 @@ import {
 import { logInsert, logAuthEvent } from "@/lib/audit";
 import { syncTenderToCalendar } from "@/lib/syncTenderToCalendar";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser } from "@/lib/roles";
+import { hasPermission } from "@/lib/permissions";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 import { createApprovalRequestIfConfigured } from "@/lib/approvals";
 
@@ -57,6 +58,19 @@ export async function GET(request: NextRequest) {
   const userId = (session.user as any)?.id;
   const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
 
+  // Broader than has_expressed_interest — matches the participation
+  // definition canAccessTenderDocuments/canAccessTenderMessages/
+  // canViewTenderWithParticipation already use (interest OR submission OR
+  // tender_contractor OR being the awarded contractor), so a contractor who
+  // e.g. submitted a BQ without a separate "Register Interest" click still
+  // sees full details and doesn't lose a Closed/Awarded tender from their list.
+  const participationSubquery = `
+      SELECT 1 FROM tender_submission tsub WHERE tsub.tender_id = t.tender_id AND tsub.contractor_id = $1 AND tsub.is_deleted = false
+      UNION SELECT 1 FROM tender_interest tint WHERE tint.tender_id = t.tender_id AND tint.contractor_id = $1
+      UNION SELECT 1 FROM tender_contractor tcon WHERE tcon.tender_id = t.tender_id AND tcon.contractor_id = $1
+      UNION SELECT 1 FROM tender_award taw WHERE taw.tender_id = t.tender_id AND taw.winning_contractor_id = $1
+  `;
+
   let sql = `
     SELECT
       t.tender_id,
@@ -79,7 +93,8 @@ export async function GET(request: NextRequest) {
       t.defect_liability_months,
       (SELECT COUNT(*) FROM tender_interest ti WHERE ti.tender_id = t.tender_id)::int AS interest_count
       ${isContractor ? `,
-      EXISTS(SELECT 1 FROM tender_interest ti2 WHERE ti2.tender_id = t.tender_id AND ti2.contractor_id = $${1}) AS has_expressed_interest
+      EXISTS(SELECT 1 FROM tender_interest ti2 WHERE ti2.tender_id = t.tender_id AND ti2.contractor_id = $1) AS has_expressed_interest,
+      EXISTS(${participationSubquery}) AS has_participated
       ` : ""}
     FROM tender t
     JOIN branch b ON t.branch_id = b.branch_id
@@ -96,7 +111,12 @@ export async function GET(request: NextRequest) {
   if (isContractor) {
     params.push(userId);
     idx = 2;
-    sql += ` AND ts.status_code = 'Open'`;
+    // Open tenders are visible to every contractor (reduced fields applied
+    // below if they haven't participated). Closed/Awarded tenders only
+    // remain visible to contractors who actually participated — a
+    // non-participant loses visibility the moment a tender leaves Open,
+    // matching canViewTenderWithParticipation's detail-page gate.
+    sql += ` AND (ts.status_code = 'Open' OR (ts.status_code IN ('closed', 'awarded') AND EXISTS(${participationSubquery})))`;
   }
 
   if (statusCode) {
@@ -121,7 +141,9 @@ export async function GET(request: NextRequest) {
   const countParams: any[] = [];
   let cIdx = 1;
   if (isContractor) {
-    countSql += ` AND ts.status_code = 'Open'`;
+    countParams.push(userId);
+    cIdx = 2;
+    countSql += ` AND (ts.status_code = 'Open' OR (ts.status_code IN ('closed', 'awarded') AND EXISTS(${participationSubquery})))`;
   }
   if (statusCode) {
     countSql += ` AND ts.status_code = $${cIdx++}`;
@@ -134,7 +156,19 @@ export async function GET(request: NextRequest) {
   const countRes = await query(countSql, countParams);
   const total = parseInt(countRes.rows[0].count);
 
-  const cleanedRows = result.rows.map(({ status_code, ...rest }) => rest);
+  // "Simple details" for a contractor who hasn't participated in this
+  // (necessarily still-Open) tender: name/dates/branch/brand/status only —
+  // no description, PM contact, or handover/DLP operational details.
+  const cleanedRows = result.rows.map(({ status_code, ...rest }: any) => {
+    if (isContractor && !rest.has_participated) {
+      rest.tender_description = null;
+      rest.project_manager_email = null;
+      rest.expected_handover_date = null;
+      rest.handover_date = null;
+      rest.defect_liability_months = null;
+    }
+    return rest;
+  });
 
   return NextResponse.json(
     { data: cleanedRows, total, page, limit },
@@ -153,9 +187,12 @@ export async function POST(request: NextRequest) {
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
-    await logAuthEvent("PERMISSION_DENIED", session.user.id, request, `User ${session.user.id} attempted to create tender without admin role`);
-    return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403, headers: corsHeaders });
+  if (!isSuperUser(userRoleIds)) {
+    const allowed = await hasPermission(session.user.id, userRoleIds, "Tender Management", "create_tender");
+    if (!allowed) {
+      await logAuthEvent("PERMISSION_DENIED", session.user.id, request, `User ${session.user.id} attempted to create tender without permission`);
+      return NextResponse.json({ error: "Forbidden: insufficient permissions to create a tender" }, { status: 403, headers: corsHeaders });
+    }
   }
 
   const validation = await validateBody(request, tenderCreateSchema);

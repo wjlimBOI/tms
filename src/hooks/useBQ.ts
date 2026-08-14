@@ -19,6 +19,9 @@ export function useBQ(submissionId: string | string[] | undefined) {
   const [brands, setBrands] = useState<{ brand_id: number; brand_name: string }[]>([]);
   const [branches, setBranches] = useState<{ branch_id: number; branch_name: string; brand_id: number; brand_name: string }[]>([]);
   const [renovationTypes, setRenovationTypes] = useState<{ type_id: number; type_name: string }[]>([]);
+  const [workCategories, setWorkCategories] = useState<{ category_id: number; name: string; sort_order: number }[]>([]);
+  const [lastUpdateError, setLastUpdateError] = useState<{ error?: string; code?: string; tenderId?: number } | null>(null);
+  const [resubmissionRequest, setResubmissionRequest] = useState<{ instructions: string | null; due_by: string | null; created_at: string } | null>(null);
 
   // Fetch lookup data once
   useEffect(() => {
@@ -27,11 +30,13 @@ export function useBQ(submissionId: string | string[] | undefined) {
       fetch("/api/brands").then(res => res.json()),
       fetch("/api/branches").then(res => res.json()),
       fetch("/api/renovation-types").then(res => res.json()),
-    ]).then(([unitsData, brandsData, branchesData, typesData]) => {
+      fetch("/api/work-categories").then(res => res.json()),
+    ]).then(([unitsData, brandsData, branchesData, typesData, workCategoriesData]) => {
       setUnits(unitsData);
       setBrands(brandsData);
       setBranches(branchesData);
       setRenovationTypes(typesData);
+      setWorkCategories(workCategoriesData);
     }).catch(console.error);
   }, []);
 
@@ -45,17 +50,22 @@ export function useBQ(submissionId: string | string[] | undefined) {
       const data = await res.json();
       setSubmission(data.submission);
 
-      // Optional frontend override – works even if backend canEdit is wrong
+      // Optional frontend override – works even if backend canEdit is wrong,
+      // but must never grant editing once the tender itself has closed
+      // (2026-08-10) — that's a real lock (no more submissions), not a
+      // canEdit-computation bug this override exists to paper over.
       let editable = data.canEdit;
       if (!editable && session?.user) {
         const userRole = (session.user as any)?.role;
         const userId = (session.user as any)?.id;
         const ownerId = data.submission?.contractor_id || data.submission?.user_id;
-        if (userRole === 'contractor' && ownerId === userId) {
+        const tenderStillOpen = data.submission?.tender_status_code === "Open";
+        if (userRole === 'contractor' && ownerId === userId && tenderStillOpen) {
           editable = true;
         }
       }
       setCanEdit(editable);
+      setResubmissionRequest(data.resubmissionRequest || null);
 
       const items = (data.items || []).map((item: any) => ({
         ...item,
@@ -89,6 +99,7 @@ export function useBQ(submissionId: string | string[] | undefined) {
     // fails so the UI never shows a change that didn't actually persist.
     const previous = submission;
     setSubmission((prev: any) => ({ ...prev, ...fields }));
+    setLastUpdateError(null);
     try {
       const res = await fetch("/api/bq/submission", {
         method: "PUT",
@@ -97,6 +108,8 @@ export function useBQ(submissionId: string | string[] | undefined) {
       });
       if (!res.ok) {
         setSubmission(previous);
+        const body = await res.json().catch(() => null);
+        setLastUpdateError(body);
         console.error("Update failed");
         return false;
       }
@@ -369,16 +382,36 @@ export function useBQ(submissionId: string | string[] | undefined) {
     }
   }, [canEdit, confirm, categories, collectWithDescendants]);
 
-  // Add category
+  // Add category (optimistic — the name/sort_order come from the
+  // work-categories lookup fetched alongside units/brands/branches, so
+  // there's no need to wait on the server before showing the new category)
   const addCategory = useCallback(async (categoryId: number) => {
     if (!submission) return;
-    await fetch("/api/bq/category", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ submission_id: submission.submission_id, category_id: categoryId }),
-    });
-    await fetchBQ();
-  }, [submission, fetchBQ]);
+    const workCat = workCategories.find((c) => c.category_id === categoryId);
+    if (categories.some((c) => c.category_id === categoryId)) return;
+    const previousCategories = categories;
+    setCategories((prev) => [
+      ...prev,
+      {
+        category_id: categoryId,
+        category_name: workCat?.name || "",
+        sort_order: workCat?.sort_order ?? prev.length,
+        items: [],
+      },
+    ]);
+    try {
+      const res = await fetch("/api/bq/category", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submission_id: submission.submission_id, category_id: categoryId }),
+      });
+      if (!res.ok) throw new Error("Add category failed");
+    } catch (err) {
+      setCategories(previousCategories);
+      console.error(err);
+      toast.error("Could not add the category");
+    }
+  }, [submission, categories, workCategories, toast]);
 
   // Remove category (optimistic — the full category object, including its
   // items, is already in local state so it can be restored exactly on
@@ -435,6 +468,7 @@ export function useBQ(submissionId: string | string[] | undefined) {
     brands,
     branches,
     renovationTypes,
+    workCategories,
     updateItem,
     addNewItem,
     deleteItem,
@@ -454,6 +488,8 @@ export function useBQ(submissionId: string | string[] | undefined) {
     calculateCategoryTotal,
     grandTotal,
     refresh: fetchBQ,
+    lastUpdateError,
+    resubmissionRequest,
     resetToTemplate,   // <-- exported
   };
 }

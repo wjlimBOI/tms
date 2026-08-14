@@ -11,7 +11,7 @@ import {
   getBQStatusLabel,
   getDlpStatusBadgeStyle,
 } from "@/lib/statusColors";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperViewer } from "@/lib/roles";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog";
 import { Button, buttonVariants } from "@/components/ui/Button";
@@ -71,8 +71,9 @@ export default function DashboardPage() {
   const [eventsError, setEventsError] = useState<string | null>(null);
 
   const userRole = (session?.user as any)?.role_id;
+  const roleIds = ((session?.user as any)?.roleIds || []) as number[];
   const isContractor = userRole === ROLE_IDS.CONTRACTOR;
-  const isAdmin = userRole === ROLE_IDS.ADMIN;
+  const isAdmin = isSuperViewer(roleIds);
 
   // ========== CONTRACTORS REDIRECT TO /tenders ==========
   useEffect(() => {

@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperViewer } from "@/lib/roles";
 
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
+  if (!session || !isSuperViewer((session.user as any)?.roleIds || [])) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

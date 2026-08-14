@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ROLE_IDS } from "@/lib/roles";
-import { hasRole, hasPermission } from "@/lib/permissions";
+import { isSuperUser } from "@/lib/roles";
+import { hasPermission } from "@/lib/permissions";
 
 async function getDefaultTimings() {
   const result = await query(
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
 
   const userRoleIds = (session.user as any).roleIds || [];
   const userId = (session.user as any).id;
-  if (!hasRole(userRoleIds, ROLE_IDS.ADMIN)) {
+  if (!isSuperUser(userRoleIds)) {
     const allowed = await hasPermission(userId, userRoleIds, "Tender Management", "manage_tender_timings");
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -93,7 +93,7 @@ export async function PUT(req: NextRequest) {
 
   const userRoleIds = (session.user as any).roleIds || [];
   const userId = (session.user as any).id;
-  if (!hasRole(userRoleIds, ROLE_IDS.ADMIN)) {
+  if (!isSuperUser(userRoleIds)) {
     const allowed = await hasPermission(userId, userRoleIds, "Tender Management", "manage_tender_timings");
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

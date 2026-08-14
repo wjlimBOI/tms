@@ -15,3 +15,25 @@ export function getBrandColor(brandName: string) {
   }
   return { borderColor: "#9ca3af", bg: "#f9fafb", text: "#374151", badge: "#f3f4f6" };
 }
+
+// Slug for each brand's fixed color set, so callers that can't use inline
+// styles (e.g. OutletMap.tsx's Leaflet popups - blocked by this app's CSP,
+// which has no 'unsafe-inline' for style-src) can apply the color via a
+// static CSS class instead. Keep in sync with the `brandColors` keys above.
+const brandColorSlugs: Record<string, string> = {
+  "Yun Nam": "yun-nam",
+  "London": "london",
+  "New York": "new-york",
+  "Dorra": "dorra",
+  "Shakura": "shakura",
+  "Jonsson": "jonsson",
+  "Victoria": "victoria",
+};
+
+export function getBrandColorSlug(brandName: string): string {
+  const normalized = brandName.toLowerCase();
+  for (const [key, slug] of Object.entries(brandColorSlugs)) {
+    if (normalized.includes(key.toLowerCase())) return slug;
+  }
+  return "default";
+}

@@ -10,21 +10,20 @@ interface TableOfContentsProps {
 
 export function TableOfContents({ items }: TableOfContentsProps) {
   return (
-    <div className="toc-container mb-10 p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-      <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
-        Contents
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+    <nav className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-slate-900">Contents</p>
+      <ul className="space-y-0.5">
         {items.map((item) => (
-          <a
-            key={item.id}
-            href={`#${item.id}`}
-            className="toc-link text-cyan-600 hover:underline"
-          >
-            {item.label}
-          </a>
+          <li key={item.id}>
+            <a
+              href={`#${item.id}`}
+              className="block rounded-lg px-2 py-1.5 text-sm text-slate-600 transition-colors hover:bg-[#15406a]/5 hover:text-[#15406a]"
+            >
+              {item.label}
+            </a>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </nav>
   );
 }

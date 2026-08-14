@@ -7,6 +7,7 @@ import { getBranchStatusBadgeStyle, getBranchStatusLabel } from "@/lib/statusCol
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useNotify } from "@/components/ui/notification-provider";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { isSuperUser } from "@/lib/roles";
 
 // ---------- Interfaces ----------
 interface Branch {
@@ -38,17 +39,6 @@ const BRAND_COLORS: Record<number, string> = {
   5: '#00e6d7', // Victoria
   6: '#0082D7', // New York
   7: '#480A87', // Dorra
-};
-
-// ---------- Brand Display Names (short names) ----------
-const BRAND_DISPLAY_NAMES: Record<number, string> = {
-  1: 'Jonsson',
-  2: 'Shakura',
-  3: 'Yun Nam',
-  4: 'London',
-  5: 'Victoria',
-  6: 'New York',
-  7: 'Dorra',
 };
 
 // ---------- Brand Sort Order (custom) ----------
@@ -104,7 +94,7 @@ export default function AdminBranchesPage() {
   // Auth check
   useEffect(() => {
     if (status === "loading") return;
-    if (!session || (session.user as any).role_id !== 1) {
+    if (!session || !isSuperUser((session.user as any).roleIds || [])) {
       router.push("/");
     }
   }, [session, status, router]);
@@ -152,7 +142,8 @@ export default function AdminBranchesPage() {
   }, [brandFilter]);
 
   useEffect(() => {
-    if (session && (session.user as any).role_id === 1) {
+    const roleIds = ((session?.user as any)?.roleIds || []) as number[];
+    if (session && isSuperUser(roleIds)) {
       fetchBrands();
       fetchBranches();
     }
@@ -455,7 +446,7 @@ export default function AdminBranchesPage() {
                 >
                   <option value="">All Brands</option>
                   {brands.map((brand) => {
-                    const displayName = BRAND_DISPLAY_NAMES[brand.brand_id] || brand.brand_name;
+                    const displayName = brand.brand_name;
                     return (
                       <option key={brand.brand_id} value={brand.brand_id}>
                         {displayName}
@@ -617,7 +608,7 @@ export default function AdminBranchesPage() {
                   >
                     <option value="">Select a brand</option>
                     {brands.map((brand) => {
-                      const displayName = BRAND_DISPLAY_NAMES[brand.brand_id] || brand.brand_name;
+                      const displayName = brand.brand_name;
                       return (
                         <option key={brand.brand_id} value={brand.brand_id}>
                           {displayName}

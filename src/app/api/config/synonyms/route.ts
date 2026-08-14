@@ -5,9 +5,8 @@ import { query } from "@/lib/db";
 
 export async function GET() {
   try {
-    // Optional: protect this endpoint so only authenticated users can fetch synonyms
-    // const session = await getServerSession(authOptions);
-    // if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     // Fetch single‑word synonyms
     const synonymResult = await query(`SELECT base_term, variants FROM synonym_map`);

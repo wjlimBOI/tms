@@ -29,8 +29,7 @@ const partnerBrands = [
     name: "Yun Nam",
     src: "/logos/yun_nam.png",
     year: 1984,
-    cardBg: "#ff7600",
-    hoverBg: "#e56a00",
+    slug: "yun-nam",
     tagline: "HAIRCARE",
     description:
       "Innovative herb-infused treatments that overcome hair loss and hair-related problems.",
@@ -40,8 +39,7 @@ const partnerBrands = [
     name: "London",
     src: "/logos/london.png",
     year: 2001,
-    cardBg: "#cd0008",
-    hoverBg: "#b00008",
+    slug: "london",
     tagline: "Weight Management",
     description:
       "Award-winning slimming expert helping women achieve wellness goals for over 20 years.",
@@ -51,8 +49,7 @@ const partnerBrands = [
     name: "New York",
     src: "/logos/new_york.png",
     year: 2004,
-    cardBg: "#0082d7",
-    hoverBg: "#0072c0",
+    slug: "new-york",
     tagline: "Skin Solutions",
     description:
       "ONE-STOP Skin Solution Centre dedicated to restoring healthy skin for all skin types.",
@@ -62,8 +59,7 @@ const partnerBrands = [
     name: "Dorra",
     src: "/logos/dorra.png",
     year: 2011,
-    cardBg: "#480a87",
-    hoverBg: "#3d0875",
+    slug: "dorra",
     tagline: "Tummy, Hip & Thigh Slimming",
     description:
       "French lower body slimming expert with fat-burning tech to resolve stubborn areas.",
@@ -73,8 +69,7 @@ const partnerBrands = [
     name: "Shakura",
     src: "/logos/shakura.png",
     year: 2011,
-    cardBg: "#e61994",
-    hoverBg: "#cc1685",
+    slug: "shakura",
     tagline: "Pigmentation Beauty",
     description:
       "Japan's pigmentation & whitening specialist providing customised skin care solutions.",
@@ -84,8 +79,7 @@ const partnerBrands = [
     name: "Jonsson",
     src: "/logos/jonsson.png",
     year: 2013,
-    cardBg: "#b29014",
-    hoverBg: "#9e7f12",
+    slug: "jonsson",
     tagline: "PROTEIN\nHEALTHY HAIR GROWTH",
     description:
       "USA Hair Care Expertâ„¢ using hydrolyzed soy protein to restore a healthy scalp.",
@@ -95,8 +89,7 @@ const partnerBrands = [
     name: "Victoria",
     src: "/logos/victoria.png",
     year: 2015,
-    cardBg: "#0aaf8a",
-    hoverBg: "#089c7a",
+    slug: "victoria",
     tagline: "FACELIFT\nAGEING | SAGGING | WRINKLES",
     description:
       "V-Factor formula offers a painless, natural alternative to looking youthful across Asia.",
@@ -134,7 +127,6 @@ const syncSlideFocusability = (swiper: SwiperClass) => {
 export default function PublicHomePage() {
   const { status } = useSession();
   const router = useRouter();
-  const [hoveredBrand, setHoveredBrand] = useState<string | null>(null);
   const [isAutoplayPlaying, setIsAutoplayPlaying] = useState(true);
   const swiperRef = useRef<SwiperClass | null>(null);
 
@@ -301,14 +293,9 @@ export default function PublicHomePage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="brand-card-link block rounded-[28px] outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#071c2e]"
-                    onMouseEnter={() => setHoveredBrand(brand.name)}
-                    onMouseLeave={() => setHoveredBrand(null)}
-                    onFocus={() => setHoveredBrand(brand.name)}
-                    onBlur={() => setHoveredBrand(null)}
                   >
                     <Card
-                      className="brand-card-shell rounded-[28px] border-0 shadow-none"
-                      style={{ backgroundColor: hoveredBrand === brand.name ? brand.hoverBg : brand.cardBg }}
+                      className={`brand-card-shell brand-card-${brand.slug} rounded-[28px] border-0 shadow-none`}
                     >
                       <CardContent className="brand-card-content p-0">
                         <div className="brand-logo-wrap">
@@ -361,7 +348,15 @@ export default function PublicHomePage() {
           Submit your interest today and our team will reach out soon.
         </p>
         <div className="mt-9">
-          <Button onClick={goApply} variant="heroLight" size="pill">
+          <Button
+            onClick={goApply}
+            variant="heroLight"
+            size="pill"
+            className="gap-2.5 font-bold tracking-wide shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
             Submit Interest
           </Button>
         </div>

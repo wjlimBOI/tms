@@ -5,8 +5,17 @@ import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 import { sanitize } from "@/lib/sanitize";
-import { createApprovalRequestIfConfigured } from "@/lib/approvals";
 import { z } from "zod";
+
+// This route no longer represents a final bid submission - contractors
+// submit their actual bid by email now (AGENTS.md-documented decision, see
+// tenders/[id]/edit's own "Print Now" comment). What's left is the one real
+// job this route still does: persist the signed Form of Tender and write
+// the tender_acknowledgment row that PUT /api/bq/submission requires before
+// a BQ can move Draft -> Submitted. It intentionally never marks the
+// underlying tender_submission "Submitted" and never fires an approval
+// request for it - that already happens for real in PUT /api/bq/submission
+// once the actual BQ is submitted.
 
 const mainTendererSchema = z.object({
   fullName: z.string().max(200).optional().default(""),
@@ -195,46 +204,38 @@ export async function POST(
       currentCommitment,
     });
 
-    // 6. Find an existing DRAFT submission for this contractor & tender to
-    // update in place. A submission that's already Submitted is never
-    // overwritten - resubmitting creates a new round instead, so a prior
-    // submission is never silently destroyed.
-    const existingDraft = await query(
+    // 6. Find this contractor's most recent (non-deleted) round for this
+    // tender and attach the signed form data to it, whatever its status -
+    // this is a save of the Form of Tender, not a status transition, so it
+    // must never touch `status`/`submitted_at` (that's owned exclusively by
+    // PUT /api/bq/submission's real Draft -> Submitted flow).
+    const existingRound = await query(
       `SELECT submission_id FROM tender_submission
-       WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false AND status = 'Draft'
-       ORDER BY created_at DESC LIMIT 1`,
+       WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false
+       ORDER BY round_no DESC LIMIT 1`,
       [tenderId, contractorId]
     );
 
     let submissionId;
-    if (existingDraft.rows.length > 0) {
-      // Update the existing draft to "Submitted"
+    if (existingRound.rows.length > 0) {
       const updateRes = await query(
         `UPDATE tender_submission
-         SET status = $1, submitted_at = NOW(), updated_at = NOW(),
-             bq_name = $2, submission_data = $3
-         WHERE submission_id = $4
+         SET updated_at = NOW(), submission_data = $1
+         WHERE submission_id = $2
          RETURNING submission_id`,
-        ["Submitted", `Submission for Tender ${tenderId}`, formData, existingDraft.rows[0].submission_id]
+        [formData, existingRound.rows[0].submission_id]
       );
       submissionId = updateRes.rows[0].submission_id;
     } else {
-      // No draft to update - either this is the first submission, or the
-      // contractor already has a Submitted round and is submitting again.
-      // Either way, create a new round rather than overwriting history.
-      const roundRes = await query(
-        `SELECT COALESCE(MAX(round_no), 0) + 1 AS next_round
-         FROM tender_submission
-         WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false`,
-        [tenderId, contractorId]
-      );
-      const nextRound = roundRes.rows[0].next_round;
+      // Contractor signed the Form of Tender before ever starting a BQ
+      // draft - create round 1 as a Draft so it lines up with what
+      // POST /api/bq/submission would otherwise create.
       const insertRes = await query(
         `INSERT INTO tender_submission
-         (tender_id, contractor_id, round_no, status, submitted_at, created_at, updated_at, bq_name, submission_data)
-         VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW(), $5, $6)
+         (tender_id, contractor_id, round_no, status, created_at, updated_at, bq_name, submission_data)
+         VALUES ($1, $2, 1, 'Draft', NOW(), NOW(), $3, $4)
          RETURNING submission_id`,
-        [tenderId, contractorId, nextRound, "Submitted", `Submission for Tender ${tenderId}`, formData]
+        [tenderId, contractorId, `Submission for Tender ${tenderId}`, formData]
       );
       submissionId = insertRes.rows[0].submission_id;
     }
@@ -247,18 +248,6 @@ export async function POST(
          signature = EXCLUDED.signature,
          acknowledged_at = NOW()`,
       [tenderId, contractorId, declaration.signature || agreedName, JSON.stringify({})]
-    );
-
-    // Non-blocking: only creates an approval request if an admin has
-    // configured a "tender_submission" chain (admin/security > Workflow
-    // Config). No chain configured, no-op. Never delays or gates the
-    // submission itself — see src/lib/approvals.ts's header comment.
-    void createApprovalRequestIfConfigured(
-      "tender_submission",
-      submissionId,
-      contractorId,
-      `Bid submission for "${tender.tender_name}"`,
-      `/tenders/${tenderId}/submissions`
     );
 
     return NextResponse.json({ success: true, submissionId }, { status: 200 });

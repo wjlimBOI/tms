@@ -8,6 +8,7 @@ import DateRangePicker from '@/components/ui/DateRangePicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { useNotify } from '@/components/ui/notification-provider';
+import { isSuperUser } from '@/lib/roles';
 import {
   LineChart,
   Line,
@@ -54,8 +55,8 @@ export default function CostingsDashboard() {
         router.push('/login');
         return;
       }
-      const userRole = (session.user as any)?.role_id;
-      if (userRole === 1) {
+      const roleIds = (session.user as any)?.roleIds || [];
+      if (isSuperUser(roleIds)) {
         setHasAccess(true);
         return;
       }

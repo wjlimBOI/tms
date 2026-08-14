@@ -12,6 +12,7 @@ import { getBrandColor } from "@/lib/brandColors";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 import type { EventInput } from "@fullcalendar/core";
 import "./calendar.css";
+import { isSuperUser } from "@/lib/roles";
 
 // ---------- Dynamic FullCalendar import ----------
 const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
@@ -259,8 +260,8 @@ export default function CalendarPage() {
         router.push("/login");
         return;
       }
-      const userRole = (session.user as any)?.role_id;
-      if (userRole === 1) {
+      const roleIds = (session.user as any)?.roleIds || [];
+      if (isSuperUser(roleIds)) {
         setHasAccess(true);
         return;
       }
@@ -464,8 +465,8 @@ export default function CalendarPage() {
 
   const canEditEvent = (event: EventInput) => {
     if (!session) return false;
-    const userRole = (session.user as any)?.role_id;
-    if (userRole === 1) return true;
+    const roleIds = (session.user as any)?.roleIds || [];
+    if (isSuperUser(roleIds)) return true;
     return event.extendedProps?.created_by === session.user.id;
   };
 

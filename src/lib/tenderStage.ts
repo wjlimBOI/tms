@@ -3,7 +3,7 @@
 // can advance/revert, the F14 award guard) is unit-testable without a DB.
 // Keep this in sync with the route — it is the single source of truth for
 // these decisions, imported by the route rather than duplicated inline.
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 
 export const FINAL_STAGE = 3;
 export const INITIAL_STAGE = 0;
@@ -14,8 +14,8 @@ export const CANCELLED_STAGE = -1;
 // Awarded is handled exclusively by the award endpoint
 // (src/app/api/tenders/[id]/award/route.ts), not this one.
 export const allowedAdvanceRoles: Record<number, number[]> = {
-  0: [ROLE_IDS.ADMIN], // Upcoming -> Open
-  1: [ROLE_IDS.ADMIN], // Open -> Closed
+  0: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER], // Upcoming -> Open
+  1: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER], // Open -> Closed
 };
 
 // Map stage -> status_code
@@ -53,7 +53,7 @@ export function hasAdvancePermission(currentStage: number, userRoleIds: number[]
 }
 
 export function hasRevertPermission(userRoleIds: number[]): boolean {
-  return userRoleIds.includes(ROLE_IDS.ADMIN);
+  return isSuperUser(userRoleIds);
 }
 
 // F14: revert must not silently disagree with tender_award — refuse to

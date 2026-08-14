@@ -94,7 +94,7 @@
   }
 
   .print-section-heading {
-    display: table-header-group;
+    display: block !important;
     font-size: 14pt !important;
     font-weight: 700 !important;
     text-align: center !important;

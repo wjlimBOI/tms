@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperViewer } from "@/lib/roles";
 import { getDlpStatus } from "@/lib/dlp";
 import { sendDueDlpReminders } from "@/lib/tenderLifecycle";
 import type { AwardedTenderItem, DashboardNotification } from "@/types/dashboard";
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
   // own gate on this same data — any other internal role would otherwise see
   // who's bidding on live, pre-award tenders via this endpoint.
   let submittedNotifications: DashboardNotification[] = [];
-  if (userRoleIds.includes(ROLE_IDS.ADMIN)) {
+  if (isSuperViewer(userRoleIds)) {
     try {
       const submittedRes = await query(
         `SELECT s.submission_id, s.tender_id, t.tender_name, s.updated_at,

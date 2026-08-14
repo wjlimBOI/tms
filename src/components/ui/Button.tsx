@@ -23,7 +23,7 @@ const buttonVariants = cva(
         // tokens (bg-background, border-border, etc.) don't have enough
         // contrast to be usable. Pair with size="pill".
         heroLight:
-          "bg-white font-normal text-[var(--navy)] hover:bg-[var(--silver-pale)] focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--navy)]",
+          "bg-white font-normal text-[#15406a] hover:bg-[var(--silver-pale)] focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--navy)]",
         // Plain text link tab-stop on a dark background (e.g. a translucent
         // nav bar). Pair with size="inline" or size="navPill".
         heroNavLink:

@@ -20,10 +20,12 @@ import {
 } from "@dnd-kit/sortable";
 import { SortableItem } from "@/components/ui/SortableItem";
 import { format } from "date-fns";
-import { Lock, Clock, GitBranch, Mail } from "lucide-react";
+import { Lock, Clock, GitBranch, Search, ShieldCheck, Check, AlertTriangle, Info, X, Scale, ScrollText } from "lucide-react";
 import { useNotify } from "@/components/ui/notification-provider";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import DateTimePicker from "@/components/ui/DateTimePicker";
+import { isSuperUser, ROLE_IDS } from "@/lib/roles";
 
 // ============================================================
 // Types & Shared Helpers
@@ -31,6 +33,8 @@ import DateTimePicker from "@/components/ui/DateTimePicker";
 interface Role {
   role_id: number;
   role_name: string;
+  display_name?: string;
+  sort_order?: number;
 }
 
 interface StepDefinition {
@@ -75,11 +79,11 @@ interface Notification {
   created_at: string;
 }
 
-function notificationIcon(title: string): string {
+function NotificationIcon({ title }: { title: string }) {
   const t = title.toLowerCase();
-  if (t.includes("approved")) return "✓";
-  if (t.includes("rejected")) return "⚠️";
-  return "ℹ️";
+  if (t.includes("approved")) return <Check className="w-5 h-5" aria-hidden="true" />;
+  if (t.includes("rejected")) return <AlertTriangle className="w-5 h-5" aria-hidden="true" />;
+  return <Info className="w-5 h-5" aria-hidden="true" />;
 }
 
 const roleDisplayNames: Record<string, string> = {
@@ -232,7 +236,7 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
   if (loading) {
     return (
       <div className="text-center py-8">
-        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <div className="w-8 h-8 border-3 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
         <p className="text-slate-500">Loading default timings...</p>
       </div>
     );
@@ -244,7 +248,7 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
         <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={fetchTimings}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+          className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm"
         >
           Retry
         </button>
@@ -255,14 +259,14 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
   const hasAnyTiming = Object.values(timings).some((v) => v !== "");
 
   return (
-    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl p-6">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-gray-800">
           Tender Timings
         </h2>
         <button
           onClick={fetchTimings}
-          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+          className="text-sm text-[#15406a] hover:underline flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -277,9 +281,9 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
       </p>
 
       {!hasAnyTiming && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+        <p className="mb-4 text-sm text-slate-400">
           No default timings have been set yet. Use the form below to set the default times.
-        </div>
+        </p>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
@@ -292,7 +296,7 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
             name="default_tender_start"
             value={timings.default_tender_start}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-[#15406a]"
           />
           <p className="text-xs text-gray-400 mt-1">The default time when the tender period begins.</p>
         </div>
@@ -306,7 +310,7 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
             name="default_download_start"
             value={timings.default_download_start}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-[#15406a]"
           />
           <p className="text-xs text-gray-400 mt-1">The default time when contractors can start downloading documents.</p>
         </div>
@@ -320,7 +324,7 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
             name="default_closing_time"
             value={timings.default_closing_time}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-[#15406a]"
           />
           <p className="text-xs text-gray-400 mt-1">The default time of the deadline for tender submissions.</p>
         </div>
@@ -334,7 +338,7 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
             name="default_submission_start"
             value={timings.default_submission_start}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-[#15406a]"
           />
           <p className="text-xs text-gray-400 mt-1">The default time when the submission window opens.</p>
         </div>
@@ -348,7 +352,7 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
             name="default_submission_end"
             value={timings.default_submission_end}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-[#15406a]"
           />
           <p className="text-xs text-gray-400 mt-1">The default time when the submission window closes.</p>
         </div>
@@ -357,20 +361,17 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+            className="px-5 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Timings"}
           </button>
         </div>
       </form>
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-        <Clock className="w-4 h-4 inline mr-2" />
-        <span>
-          <strong>Note:</strong> These times are applied to the corresponding date fields when a new tender is created.
-          The actual dates (day, month, year) can be set per tender; only the times are fixed by these defaults.
-        </span>
-      </div>
+      <p className="mt-6 text-xs text-slate-400">
+        These times are applied to the corresponding date fields when a new tender is created. The actual dates
+        (day, month, year) can be set per tender; only the times are fixed by these defaults.
+      </p>
     </div>
   );
 }
@@ -442,7 +443,7 @@ function CCSettings() {
   if (loading) {
     return (
       <div className="text-center py-8">
-        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <div className="w-8 h-8 border-3 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
         <p className="text-slate-500">Loading CC settings...</p>
       </div>
     );
@@ -454,7 +455,7 @@ function CCSettings() {
         <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={fetchData}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+          className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm"
         >
           Retry
         </button>
@@ -463,12 +464,12 @@ function CCSettings() {
   }
 
   return (
-    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl p-6">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-gray-800">CC Recipients</h2>
         <button
           onClick={fetchData}
-          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+          className="text-sm text-[#15406a] hover:underline flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -500,7 +501,7 @@ function CCSettings() {
                     type="checkbox"
                     checked={ccRoleIds.includes(role.role_id)}
                     onChange={() => toggleRole(role.role_id)}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-slate-300 text-[#15406a] focus:ring-[#15406a]"
                   />
                 </td>
               </tr>
@@ -513,18 +514,15 @@ function CCSettings() {
         <button
           onClick={saveSettings}
           disabled={saving}
-          className="px-5 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+          className="px-5 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save CC Settings"}
         </button>
       </div>
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-        <Mail className="w-4 h-4 inline mr-2" />
-        <span>
-          <strong>Note:</strong> CC recipients will receive a copy of all relevant tender notifications. This is separate from the approver list for extensions.
-        </span>
-      </div>
+      <p className="mt-6 text-xs text-slate-400">
+        CC recipients will receive a copy of all relevant tender notifications. This is separate from the approver list for extensions.
+      </p>
     </div>
   );
 }
@@ -595,7 +593,7 @@ function NotificationEmailSettings() {
   if (loading) {
     return (
       <div className="text-center py-8">
-        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <div className="w-8 h-8 border-3 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
         <p className="text-slate-500">Loading notification settings...</p>
       </div>
     );
@@ -607,7 +605,7 @@ function NotificationEmailSettings() {
         <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={fetchData}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+          className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm"
         >
           Retry
         </button>
@@ -616,12 +614,12 @@ function NotificationEmailSettings() {
   }
 
   return (
-    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl p-6">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-gray-800">Email Notifications</h2>
         <button
           onClick={fetchData}
-          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+          className="text-sm text-[#15406a] hover:underline flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -659,7 +657,7 @@ function NotificationEmailSettings() {
                       checked={s.email_enabled}
                       disabled={savingType === s.event_type}
                       onChange={() => toggle(s.event_type, !s.email_enabled)}
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                      className="w-4 h-4 rounded border-slate-300 text-[#15406a] focus:ring-[#15406a] disabled:opacity-50"
                       aria-label={`Toggle email for ${s.label}`}
                     />
                   </label>
@@ -670,13 +668,9 @@ function NotificationEmailSettings() {
         </table>
       </div>
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-        <Mail className="w-4 h-4 inline mr-2" />
-        <span>
-          <strong>Note:</strong> Disabling an event here only stops the email — recipients still see the
-          in-app notification bell alert.
-        </span>
-      </div>
+      <p className="mt-6 text-xs text-slate-400">
+        Disabling an event here only stops the email — recipients still see the in-app notification bell alert.
+      </p>
     </div>
   );
 }
@@ -688,12 +682,13 @@ export default function SecurityDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
-    "notifications" | "config" | "permissions" | "timelock" | "audit" | "tender-settings"
+    "notifications" | "config" | "permissions" | "timelock" | "audit" | "tender-settings" | "data-requests" | "compliance"
   >("notifications");
   const [activeSubTab, setActiveSubTab] = useState<"timings" | "cc" | "email">("timings");
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canAccessCompliance, setCanAccessCompliance] = useState(false);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
   useEffect(() => {
@@ -702,8 +697,9 @@ export default function SecurityDashboard() {
       router.push("/login");
       return;
     }
-    const userRole = (session.user as any)?.role_id;
-    if (userRole === 1) setIsAdmin(true);
+    const roleIds = (session.user as any)?.roleIds || [];
+    if (isSuperUser(roleIds)) setIsAdmin(true);
+    if (isSuperUser(roleIds) || roleIds.includes(ROLE_IDS.LEGAL_TEAM)) setCanAccessCompliance(true);
 
     const fetchPermissions = async () => {
       try {
@@ -739,9 +735,9 @@ export default function SecurityDashboard() {
 
   if (loading || status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee]">
         <div className="text-center animate-pulse">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-500 font-medium">Loading security portal…</p>
         </div>
       </div>
@@ -749,10 +745,10 @@ export default function SecurityDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f7f4ee] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8 backdrop-blur-sm bg-white/30 rounded-2xl p-6 border border-white/20 shadow-xl">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+        <div className="mb-8 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <h1 className="text-3xl font-bold text-slate-900">
             Security Dashboard
           </h1>
           <p className="text-sm text-gray-600 mt-1">
@@ -772,18 +768,26 @@ export default function SecurityDashboard() {
                 <TabButton active={activeTab === "tender-settings"} onClick={() => setActiveTab("tender-settings")} label="Tender Settings" />
               </>
             )}
+            {canAccessCompliance && (
+              <>
+                <TabButton active={activeTab === "data-requests"} onClick={() => setActiveTab("data-requests")} label="Data Requests" />
+                <TabButton active={activeTab === "compliance"} onClick={() => setActiveTab("compliance")} label="Compliance" />
+              </>
+            )}
           </nav>
         </div>
 
         <div className="transition-all duration-500 ease-out">
           {activeTab === "notifications" && <Notifications />}
           {activeTab === "config" && isAdmin && <WorkflowConfig roles={roles} />}
-          {activeTab === "permissions" && isAdmin && <RolePermissions roles={roles} userPermissions={userPermissions} />}
+          {activeTab === "permissions" && isAdmin && <RolePermissions roles={roles} userPermissions={userPermissions} onRolesChanged={fetchRoles} />}
           {activeTab === "timelock" && isAdmin && <TimeLockedAccess roles={roles} />}
           {activeTab === "audit" && isAdmin && <AuditLogs />}
+          {activeTab === "data-requests" && canAccessCompliance && <DataSubjectRequests />}
+          {activeTab === "compliance" && canAccessCompliance && <ComplianceRegister />}
           {activeTab === "tender-settings" && isAdmin && (
             <>
-              <div className="flex border-b border-gray-200 mb-6">
+              <div className="flex space-x-8 border-b border-gray-200 mb-6">
                 {canViewTimings && (
                   <SubTabButton
                     active={activeSubTab === "timings"}
@@ -823,13 +827,13 @@ function TabButton({ active, onClick, label }: { active: boolean; onClick: () =>
       onClick={onClick}
       className={`relative pb-4 px-1 font-medium text-sm transition-all duration-300 whitespace-nowrap ${
         active
-          ? "text-blue-600"
+          ? "text-[#15406a]"
           : "text-gray-500 hover:text-gray-700"
       }`}
     >
       {label}
       {active && (
-        <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full animate-slide-in" />
+        <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#15406a] rounded-full animate-slide-in" />
       )}
     </button>
   );
@@ -841,7 +845,7 @@ function SubTabButton({ active, onClick, label }: { active: boolean; onClick: ()
       onClick={onClick}
       className={`relative pb-3 px-1 text-sm font-medium transition-all duration-300 ${
         active
-          ? "text-blue-600 border-b-2 border-blue-600"
+          ? "text-[#15406a] border-b-2 border-[#15406a]"
           : "text-gray-500 hover:text-gray-700"
       }`}
     >
@@ -906,8 +910,8 @@ function Notifications() {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
-    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-md">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/20">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-gray-800">Notifications</h2>
           {unreadCount > 0 && (
@@ -919,7 +923,7 @@ function Notifications() {
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
-            className="text-sm text-blue-600 hover:text-blue-700 transition"
+            className="text-sm text-[#15406a] hover:text-[#0d2d4a] transition"
           >
             Mark all as read
           </button>
@@ -928,7 +932,7 @@ function Notifications() {
 
       {loading ? (
         <div className="p-8 text-center text-gray-500">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           Loading notifications…
         </div>
       ) : error ? (
@@ -936,7 +940,7 @@ function Notifications() {
           <p className="text-gray-500 mb-3">Couldn't load notifications. Please check your connection and try again.</p>
           <button
             onClick={fetchNotifications}
-            className="text-sm text-blue-600 hover:text-blue-700 transition font-medium"
+            className="text-sm text-[#15406a] hover:text-[#0d2d4a] transition font-medium"
           >
             Retry
           </button>
@@ -952,13 +956,13 @@ function Notifications() {
               <button
                 key={notification.notification_id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`w-full text-left p-5 transition-all duration-200 hover:bg-white/30 ${
-                  !notification.is_read ? "bg-white/20" : ""
+                className={`w-full text-left p-5 transition-all duration-200 hover:bg-slate-50 ${
+                  !notification.is_read ? "bg-slate-50" : ""
                 }`}
               >
                 <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg bg-blue-100 text-blue-800 border border-blue-200">
-                    {notificationIcon(notification.title)}
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-[#15406a] border border-slate-200">
+                    <NotificationIcon title={notification.title} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-start justify-between gap-2">
@@ -1173,8 +1177,8 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
   const isLoading = loadingMap[activeResource];
 
   return (
-    <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl">
-      <div className="border-b border-white/20 px-6 pt-4">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+      <div className="border-b border-slate-200 px-6 pt-4">
         <div className="flex space-x-6 overflow-x-auto">
           {Object.entries(resourceConfig).map(([key, config]) => (
             <button
@@ -1182,13 +1186,13 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
               onClick={() => setActiveResource(key as ResourceType)}
               className={`relative pb-3 px-1 text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 activeResource === key
-                  ? "text-blue-600"
+                  ? "text-[#15406a]"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
               {config.label}
               {activeResource === key && (
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full animate-slide-in" />
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#15406a] rounded-full animate-slide-in" />
               )}
             </button>
           ))}
@@ -1209,7 +1213,7 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
             <button
               onClick={() => startEdit(activeResource)}
               disabled={isLoading}
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg text-sm font-medium transition-all"
+              className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm font-medium transition-all"
             >
               Edit Workflow
             </button>
@@ -1225,22 +1229,22 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
         ) : !isEditing ? (
           <div className="divide-y divide-gray-200 rounded-xl overflow-hidden">
             {currentSteps.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 bg-white/30 rounded-xl">
+              <div className="p-8 text-center text-gray-500 bg-slate-50 rounded-xl">
                 No acknowledgment steps defined. Click "Edit Workflow" to create one.
               </div>
             ) : (
               currentSteps.map((step, idx) => (
                 <div
                   key={idx}
-                  className="p-4 flex flex-wrap items-center gap-3 bg-white/30 backdrop-blur-sm hover:bg-white/50 transition"
+                  className="p-4 flex flex-wrap items-center gap-3 bg-slate-50 hover:bg-slate-50 transition"
                 >
                   <span className="font-mono text-gray-400 w-8">#{idx + 1}</span>
                   <span className="font-medium text-gray-800 w-48">
                     {getRoleDisplayName(step.role_name || "Unknown role")}
                   </span>
                   {step.deadline_hours && (
-                    <span className="text-xs text-amber-600">
-                      ⏱️ Must complete within {step.deadline_hours}h
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                      <Clock className="w-3 h-3" aria-hidden="true" /> Must complete within {step.deadline_hours}h
                     </span>
                   )}
                 </div>
@@ -1312,7 +1316,7 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
               <button
                 onClick={() => saveChain(activeResource)}
                 disabled={isSaving}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-[#15406a] text-white rounded-lg text-sm disabled:opacity-50"
               >
                 {isSaving ? "Saving..." : "Save Workflow"}
               </button>
@@ -1326,7 +1330,7 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
           </div>
         )}
       </div>
-      <div className="p-4 text-sm text-gray-500 border-t bg-white/20 rounded-b-2xl flex items-center gap-2">
+      <div className="p-4 text-sm text-gray-500 border-t bg-slate-50 rounded-b-2xl flex items-center gap-2">
         <GitBranch className="w-4 h-4" />
         <span>
           Define the sequence of acknowledgment steps (e.g., who must approve in which order). For each step, you can optionally set a time limit (in hours). If a step exceeds its deadline, the workflow may be escalated or cancelled.
@@ -1337,10 +1341,12 @@ function WorkflowConfig({ roles }: { roles: Role[] }) {
 }
 
 // ============================================================
-// Role Permissions – single table with integrated Extension Approver
+// Role Permissions – single table with integrated Extension Approver,
+// Extension CC, and Award Approver columns
 // ============================================================
-function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermissions: string[] }) {
+function RolePermissions({ roles, userPermissions, onRolesChanged }: { roles: Role[]; userPermissions: string[]; onRolesChanged: () => Promise<void> | void }) {
   const toast = useNotify();
+  const confirm = useConfirm();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePerms, setRolePerms] = useState<Record<number, number[]>>({});
   const [loading, setLoading] = useState(true);
@@ -1348,16 +1354,116 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
   const [missingBudgetCalc, setMissingBudgetCalc] = useState(false);
   const [missingTimings, setMissingTimings] = useState(false);
 
-  // Extension approver state: role_id -> { id, is_approver } | null
-  const [extensionData, setExtensionData] = useState<Record<number, { id: number; is_approver: boolean }>>({});
+  // Extension approver/CC state: role_id -> { id, is_approver, is_cc } | null
+  const [extensionData, setExtensionData] = useState<Record<number, { id: number; is_approver: boolean; is_cc: boolean }>>({});
   const [extensionLoading, setExtensionLoading] = useState(true);
   const [extensionSaving, setExtensionSaving] = useState<Record<number, boolean>>({});
+  const [extensionCcSaving, setExtensionCcSaving] = useState<Record<number, boolean>>({});
+
+  // Award approver state: role_id -> { id, is_approver } | null
+  const [awardData, setAwardData] = useState<Record<number, { id: number; is_approver: boolean }>>({});
+  const [awardSaving, setAwardSaving] = useState<Record<number, boolean>>({});
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newPermName, setNewPermName] = useState("");
   const [newPermModule, setNewPermModule] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  // ---------- Role management (create/edit/delete) ----------
+  const [showManageRoles, setShowManageRoles] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleDisplayName, setNewRoleDisplayName] = useState("");
+  const [addingRole, setAddingRole] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
+  const [editRoleDisplayName, setEditRoleDisplayName] = useState("");
+  const [savingRoleId, setSavingRoleId] = useState<number | null>(null);
+  const [deletingRoleId, setDeletingRoleId] = useState<number | null>(null);
+
+  const handleAddRole = async () => {
+    if (!newRoleName.trim() || !newRoleDisplayName.trim()) {
+      toast.error("Please enter both a role name and a display name");
+      return;
+    }
+    setAddingRole(true);
+    try {
+      const res = await fetch("/api/admin/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role_name: newRoleName.trim(),
+          display_name: newRoleDisplayName.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create role");
+      toast.success(`Role "${newRoleDisplayName.trim()}" created`);
+      setNewRoleName("");
+      setNewRoleDisplayName("");
+      await onRolesChanged();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create role");
+    } finally {
+      setAddingRole(false);
+    }
+  };
+
+  const startEditRole = (role: Role) => {
+    setEditingRoleId(role.role_id);
+    setEditRoleDisplayName(role.display_name || role.role_name);
+  };
+
+  const cancelEditRole = () => {
+    setEditingRoleId(null);
+    setEditRoleDisplayName("");
+  };
+
+  const handleSaveRole = async (roleId: number) => {
+    if (!editRoleDisplayName.trim()) {
+      toast.error("Display name cannot be empty");
+      return;
+    }
+    setSavingRoleId(roleId);
+    try {
+      const res = await fetch(`/api/admin/roles/${roleId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ display_name: editRoleDisplayName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update role");
+      toast.success("Role updated");
+      setEditingRoleId(null);
+      await onRolesChanged();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update role");
+    } finally {
+      setSavingRoleId(null);
+    }
+  };
+
+  const handleDeleteRole = async (role: Role) => {
+    if (!(await confirm({
+      description: `Delete the role "${role.display_name || role.role_name}"? This cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+    }))) return;
+    setDeletingRoleId(role.role_id);
+    try {
+      const res = await fetch(`/api/admin/roles/${role.role_id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete role");
+      toast.success("Role deleted");
+      await onRolesChanged();
+    } catch (err: any) {
+      // Real, expected case: the API refuses to delete a role that's still
+      // assigned to users (409) — surface that message as-is rather than a
+      // generic failure, since it tells the admin exactly what to do next.
+      toast.error(err.message || "Failed to delete role");
+    } finally {
+      setDeletingRoleId(null);
+    }
+  };
 
   const modules = [
     "Tender Management",
@@ -1373,6 +1479,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
   useEffect(() => {
     fetchPermissionsAndMappings();
     fetchExtensionSettings();
+    fetchAwardSettings();
   }, []);
 
   const fetchPermissionsAndMappings = async () => {
@@ -1442,9 +1549,9 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
       const res = await fetch("/api/admin/extension-settings");
       if (!res.ok) throw new Error("Failed to load extension settings");
       const data = await res.json();
-      const map: Record<number, { id: number; is_approver: boolean }> = {};
+      const map: Record<number, { id: number; is_approver: boolean; is_cc: boolean }> = {};
       data.forEach((item: any) => {
-        map[item.role_id] = { id: item.id, is_approver: item.is_approver };
+        map[item.role_id] = { id: item.id, is_approver: item.is_approver, is_cc: item.is_cc };
       });
       setExtensionData(map);
     } catch (err: any) {
@@ -1455,51 +1562,72 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
     }
   };
 
-  // Toggle extension approver – auto‑create if missing
-  const toggleExtensionApprover = async (roleId: number) => {
+  const fetchAwardSettings = async () => {
+    try {
+      const res = await fetch("/api/admin/award-settings");
+      if (!res.ok) throw new Error("Failed to load award settings");
+      const data = await res.json();
+      const map: Record<number, { id: number; is_approver: boolean }> = {};
+      data.forEach((item: any) => {
+        map[item.role_id] = { id: item.id, is_approver: item.is_approver };
+      });
+      setAwardData(map);
+    } catch (err: any) {
+      toast.error("Failed to load award settings");
+      console.error(err);
+    }
+  };
+
+  // Toggle extension approver/CC – auto‑create if missing. Shared by both
+  // toggles below since they operate on the same tender_extension_settings
+  // row, just a different field.
+  const toggleExtensionField = async (
+    roleId: number,
+    field: "is_approver" | "is_cc",
+    setSavingState: React.Dispatch<React.SetStateAction<Record<number, boolean>>>,
+    label: string
+  ) => {
     const current = extensionData[roleId];
-    const newValue = current ? !current.is_approver : true;
+    const newValue = current ? !current[field] : true;
 
     // Optimistic update
     if (current) {
       setExtensionData((prev) => ({
         ...prev,
-        [roleId]: { ...prev[roleId], is_approver: newValue },
+        [roleId]: { ...prev[roleId], [field]: newValue },
       }));
     } else {
       setExtensionData((prev) => ({
         ...prev,
-        [roleId]: { id: -1, is_approver: newValue }, // temporary
+        [roleId]: { id: -1, is_approver: false, is_cc: false, [field]: newValue }, // temporary
       }));
     }
-    setExtensionSaving((prev) => ({ ...prev, [roleId]: true }));
+    setSavingState((prev) => ({ ...prev, [roleId]: true }));
 
     try {
       let response;
       if (current) {
-        // Update existing
         response = await fetch(`/api/admin/extension-settings/${current.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ is_approver: newValue }),
+          body: JSON.stringify({ [field]: newValue }),
         });
       } else {
-        // Create new setting
         response = await fetch("/api/admin/extension-settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role_id: roleId, is_approver: newValue }),
+          body: JSON.stringify({ role_id: roleId, [field]: newValue }),
         });
       }
       if (!response.ok) throw new Error("Failed to update");
-      toast.success("Extension approver updated");
+      toast.success(`${label} updated`);
       await fetchExtensionSettings(); // re-sync
     } catch (err: any) {
       // Rollback
       if (current) {
         setExtensionData((prev) => ({
           ...prev,
-          [roleId]: { ...prev[roleId], is_approver: !newValue },
+          [roleId]: { ...prev[roleId], [field]: !newValue },
         }));
       } else {
         setExtensionData((prev) => {
@@ -1509,7 +1637,59 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
       }
       toast.error(`Error: ${err.message}`);
     } finally {
-      setExtensionSaving((prev) => ({ ...prev, [roleId]: false }));
+      setSavingState((prev) => ({ ...prev, [roleId]: false }));
+    }
+  };
+
+  const toggleExtensionApprover = (roleId: number) =>
+    toggleExtensionField(roleId, "is_approver", setExtensionSaving, "Extension approver");
+  const toggleExtensionCC = (roleId: number) =>
+    toggleExtensionField(roleId, "is_cc", setExtensionCcSaving, "Extension CC recipient");
+
+  // Toggle award approver – auto‑create if missing. Same pattern as above,
+  // over the separate tender_award_settings table (no is_cc column there —
+  // award decision emails have no CC concept today).
+  const toggleAwardApprover = async (roleId: number) => {
+    const current = awardData[roleId];
+    const newValue = current ? !current.is_approver : true;
+
+    if (current) {
+      setAwardData((prev) => ({ ...prev, [roleId]: { ...prev[roleId], is_approver: newValue } }));
+    } else {
+      setAwardData((prev) => ({ ...prev, [roleId]: { id: -1, is_approver: newValue } }));
+    }
+    setAwardSaving((prev) => ({ ...prev, [roleId]: true }));
+
+    try {
+      let response;
+      if (current) {
+        response = await fetch(`/api/admin/award-settings/${current.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_approver: newValue }),
+        });
+      } else {
+        response = await fetch("/api/admin/award-settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role_id: roleId, is_approver: newValue }),
+        });
+      }
+      if (!response.ok) throw new Error("Failed to update");
+      toast.success("Award approver updated");
+      await fetchAwardSettings(); // re-sync
+    } catch (err: any) {
+      if (current) {
+        setAwardData((prev) => ({ ...prev, [roleId]: { ...prev[roleId], is_approver: !newValue } }));
+      } else {
+        setAwardData((prev) => {
+          const { [roleId]: _, ...rest } = prev;
+          return rest;
+        });
+      }
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setAwardSaving((prev) => ({ ...prev, [roleId]: false }));
     }
   };
 
@@ -1602,8 +1782,8 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
   if (loading || extensionLoading) {
     return (
       <div className="animate-pulse space-y-4">
-        <div className="h-10 bg-white/50 rounded-lg w-1/3" />
-        <div className="h-64 bg-white/50 rounded-xl" />
+        <div className="h-10 bg-slate-50 rounded-lg w-1/3" />
+        <div className="h-64 bg-slate-50 rounded-xl" />
       </div>
     );
   }
@@ -1613,18 +1793,123 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-800">Role Permissions</h2>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition"
-          >
-            + Add Permission
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowManageRoles((v) => !v)}
+              className="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition"
+            >
+              {showManageRoles ? "Hide Manage Roles" : "Manage Roles"}
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition"
+            >
+              + Add Permission
+            </button>
+          </div>
         </div>
 
+        {showManageRoles && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4">
+            <div className="divide-y divide-gray-200">
+              {roles.map((role) => (
+                <div key={role.role_id} className="flex items-center justify-between gap-3 py-2.5">
+                  {editingRoleId === role.role_id ? (
+                    <>
+                      <div className="flex-1 flex items-center gap-2">
+                        <span className="text-xs text-gray-500 font-mono w-32 truncate" title={role.role_name}>
+                          {role.role_name}
+                        </span>
+                        <input
+                          type="text"
+                          value={editRoleDisplayName}
+                          onChange={(e) => setEditRoleDisplayName(e.target.value)}
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="Display name"
+                        />
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleSaveRole(role.role_id)}
+                          disabled={savingRoleId === role.role_id}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition disabled:opacity-50"
+                        >
+                          {savingRoleId === role.role_id ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={cancelEditRole}
+                          disabled={savingRoleId === role.role_id}
+                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex-1 flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                          {role.display_name || getRoleDisplayName(role.role_name)}
+                        </span>
+                        <span className="text-xs text-gray-400 font-mono truncate">({role.role_name})</span>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => startEditRole(role)}
+                          className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-medium transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteRole(role)}
+                          disabled={deletingRoleId === role.role_id}
+                          className="px-3 py-1.5 bg-white border border-red-300 hover:bg-red-50 text-red-600 rounded-lg text-xs font-medium transition disabled:opacity-50"
+                        >
+                          {deletingRoleId === role.role_id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-end gap-2 pt-3 border-t border-gray-200">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Role name (internal)</label>
+                <input
+                  type="text"
+                  value={newRoleName}
+                  onChange={(e) => setNewRoleName(e.target.value)}
+                  placeholder="e.g. Regional Auditor"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Display name</label>
+                <input
+                  type="text"
+                  value={newRoleDisplayName}
+                  onChange={(e) => setNewRoleDisplayName(e.target.value)}
+                  placeholder="e.g. Regional Auditor"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <button
+                onClick={handleAddRole}
+                disabled={addingRole}
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 whitespace-nowrap"
+              >
+                {addingRole ? "Adding..." : "+ Add Role"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* SINGLE TABLE – integrated Extension Approver column */}
-        <div className="backdrop-blur-sm bg-white/40 rounded-xl border border-white/20 shadow-md overflow-x-auto">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-white/50">
+            <thead className="bg-slate-50">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
@@ -1640,13 +1925,19 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                 <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Extension Approver
                 </th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Extension CC
+                </th>
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Award Approver
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {roles.map((role) => (
                 <tr
                   key={role.role_id}
-                  className="hover:bg-white/50 transition-colors duration-150"
+                  className="hover:bg-slate-50 transition-colors duration-150"
                 >
                   <td className="px-6 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
                     {getRoleDisplayName(role.role_name)}
@@ -1658,7 +1949,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                         checked={(rolePerms[role.role_id] || []).includes(perm.permission_id)}
                         onChange={() => togglePermission(role.role_id, perm.permission_id)}
                         disabled={perm.permission_id < 0}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-transform hover:scale-110 disabled:opacity-50"
+                        className="rounded border-gray-300 text-[#15406a] focus:ring-[#15406a] transition-transform hover:scale-110 disabled:opacity-50"
                       />
                     </td>
                   ))}
@@ -1668,25 +1959,46 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                       checked={extensionData[role.role_id]?.is_approver || false}
                       onChange={() => toggleExtensionApprover(role.role_id)}
                       disabled={extensionSaving[role.role_id]}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-transform hover:scale-110 disabled:opacity-50"
+                      className="rounded border-gray-300 text-[#15406a] focus:ring-[#15406a] transition-transform hover:scale-110 disabled:opacity-50"
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={extensionData[role.role_id]?.is_cc || false}
+                      onChange={() => toggleExtensionCC(role.role_id)}
+                      disabled={extensionCcSaving[role.role_id]}
+                      className="rounded border-gray-300 text-[#15406a] focus:ring-[#15406a] transition-transform hover:scale-110 disabled:opacity-50"
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={awardData[role.role_id]?.is_approver || false}
+                      onChange={() => toggleAwardApprover(role.role_id)}
+                      disabled={awardSaving[role.role_id]}
+                      className="rounded border-gray-300 text-[#15406a] focus:ring-[#15406a] transition-transform hover:scale-110 disabled:opacity-50"
                     />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="p-5 border-t border-white/20 flex justify-end bg-white/30">
+          <div className="p-5 border-t border-slate-200 flex justify-end bg-slate-50">
             <button
               onClick={savePermissions}
               disabled={saving}
-              className="px-5 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50"
+              className="px-5 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save Permissions"}
             </button>
           </div>
         </div>
         <p className="text-xs text-slate-400 mt-1">
-          Tip: Toggle "Extension Approver" to allow the role to approve extension requests.
+          Tip: "Extension Approver" lets a role approve EOT requests; "Extension CC" adds a role to the
+          notification email without approval rights; "Award Approver" lets a role run the Award action.
+          None of these are bypassed by Admin/Developer's usual full-access shortcut — a role must be
+          explicitly checked here to act.
         </p>
       </div>
 
@@ -1715,7 +2027,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
                 aria-label="Close"
                 className="text-gray-400 hover:text-gray-600"
               >
-                ✕
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
             <div className="p-6 space-y-4">
@@ -1780,7 +2092,7 @@ function RolePermissions({ roles, userPermissions }: { roles: Role[]; userPermis
               <button
                 onClick={handleAddPermission}
                 disabled={adding}
-                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+                className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white font-medium rounded-lg transition disabled:opacity-50"
               >
                 {adding ? "Creating..." : "Create Permission"}
               </button>
@@ -1903,11 +2215,11 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
   };
 
   const resourceTypes = [
-    { value: "tender_submission", label: "📄 Contractors – View & Submit Tender/BQ (during open period)" },
-    { value: "view_submitted_tenders", label: "🔒 Admin – View Submitted Tenders (after closure, masked contractor identity)" },
-    { value: "fgm_first_view", label: "👩‍💼 Finance General Manager – First access & acknowledgment" },
-    { value: "fmd_after_ack", label: "🏢 Facilities Management Regional Director – View after FGM acknowledgment" },
-    { value: "delegated_access", label: "👥 Other Roles – Access only after FM Director grants permission" },
+    { value: "tender_submission", label: "Contractors – View & Submit Tender/BQ (during open period)" },
+    { value: "view_submitted_tenders", label: "Admin – View Submitted Tenders (after closure, masked contractor identity)" },
+    { value: "fgm_first_view", label: "Finance General Manager – First access & acknowledgment" },
+    { value: "fmd_after_ack", label: "Facilities Management Regional Director – View after FGM acknowledgment" },
+    { value: "delegated_access", label: "Other Roles – Access only after FM Director grants permission" },
   ];
 
   const getResourceLabel = (value: string) => {
@@ -1915,7 +2227,7 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
   };
 
   if (loading) {
-    return <div className="animate-pulse h-48 bg-white/40 rounded-xl" />;
+    return <div className="animate-pulse h-48 bg-white rounded-xl" />;
   }
 
   if (error) {
@@ -1930,10 +2242,10 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
 
   return (
     <>
-      <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
         <div className="p-4 bg-blue-50/50 border-b border-blue-200 rounded-t-2xl">
           <div className="flex items-start gap-3">
-            <div className="text-blue-600 mt-0.5">
+            <div className="text-[#15406a] mt-0.5">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -1960,7 +2272,7 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
               </p>
             </div>
             {!editing ? (
-              <button onClick={() => setEditing(true)} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg text-sm">
+              <button onClick={() => setEditing(true)} className="px-4 py-2 bg-[#15406a] text-white rounded-lg text-sm">
                 Edit Windows
               </button>
             ) : (
@@ -1975,7 +2287,7 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
 
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-white/50">
+              <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Access Type</th>
@@ -1986,7 +2298,7 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {tempWindows.map((win, idx) => (
-                  <tr key={idx} className="hover:bg-white/30">
+                  <tr key={idx} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
                       {editing ? (
                         <select value={win.role_id} onChange={(e) => updateWindow(idx, "role_id", e.target.value)} className="border rounded-md px-2 py-1 text-sm bg-white">
@@ -2035,12 +2347,12 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
           </div>
           {editing && (
             <div className="mt-4">
-              <button onClick={addWindow} className="text-blue-600 text-sm hover:underline">+ Add Access Window</button>
+              <button onClick={addWindow} className="text-[#15406a] text-sm hover:underline">+ Add Access Window</button>
             </div>
           )}
         </div>
 
-        <div className="p-4 border-t bg-white/30 rounded-b-2xl flex justify-between items-center">
+        <div className="p-4 border-t bg-slate-50 rounded-b-2xl flex justify-between items-center">
           <div className="flex items-center gap-2 text-amber-600">
             <Clock className="w-4 h-4" />
             <span className="text-sm">Time‑locked envelopes: Bids are encrypted and released only after scheduled opening.</span>
@@ -2049,7 +2361,7 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
             onClick={() => setShowDisclaimer(true)}
             className="flex items-center gap-1 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition"
           >
-            <span className="text-base">⚖️</span> Legal & Compliance Info
+            <Scale className="w-4 h-4" aria-hidden="true" /> Legal & Compliance Info
           </button>
         </div>
       </div>
@@ -2059,7 +2371,7 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
             <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
               <DialogTitle className="text-xl font-bold text-gray-900">Time‑Locked Envelope – Legal Framework</DialogTitle>
               <button onClick={() => setShowDisclaimer(false)} aria-label="Close" className="text-gray-400 hover:text-gray-600">
-                ✕
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
             <div className="p-6 space-y-4 text-gray-700 text-sm">
@@ -2076,13 +2388,518 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
               </p>
             </div>
             <div className="flex justify-end px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <button onClick={() => setShowDisclaimer(false)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+              <button onClick={() => setShowDisclaimer(false)} className="px-4 py-2 bg-[#15406a] text-white rounded-lg text-sm hover:bg-[#0d2d4a]">
                 OK
               </button>
             </div>
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// ============================================================
+// PDPA Data Subject Access Requests
+// ============================================================
+interface DsrMatch {
+  user_id: number;
+  username: string;
+  email: string;
+  display_name: string | null;
+  is_active: boolean;
+  role: string;
+}
+
+interface DsrSearchResult {
+  matches: DsrMatch[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+interface DsrPage<T> {
+  rows: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+type DsrLoginRow = { login_time: string; logout_time: string | null; login_status: string; ip_address: string; ip_location: string | null; device_type: string | null; browser: string | null };
+type DsrAuditRow = { audit_id: number; table_name: string; record_id: number; action: string; changed_at: string | null };
+type DsrInterestRow = { interest_id: number; is_approved: boolean; created_at: string; tender: { tender_name: string } };
+type DsrSubmissionRow = { submission_id: number; bq_name: string; status: string; round_no: number; submitted_at: string | null; created_at: string; tender: { tender_name: string } };
+type DsrMessageRow = { message_id: number; body: string; is_announcement: boolean; created_at: string; tender: { tender_name: string } };
+type DsrNotificationRow = { notification_id: number; title: string; created_at: string; is_read: boolean };
+type DsrEmailRow = { log_id: number; event_type: string; recipient_email: string; is_delivered: boolean; sent_at: string };
+type DsrDocumentRow = { document_id: number; file_name: string; file_size: number; created_at: string; tender: { tender_name: string } };
+
+const DSR_SECTION_NAMES = [
+  "loginHistory",
+  "auditEntries",
+  "tenderInterest",
+  "submissions",
+  "messages",
+  "notifications",
+  "emailLog",
+  "documentsUploaded",
+] as const;
+type DsrSectionName = (typeof DSR_SECTION_NAMES)[number];
+
+interface DsrBundle {
+  profile: {
+    user_id: number;
+    username: string;
+    email: string;
+    display_name: string | null;
+    job_title: string | null;
+    employee_code: string | null;
+    is_active: boolean;
+    is_approved: boolean;
+    is_team_member: boolean | null;
+    last_login: string | null;
+    created_at: string;
+    access_start_date: string | null;
+    access_end_date: string | null;
+    role: string;
+    user_profile: { full_name: string | null; company_name: string | null; department: string | null; job_title: string | null; phone: string | null } | null;
+  };
+  loginHistory: DsrPage<DsrLoginRow>;
+  auditEntries: DsrPage<DsrAuditRow>;
+  tenderInterest: DsrPage<DsrInterestRow>;
+  submissions: DsrPage<DsrSubmissionRow>;
+  messages: DsrPage<DsrMessageRow>;
+  notifications: DsrPage<DsrNotificationRow>;
+  emailLog: DsrPage<DsrEmailRow>;
+  documentsUploaded: DsrPage<DsrDocumentRow>;
+}
+
+function DsrField({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div>
+      <dt className="text-xs text-gray-400 uppercase tracking-wide">{label}</dt>
+      <dd className="text-gray-800">{value || "—"}</dd>
+    </div>
+  );
+}
+
+function DsrSection({
+  title,
+  total,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+  children,
+}: {
+  title: string;
+  total: number;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-800">
+          {title} <span className="text-gray-400 font-normal">({total})</span>
+        </h3>
+        {hasMore && (
+          <button
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="text-xs font-medium text-[#15406a] hover:underline disabled:opacity-50"
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function DsrTable({ columns, rows }: { columns: string[]; rows: React.ReactNode[][] }) {
+  if (rows.length === 0) return <p className="text-sm text-gray-400">No records.</p>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="text-left text-xs text-gray-400 uppercase">
+            {columns.map((c) => (
+              <th key={c} className="pr-4 pb-2 font-medium whitespace-nowrap">{c}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {rows.map((r, i) => (
+            <tr key={i}>
+              {r.map((cell, j) => (
+                <td key={j} className="pr-4 py-1.5 text-gray-700 align-top">{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const DSR_SECTION_CONFIG: Record<DsrSectionName, { title: string; columns: string[]; toRow: (row: any, fmt: (d: string | null | undefined, withTime?: boolean) => string) => React.ReactNode[] }> = {
+  loginHistory: {
+    title: "Login history",
+    columns: ["Time", "Status", "IP address", "Location", "Device"],
+    toRow: (l: DsrLoginRow, fmt) => [
+      fmt(l.login_time, true),
+      l.login_status,
+      l.ip_address,
+      l.ip_location || "—",
+      [l.device_type, l.browser].filter(Boolean).join(" / ") || "—",
+    ],
+  },
+  auditEntries: {
+    title: "Actions performed — audit trail",
+    columns: ["Time", "Action", "Table", "Record ID"],
+    toRow: (a: DsrAuditRow, fmt) => [fmt(a.changed_at, true), a.action, a.table_name, a.record_id],
+  },
+  tenderInterest: {
+    title: "Tender interest registered",
+    columns: ["Tender", "Approved", "Registered on"],
+    toRow: (t: DsrInterestRow, fmt) => [t.tender.tender_name, t.is_approved ? "Yes" : "Pending", fmt(t.created_at)],
+  },
+  submissions: {
+    title: "BQ submissions",
+    columns: ["Tender", "BQ name", "Round", "Status", "Submitted"],
+    toRow: (s: DsrSubmissionRow, fmt) => [s.tender.tender_name, s.bq_name, s.round_no, s.status, fmt(s.submitted_at)],
+  },
+  messages: {
+    title: "Messages sent",
+    columns: ["Tender", "Message", "Sent"],
+    toRow: (m: DsrMessageRow, fmt) => [
+      m.tender.tender_name,
+      <span key="body" className="line-clamp-2 max-w-md block">{m.body}</span>,
+      fmt(m.created_at, true),
+    ],
+  },
+  notifications: {
+    title: "Notifications received",
+    columns: ["Title", "Read", "Received"],
+    toRow: (n: DsrNotificationRow, fmt) => [n.title, n.is_read ? "Yes" : "No", fmt(n.created_at, true)],
+  },
+  emailLog: {
+    title: "Emails sent to this user",
+    columns: ["Event", "Recipient", "Delivered", "Sent"],
+    toRow: (e: DsrEmailRow, fmt) => [e.event_type, e.recipient_email, e.is_delivered ? "Yes" : "No", fmt(e.sent_at, true)],
+  },
+  documentsUploaded: {
+    title: "Documents uploaded",
+    columns: ["File", "Tender", "Size", "Uploaded"],
+    toRow: (d: DsrDocumentRow, fmt) => [d.file_name, d.tender.tender_name, `${Math.round(d.file_size / 1024)} KB`, fmt(d.created_at)],
+  },
+};
+
+function DataSubjectRequests() {
+  const toast = useNotify();
+  const [search, setSearch] = useState("");
+  const [searchResult, setSearchResult] = useState<DsrSearchResult | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState<DsrMatch | null>(null);
+  const [bundle, setBundle] = useState<DsrBundle | null>(null);
+  const [loadingBundle, setLoadingBundle] = useState(false);
+  const [loadingMoreSection, setLoadingMoreSection] = useState<DsrSectionName | null>(null);
+
+  const runSearch = async (term: string, page: number) => {
+    if (!term.trim()) return;
+    setSearching(true);
+    if (page === 1) {
+      setBundle(null);
+      setSelected(null);
+    }
+    try {
+      const res = await fetch(`/api/admin/data-subject-request?search=${encodeURIComponent(term.trim())}&search_page=${page}`);
+      if (!res.ok) throw new Error();
+      const data: DsrSearchResult = await res.json();
+      setSearchResult(data);
+      if (data.matches.length === 0) toast.error("No matching users found.");
+    } catch {
+      toast.error("Search failed. Please try again.");
+      setSearchResult(null);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const retrieve = async (match: DsrMatch) => {
+    setSelected(match);
+    setLoadingBundle(true);
+    setBundle(null);
+    try {
+      const res = await fetch(`/api/admin/data-subject-request?user_id=${match.user_id}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setBundle(data);
+    } catch {
+      toast.error("Failed to retrieve this user's data. Please try again.");
+    } finally {
+      setLoadingBundle(false);
+    }
+  };
+
+  const loadMoreSection = async (section: DsrSectionName) => {
+    if (!selected || !bundle) return;
+    setLoadingMoreSection(section);
+    try {
+      const nextPage = bundle[section].page + 1;
+      const res = await fetch(`/api/admin/data-subject-request?user_id=${selected.user_id}&section=${section}&page=${nextPage}`);
+      if (!res.ok) throw new Error();
+      const data: DsrPage<any> & { section: DsrSectionName } = await res.json();
+      setBundle((prev) =>
+        prev
+          ? { ...prev, [section]: { ...data, rows: [...prev[section].rows, ...data.rows] } }
+          : prev
+      );
+    } catch {
+      toast.error("Failed to load more records. Please try again.");
+    } finally {
+      setLoadingMoreSection(null);
+    }
+  };
+
+  const fmt = (d: string | null | undefined, withTime = false) =>
+    d ? format(new Date(d), withTime ? "dd/MM/yyyy HH:mm" : "dd/MM/yyyy") : "—";
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+          <Search className="w-5 h-5 text-[#15406a]" /> PDPA Data Subject Access Requests
+        </h2>
+        <p className="text-sm text-gray-600 mt-1 mb-4">
+          Search for a user, then retrieve everything the system holds about them — for fulfilling a &quot;right of
+          access&quot; request under Section 5 of the Privacy Policy. Each retrieval is written to the audit trail.
+        </p>
+        <form onSubmit={(e) => { e.preventDefault(); runSearch(search, 1); }} className="flex gap-2">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, username, or email…"
+            className="flex-1 px-3 py-2 border rounded-lg text-sm bg-white"
+          />
+          <button
+            type="submit"
+            disabled={searching}
+            className="px-4 py-2 bg-[#15406a] text-white rounded-lg text-sm hover:bg-[#0d2d4a] disabled:opacity-50"
+          >
+            {searching ? "Searching…" : "Search"}
+          </button>
+        </form>
+
+        {searchResult && searchResult.matches.length > 0 && (
+          <>
+            <div className="mt-4 divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+              {searchResult.matches.map((m) => (
+                <button
+                  key={m.user_id}
+                  onClick={() => retrieve(m)}
+                  className={`w-full text-left px-4 py-3 flex items-center justify-between transition ${
+                    selected?.user_id === m.user_id ? "bg-blue-50" : "bg-white hover:bg-blue-50"
+                  }`}
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{m.display_name || m.username}</p>
+                    <p className="text-xs text-gray-500">
+                      {m.email} · {m.role}
+                      {!m.is_active ? " · Inactive" : ""}
+                    </p>
+                  </div>
+                  <span className="text-xs text-[#15406a] font-medium whitespace-nowrap">Retrieve →</span>
+                </button>
+              ))}
+            </div>
+            {searchResult.total > searchResult.pageSize && (
+              <div className="mt-3 flex items-center justify-between text-sm">
+                <span className="text-gray-500">
+                  Page {searchResult.page} of {Math.ceil(searchResult.total / searchResult.pageSize)} ({searchResult.total} matches)
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => runSearch(search, searchResult.page - 1)}
+                    disabled={searching || searchResult.page <= 1}
+                    className="px-3 py-1 border rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => runSearch(search, searchResult.page + 1)}
+                    disabled={searching || !searchResult.hasMore}
+                    className="px-3 py-1 border rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {loadingBundle && <div className="animate-pulse h-40 bg-white rounded-2xl" />}
+
+      {bundle && !loadingBundle && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">
+              Profile — {bundle.profile.display_name || bundle.profile.username}
+            </h3>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <DsrField label="Username" value={bundle.profile.username} />
+              <DsrField label="Email" value={bundle.profile.email} />
+              <DsrField label="Role" value={bundle.profile.role} />
+              <DsrField label="Job title" value={bundle.profile.job_title || bundle.profile.user_profile?.job_title} />
+              <DsrField label="Company" value={bundle.profile.user_profile?.company_name} />
+              <DsrField label="Department" value={bundle.profile.user_profile?.department} />
+              <DsrField label="Phone" value={bundle.profile.user_profile?.phone} />
+              <DsrField label="Employee code" value={bundle.profile.employee_code} />
+              <DsrField label="Account status" value={bundle.profile.is_active ? "Active" : "Inactive"} />
+              <DsrField label="Account created" value={fmt(bundle.profile.created_at)} />
+              <DsrField label="Last login" value={fmt(bundle.profile.last_login, true)} />
+              <DsrField
+                label="Access window"
+                value={
+                  bundle.profile.access_start_date
+                    ? `${fmt(bundle.profile.access_start_date)} – ${bundle.profile.access_end_date ? fmt(bundle.profile.access_end_date) : "ongoing"}`
+                    : "—"
+                }
+              />
+            </dl>
+          </div>
+
+          {DSR_SECTION_NAMES.map((name) => {
+            const cfg = DSR_SECTION_CONFIG[name];
+            const sectionData = bundle[name];
+            return (
+              <DsrSection
+                key={name}
+                title={cfg.title}
+                total={sectionData.total}
+                hasMore={sectionData.hasMore}
+                loadingMore={loadingMoreSection === name}
+                onLoadMore={() => loadMoreSection(name)}
+              >
+                <DsrTable columns={cfg.columns} rows={sectionData.rows.map((row: any) => cfg.toRow(row, fmt))} />
+              </DsrSection>
+            );
+          })}
+
+          <p className="text-xs text-slate-400">
+            This retrieval has been recorded in the audit trail. Compile the sections above into your response to the
+            data subject — nothing is sent automatically.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Compliance Register (ROPA reference + DPIA framework)
+// ============================================================
+const ROPA_ENTRIES = [
+  {
+    activity: "Tender & Bill of Quantities (BQ) management",
+    purpose: "Contract performance — evaluate and administer tender submissions",
+    categories: "Commercial & Pricing Data, Personnel & Contact Data",
+    basis: "Contractual necessity",
+    retention: "7 years (pricing data) / duration of tender + 3 years (active records)",
+  },
+  {
+    activity: "Contractor onboarding & account management",
+    purpose: "Corporate verification, RBAC-based platform access",
+    categories: "Corporate & Compliance Data, Personnel & Contact Data",
+    basis: "Contractual necessity, legitimate interest (security)",
+    retention: "5 years (bidder portfolios)",
+  },
+  {
+    activity: "Financial & compliance documentation",
+    purpose: "Tax, statutory audit, and regulatory reporting",
+    categories: "Corporate & Compliance Data",
+    basis: "Legal obligation",
+    retention: "7 years from end of financial year",
+  },
+  {
+    activity: "Audit logging & security monitoring",
+    purpose: "Fraud prevention, incident investigation",
+    categories: "Technical Logs & System Telemetry",
+    basis: "Legitimate interest (platform security)",
+    retention: "2 years",
+  },
+  {
+    activity: "Messaging & notifications",
+    purpose: "Contract performance — communicate tender/BQ status to participants",
+    categories: "Personnel & Contact Data",
+    basis: "Contractual necessity",
+    retention: "Duration of tender + 3 years",
+  },
+];
+
+function ComplianceRegister() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-[#15406a]" /> Record of Processing Activities (ROPA)
+        </h2>
+        <p className="text-sm text-gray-600 mt-1 mb-4">
+          A summary of what the TMS actually processes today, matching Section 1–3 of the public{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#15406a] hover:underline">
+            Privacy Policy
+          </a>
+          . This is a reference view, not an editable log — update the Privacy Policy first if a processing
+          activity changes, then reflect it here.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-gray-400 uppercase">
+                <th className="pr-4 pb-2 font-medium">Activity</th>
+                <th className="pr-4 pb-2 font-medium">Purpose</th>
+                <th className="pr-4 pb-2 font-medium">Data categories</th>
+                <th className="pr-4 pb-2 font-medium">Lawful basis</th>
+                <th className="pr-4 pb-2 font-medium">Retention</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {ROPA_ENTRIES.map((r) => (
+                <tr key={r.activity}>
+                  <td className="pr-4 py-2 font-medium text-gray-800 align-top whitespace-nowrap">{r.activity}</td>
+                  <td className="pr-4 py-2 text-gray-700 align-top">{r.purpose}</td>
+                  <td className="pr-4 py-2 text-gray-700 align-top">{r.categories}</td>
+                  <td className="pr-4 py-2 text-gray-700 align-top whitespace-nowrap">{r.basis}</td>
+                  <td className="pr-4 py-2 text-gray-700 align-top whitespace-nowrap">{r.retention}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <h2 className="text-xl font-semibold text-gray-800">Data Protection Impact Assessments (DPIA)</h2>
+        <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+          Per Section 11 of the Privacy Policy, a DPIA is conducted for any new processing activity that presents a
+          high risk to data subjects&apos; rights and freedoms — e.g. a new integration that shares commercial
+          pricing outside the current siloed access model.
+        </p>
+        <p className="mt-4 text-xs text-slate-400">
+          No DPIA has been required since the current feature set was reviewed — there is no formal DPIA log wired
+          into the system yet. If Legal & Compliance conducts one, record the assessment (date, assessor, risk
+          level, outcome) in your compliance file, and note it here as a dated addition until a proper in-app
+          register is built.
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -2130,7 +2947,7 @@ function AuditLogs() {
   );
 
   if (loading) {
-    return <div className="animate-pulse h-96 bg-white/40 rounded-xl" />;
+    return <div className="animate-pulse h-96 bg-white rounded-xl" />;
   }
 
   if (error) {
@@ -2145,7 +2962,7 @@ function AuditLogs() {
 
   return (
     <>
-      <div className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/20 shadow-xl">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Immutable Audit Trail</h2>
@@ -2162,7 +2979,7 @@ function AuditLogs() {
               <p className="text-center text-gray-500 py-8">No audit logs found.</p>
             ) : (
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-white/50">
+                <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase">Timestamp</th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase">User</th>
@@ -2174,7 +2991,7 @@ function AuditLogs() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-white/30">
+                    <tr key={log.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 text-xs font-mono">{format(new Date(log.timestamp), "dd/MM/yyyy HH:mm:ss")}</td>
                       <td className="px-4 py-3 text-sm">{log.username}</td>
                       <td className="px-4 py-3 text-sm">
@@ -2193,7 +3010,7 @@ function AuditLogs() {
           </div>
         </div>
 
-        <div className="p-4 border-t bg-white/30 rounded-b-2xl flex justify-between items-center">
+        <div className="p-4 border-t bg-slate-50 rounded-b-2xl flex justify-between items-center">
           <div className="flex items-center gap-2 text-gray-600">
             <Lock className="w-4 h-4" />
             <span className="text-sm">All access attempts, decryption events, and permission changes are recorded in a tamper‑evident log.</span>
@@ -2202,7 +3019,7 @@ function AuditLogs() {
             onClick={() => setShowDisclaimer(true)}
             className="flex items-center gap-1 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition"
           >
-            <span className="text-base">📜</span> Compliance & Legal Info
+            <ScrollText className="w-4 h-4" aria-hidden="true" /> Compliance & Legal Info
           </button>
         </div>
       </div>
@@ -2212,7 +3029,7 @@ function AuditLogs() {
             <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
               <DialogTitle className="text-xl font-bold text-gray-900">Compliance & Legal Framework</DialogTitle>
               <button onClick={() => setShowDisclaimer(false)} aria-label="Close" className="text-gray-400 hover:text-gray-600">
-                ✕
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
             <div className="p-6 space-y-4 text-gray-700 text-sm">
@@ -2230,7 +3047,7 @@ function AuditLogs() {
               </p>
             </div>
             <div className="flex justify-end px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <button onClick={() => setShowDisclaimer(false)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+              <button onClick={() => setShowDisclaimer(false)} className="px-4 py-2 bg-[#15406a] text-white rounded-lg text-sm hover:bg-[#0d2d4a]">
                 OK
               </button>
             </div>

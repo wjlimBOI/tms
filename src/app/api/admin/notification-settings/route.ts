@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { isSuperUser } from "@/lib/roles";
 
 // GET: fetch all notification event types and their email on/off state
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  if (!userRoleIds.includes(1)) {
+  if (!isSuperUser(userRoleIds)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -38,7 +39,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  if (!userRoleIds.includes(1)) {
+  if (!isSuperUser(userRoleIds)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { z } from "zod";
 import { logInsert, logAuthEvent } from "@/lib/audit"; // ✅ audit imports
-import { ROLE_IDS } from "@/lib/roles";
+import { canManageProjectManagers } from "@/lib/permissions";
 import { sanitize } from "@/lib/sanitize";
 
 const createPMSchema = z.object({
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   const userRoleIds = (session.user as any).roleIds || [];
-  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
+  if (!(await canManageProjectManagers(session.user.id, userRoleIds))) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, req, {
       action: "create_project_manager",
       reason: "Unauthorized",

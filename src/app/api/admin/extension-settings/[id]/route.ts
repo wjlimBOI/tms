@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { logUpdate, logAuthEvent } from "@/lib/audit";
+import { isSuperUser } from "@/lib/roles";
 
 export async function PUT(
   req: NextRequest,
@@ -15,7 +16,7 @@ export async function PUT(
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  if (!userRoleIds.includes(1)) {
+  if (!isSuperUser(userRoleIds)) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, req, {
       action: "update_extension_setting",
       reason: "Unauthorized",

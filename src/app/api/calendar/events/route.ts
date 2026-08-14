@@ -10,8 +10,8 @@ import {
   CalendarEventCreateInput 
 } from "@/lib/validation";
 import { logInsert, logAuthEvent } from "@/lib/audit";
-import { hasRole, hasPermission } from "@/lib/permissions";
-import { ROLE_IDS } from "@/lib/roles";
+import { hasPermission } from "@/lib/permissions";
+import { isSuperUser, isSuperViewer } from "@/lib/roles";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
   }
   const roleIds = (session.user as any).roleIds || [];
-  const canViewSchedule = hasRole(roleIds, ROLE_IDS.ADMIN) || (await hasPermission((session.user as any).id, roleIds, "calendar", "view_project_schedule"));
+  const canViewSchedule = isSuperViewer(roleIds) || (await hasPermission((session.user as any).id, roleIds, "calendar", "view_project_schedule"));
   if (!canViewSchedule) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
   }
   const roleIds = (session.user as any).roleIds || [];
-  const canManageSchedule = hasRole(roleIds, ROLE_IDS.ADMIN) || (await hasPermission((session.user as any).id, roleIds, "calendar", "view_project_schedule"));
+  const canManageSchedule = isSuperUser(roleIds) || (await hasPermission((session.user as any).id, roleIds, "calendar", "view_project_schedule"));
   if (!canManageSchedule) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }

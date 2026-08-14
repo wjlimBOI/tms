@@ -214,7 +214,7 @@ export default function TenderSubmissionsPage() {
                           </Link>
                           {sub.submitted_at && (
                             <button
-                              onClick={() => window.open(`/api/submissions/${sub.submission_id}/download`, "_blank")}
+                              onClick={() => window.open(`/api/bq/export?submissionId=${sub.submission_id}`, "_blank")}
                               className="text-slate-500 hover:text-slate-700 transition"
                             >
                               <Download className="w-4 h-4" />

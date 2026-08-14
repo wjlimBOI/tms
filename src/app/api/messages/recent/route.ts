@@ -9,7 +9,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperViewer } from "@/lib/roles";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   const user = session.user as any;
   const roleIds = (user.roleIds || []) as number[];
   const isContractor = roleIds.includes(ROLE_IDS.CONTRACTOR);
-  const isAdmin = roleIds.includes(ROLE_IDS.ADMIN);
+  const isAdmin = isSuperViewer(roleIds);
 
   const selectBase = `
     SELECT tm.tender_id, t.tender_name, tm.sender_id, su.username AS sender_name,

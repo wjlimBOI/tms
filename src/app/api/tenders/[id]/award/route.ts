@@ -4,10 +4,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query, getClient } from "@/lib/db";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser } from "@/lib/roles";
+import { canApproveAward } from "@/lib/permissions";
 import { createNotification, notifyUsers, sendTrackedEmail } from "@/lib/notifications";
 import { sendAwardResultEmail } from "@/lib/email";
 import { sanitize } from "@/lib/sanitize";
+import { logUpdate } from "@/lib/audit";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -30,8 +32,8 @@ export async function GET(
   }
 
   const sessionUser = session.user as any;
-  if (!((sessionUser.roleIds || []) as number[]).includes(ROLE_IDS.ADMIN)) {
-    return NextResponse.json({ error: "Only admins can view award candidates" }, { status: 403, headers: corsHeaders });
+  if (!(await canApproveAward((sessionUser.roleIds || []) as number[]))) {
+    return NextResponse.json({ error: "Only the configured award approver role can view award candidates" }, { status: 403, headers: corsHeaders });
   }
 
   const { id } = await params;
@@ -83,8 +85,8 @@ export async function POST(
   }
 
   const user = session.user as any;
-  if (!((user.roleIds || []) as number[]).includes(ROLE_IDS.ADMIN)) {
-    return NextResponse.json({ error: "Only admins can award a tender" }, { status: 403, headers: corsHeaders });
+  if (!(await canApproveAward((user.roleIds || []) as number[]))) {
+    return NextResponse.json({ error: "Only the configured award approver role can award a tender" }, { status: 403, headers: corsHeaders });
   }
 
   const { id } = await params;
@@ -206,15 +208,20 @@ export async function POST(
             `/tenders/${tenderId}`
           ).catch((err) => console.error(`Award in-app notify failed for contractor ${p.contractor_id}:`, err));
 
-          await sendTrackedEmail("award_result", { userId: p.contractor_id, email: p.email }, tenderId, () =>
-            sendAwardResultEmail({
-              to: p.email,
-              recipientName: p.username,
-              tenderName,
-              tenderId,
-              won,
-              contractValue: won ? contractValue : undefined,
-            })
+          await sendTrackedEmail(
+            "award_result",
+            { userId: p.contractor_id, email: p.email },
+            tenderId,
+            () =>
+              sendAwardResultEmail({
+                to: p.email,
+                recipientName: p.username,
+                tenderName,
+                tenderId,
+                won,
+                contractValue: won ? contractValue : undefined,
+              }),
+            "statusChanges"
           );
         }
 
@@ -247,4 +254,83 @@ export async function POST(
   } finally {
     client.release();
   }
+}
+
+// ---------- PATCH — mark the signed contract as received back from the
+// awarded contractor. The physical/legal contract is exchanged over email,
+// not through the app, so this is purely a manual record-keeping toggle for
+// staff who actually handle that correspondence (Admin, Project Manager,
+// Senior Project Manager) — not restricted to the specific tender's
+// assigned PM, since any of them might be the one processing incoming mail.
+// (2026-08-10 decision.) ----------
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const origin = request.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
+
+  const sessionUser = session.user as any;
+  const roleIds = (sessionUser.roleIds || []) as number[];
+  const canMark =
+    isSuperUser(roleIds) ||
+    roleIds.includes(ROLE_IDS.PROJECT_MANAGER) ||
+    roleIds.includes(ROLE_IDS.SENIOR_PROJECT_MANAGER);
+  if (!canMark) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
+  }
+
+  const { id } = await params;
+  const tenderId = parseInt(id);
+  if (isNaN(tenderId)) {
+    return NextResponse.json({ error: "Invalid tender ID" }, { status: 400, headers: corsHeaders });
+  }
+
+  let body: { received?: boolean };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400, headers: corsHeaders });
+  }
+  if (typeof body.received !== "boolean") {
+    return NextResponse.json({ error: "'received' (boolean) is required" }, { status: 400, headers: corsHeaders });
+  }
+
+  const awardRes = await query(`SELECT award_id, contract_received_at, contract_received_by FROM tender_award WHERE tender_id = $1`, [tenderId]);
+  if (awardRes.rows.length === 0) {
+    return NextResponse.json({ error: "This tender has not been awarded yet" }, { status: 404, headers: corsHeaders });
+  }
+  const oldData = awardRes.rows[0];
+
+  const updated = await query(
+    `UPDATE tender_award
+     SET contract_received_at = $1, contract_received_by = $2, updated_at = NOW()
+     WHERE tender_id = $3
+     RETURNING contract_received_at, contract_received_by`,
+    [
+      body.received ? new Date().toISOString() : null,
+      body.received ? sessionUser.id : null,
+      tenderId,
+    ]
+  );
+
+  await logUpdate(
+    "tender_award",
+    oldData.award_id,
+    oldData,
+    updated.rows[0],
+    sessionUser.id,
+    request,
+    { action: "toggle_contract_received", tender_id: tenderId, source: "api" }
+  );
+
+  return NextResponse.json(
+    { success: true, ...updated.rows[0] },
+    { headers: corsHeaders }
+  );
 }

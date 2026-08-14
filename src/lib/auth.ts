@@ -242,7 +242,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // 10. Return user object
-        const displayName = (user as any).display_name || user.username;
+        const displayName = user.display_name || user.username;
         return {
           id: String(user.user_id),
           name: displayName,

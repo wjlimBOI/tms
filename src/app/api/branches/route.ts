@@ -4,13 +4,14 @@ import { query } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { logInsert, logAuthEvent } from "@/lib/audit";
-import { ROLE_IDS } from "@/lib/roles";
+import { canViewBranches, canManageBranches } from "@/lib/permissions";
 import { sanitize } from "@/lib/sanitize";
 
 // ---------- GET (read-only, no audit) ----------
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
+  const roleIds = (session?.user as any)?.roleIds || [];
+  if (!session || !(await canViewBranches(session.user.id, roleIds))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -69,7 +70,8 @@ export async function GET(req: NextRequest) {
 // ---------- POST (create branch with address) ----------
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
+  const roleIds = (session?.user as any)?.roleIds || [];
+  if (!session || !(await canManageBranches(session.user.id, roleIds))) {
     await logAuthEvent("PERMISSION_DENIED", session?.user?.id || 0, req, {
       action: "create_branch",
       reason: "Unauthorized",

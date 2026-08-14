@@ -28,6 +28,23 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // 1b. This endpoint deliberately skips the current-password check
+    // user/change-password enforces, because the forced first-login flow
+    // means the user just typed their current (temp) password to log in.
+    // Restrict it to that actual case — otherwise it's a way for anyone
+    // holding a valid session to silently reset their own password without
+    // re-proving they know the current one.
+    const currentUser = await prisma.users.findUnique({
+      where: { user_id: session.user.id },
+      select: { must_change_password: true },
+    });
+    if (!currentUser?.must_change_password) {
+      return NextResponse.json(
+        { error: "Password change is not required for this account" },
+        { status: 403, headers: corsHeaders }
+      );
+    }
+
     // 2. Parse and validate body
     const { new_password } = await request.json();
     if (!new_password) {

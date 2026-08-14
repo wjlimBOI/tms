@@ -9,6 +9,7 @@ import DateRangePicker from "@/components/ui/DateRangePicker";
 import "./bq-my.css";
 import { getBQStatusBadgeStyle, getBQStatusLabel } from "@/lib/statusColors";
 import { getBrandColor } from "@/lib/brandColors";
+import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -31,6 +32,9 @@ interface Submission {
   can_edit: boolean;
   bq_name: string;
   tender_name?: string;
+  resubmission_requested?: boolean;
+  resubmission_instructions?: string | null;
+  resubmission_due_by?: string | null;
 }
 
 interface LineItem {
@@ -292,7 +296,10 @@ export default function BQWorkspacePage() {
                 )}
               </>
             )}
-            {canCreate && !selectedDetail && (
+            {/* Always visible, regardless of whether a submission is
+                selected - previously this hid as soon as you clicked into
+                a submission, making it look like "New BQ" didn't exist. */}
+            {canCreate && (
               <Link href="/bq/new" className="inline-block">
                 <Button variant="default" className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all hover:-translate-y-0.5">
                   <Plus className="h-4 w-4" /> New BQ
@@ -396,21 +403,20 @@ export default function BQWorkspacePage() {
               <div className="bg-white/50 backdrop-blur-sm rounded-xl border border-slate-200/50 p-8 text-center">
                 <p className="text-slate-500">No submissions found</p>
                 {canCreate && (
-                  <Link href="/bq/new" className="inline-block mt-3 text-sm text-cyan-600 hover:underline">
-                    Create your first BQ
-                  </Link>
+                  <p className="mt-2 text-xs text-slate-400">Use &ldquo;New BQ&rdquo; above to create your first one.</p>
                 )}
               </div>
             ) : (
               submissions.map((sub, idx) => {
                 const brandColor = getBrandColor(sub.client_name);
+                const fullCompanyName = getCompanyDetailsByBrand(sub.client_name)?.companyName || sub.client_name;
                 const statusBadgeClass = getBQStatusBadgeStyle(sub.status);
                 const statusLabel = getBQStatusLabel(sub.status);
                 const isSelected = selectedSubmissionId === sub.submission_id;
                 return (
                   <div
                     key={sub.submission_id}
-                    onClick={() => setSelectedSubmissionId(sub.submission_id)}
+                    onClick={() => setSelectedSubmissionId(isSelected ? null : sub.submission_id)}
                     className={`group relative cursor-pointer rounded-xl border transition-all duration-300 transform ${
                       isSelected
                         ? 'border-cyan-500 bg-cyan-50/50 shadow-md scale-[1.02]'
@@ -425,8 +431,17 @@ export default function BQWorkspacePage() {
                         </h3>
                         <Badge variant="secondary" className={statusBadgeClass}>{statusLabel}</Badge>
                       </div>
-                      <p className="text-sm text-slate-500 mt-1">{sub.client_name} – {sub.job_site}</p>
+                      <p className="text-sm text-slate-500 mt-1">{fullCompanyName}</p>
                       <p className="text-xs text-slate-400 mt-2">BQ Date: {formatDate(sub.bq_date)}</p>
+                      {sub.resubmission_requested && (
+                        <div
+                          className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-100 text-amber-800"
+                          title={sub.resubmission_instructions || "Our team has asked you to submit a revised quote."}
+                        >
+                          Revised quote requested
+                          {sub.resubmission_due_by && ` · due ${formatDate(sub.resubmission_due_by)}`}
+                        </div>
+                      )}
                       <div className="flex gap-3 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <Link href={`/bq/${sub.submission_id}/view`} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
                           <Eye className="h-3 w-3" /> View
@@ -550,10 +565,8 @@ export default function BQWorkspacePage() {
                     <Eye className="h-8 w-8 text-slate-400" />
                   </div>
                   <p className="text-slate-500">Select a BQ submission from the list to view its bill of quantities.</p>
-                  {canCreate && (
-                    <Link href="/bq/new" className="inline-block mt-2 text-sm text-cyan-600 hover:underline flex items-center justify-center gap-1">
-                      <Plus className="h-4 w-4" /> Create new BQ
-                    </Link>
+                  {canCreate && submissions.length > 0 && (
+                    <p className="text-xs text-slate-400">Or use &ldquo;New BQ&rdquo; above to start another one.</p>
                   )}
                 </div>
               </div>

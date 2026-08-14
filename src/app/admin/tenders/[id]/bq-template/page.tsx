@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useNotify } from "@/components/ui/notification-provider";
+import { isSuperUser } from "@/lib/roles";
 
 interface WorkCategory {
   category_id: number;
@@ -85,24 +86,11 @@ function getItemNumber(
   return numberStr;
 }
 
-// ------------- STATIC UNIT MAPPING (for display only) -------------
-const UNIT_MAP: { display: string; code: string }[] = [
-  { display: "Nos", code: "NOS" },
-  { display: "Set", code: "SET" },
-  { display: "m", code: "M" },
-  { display: "m²", code: "M2" },
-  { display: "m³", code: "M3" },
-  { display: "mm", code: "MM" },
-  { display: "mm²", code: "MM2" },
-  { display: "cm²", code: "CM2" },
-  { display: "kg", code: "KG" },
-  { display: "Lot", code: "LOT" },
-  { display: "L.S.", code: "LS" },
-];
-
-function getDisplayFromCode(code: string): string {
-  const found = UNIT_MAP.find((u) => u.code === code);
-  return found ? found.display : code;
+// Units are sourced from /api/units (the real unit_measure table) — see
+// the units state in BQTemplateViewPage below, passed down as a prop.
+function getDisplayFromCode(code: string, units: { unit_code: string; unit_name: string }[]): string {
+  const found = units.find((u) => u.unit_code === code);
+  return found ? found.unit_name : code;
 }
 
 // Simple read‑only row component
@@ -110,13 +98,15 @@ function ReadOnlyItemRow({
   item,
   level,
   itemNumber,
+  units,
 }: {
   item: BQTemplateItem;
   level: number;
   itemNumber: string;
+  units: { unit_code: string; unit_name: string }[];
 }) {
   const indent = level * 24;
-  const displayUnit = getDisplayFromCode(item.unit);
+  const displayUnit = getDisplayFromCode(item.unit, units);
 
   return (
     <div className="flex flex-wrap sm:flex-nowrap items-start gap-3 py-3 border-b border-gray-200">
@@ -157,6 +147,7 @@ export default function BQTemplateViewPage() {
   const [allCategories, setAllCategories] = useState<WorkCategory[]>([]);
   const [enabledCategoryIds, setEnabledCategoryIds] = useState<number[]>([]);
   const [tenderName, setTenderName] = useState<string>("");
+  const [units, setUnits] = useState<{ unit_code: string; unit_name: string }[]>([]);
   const fetchedRef = useRef(false);
 
   // Modal states
@@ -182,6 +173,12 @@ export default function BQTemplateViewPage() {
     setAllCategories(data);
   };
 
+  const fetchUnits = async () => {
+    const res = await fetch("/api/units");
+    const data = await res.json();
+    setUnits(data);
+  };
+
   const fetchItems = async () => {
     const res = await fetch(`/api/admin/bq-template?tenderId=${tenderId}`);
     const data = await res.json();
@@ -200,13 +197,13 @@ export default function BQTemplateViewPage() {
 
   const loadData = async () => {
     setLoading(true);
-    await Promise.all([fetchItems(), fetchEnabledCategories(), fetchAllCategories(), fetchTenderName()]);
+    await Promise.all([fetchItems(), fetchEnabledCategories(), fetchAllCategories(), fetchTenderName(), fetchUnits()]);
     setLoading(false);
   };
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
-    if (session?.user && (session.user as any)?.role_id !== 1) router.push("/dashboard");
+    if (session?.user && !isSuperUser((session.user as any)?.roleIds || [])) router.push("/dashboard");
     if (session?.user && tenderId && !fetchedRef.current) {
       fetchedRef.current = true;
       loadData();
@@ -247,7 +244,7 @@ export default function BQTemplateViewPage() {
       const itemNumber = numberedItem?.number || "?";
       return (
         <div key={item.item_id}>
-          <ReadOnlyItemRow item={item} level={level} itemNumber={itemNumber} />
+          <ReadOnlyItemRow item={item} level={level} itemNumber={itemNumber} units={units} />
           {renderItemTree(item.item_id, categoryId, level + 1)}
         </div>
       );

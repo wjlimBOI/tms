@@ -114,19 +114,19 @@ export default function MyTendersListPage() {
   // Loading skeleton
   if (sessionStatus === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-[#f7f4ee] py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse">
-            <div className="h-12 bg-gray-200 rounded-lg w-64 mb-4" />
-            <div className="h-6 bg-gray-200 rounded-lg w-96 mb-8" />
+            <div className="h-12 bg-slate-200 rounded-lg w-64 mb-4" />
+            <div className="h-6 bg-slate-200 rounded-lg w-96 mb-8" />
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="bg-white rounded-xl p-5 space-y-3">
-                  <div className="h-6 bg-gray-200 rounded w-3/4" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  <div className="h-6 bg-slate-200 rounded w-3/4" />
+                  <div className="h-4 bg-slate-200 rounded w-1/2" />
                   <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-full" />
-                    <div className="h-4 bg-gray-200 rounded w-5/6" />
+                    <div className="h-4 bg-slate-200 rounded w-full" />
+                    <div className="h-4 bg-slate-200 rounded w-5/6" />
                   </div>
                 </div>
               ))}
@@ -140,11 +140,11 @@ export default function MyTendersListPage() {
   // If error and no tenders, show a fallback (but modal is also shown)
   if (error && tenders.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#f7f4ee]">
         <AlertModal alert={alert} onClose={() => setAlert(null)} />
-        <div className="bg-red-100 border border-red-300 rounded-2xl p-8 text-center max-w-md">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center max-w-md">
           <p className="text-red-800">{error}</p>
-          <button onClick={fetchMyTenders} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+          <button onClick={fetchMyTenders} className="mt-4 px-4 py-2 bg-[#15406a] text-white rounded-md font-semibold shadow-md hover:-translate-y-0.5 hover:bg-[#0d2d4a] hover:shadow-lg transition-all">
             Retry
           </button>
         </div>
@@ -159,42 +159,43 @@ export default function MyTendersListPage() {
   const activeTendersCount = filteredTenders.filter(t => t.display_status !== 'Closed').length;
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gray-50">
+    <div className="min-h-screen relative overflow-hidden bg-[#f7f4ee] font-sans text-slate-900">
       <AlertModal alert={alert} onClose={() => setAlert(null)} />
 
       <div className="relative z-10 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8 pb-4 border-b border-gray-200">
+          <div className="mb-8 pb-4 border-b border-slate-200">
             <div className="flex flex-wrap justify-between items-center gap-4">
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                  My Tender Submissions
+                <h1 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
+                  Tender Submissions
                 </h1>
-                <p className="text-gray-600 mt-2">
-                  Track the tenders you have submitted a Bill of Quantities for (Draft or Submitted)
+                <p className="text-slate-600 mt-2">
+                  Track the tenders you've submitted a bid for.
                 </p>
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={fetchMyTenders}
-                  className="px-4 py-2 text-sm font-medium rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center gap-2"
+                  disabled={loading}
+                  className="px-4 py-2 text-sm font-medium rounded-md border-2 border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white transition outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Refresh
+                  {loading ? "Refreshing…" : "Refresh"}
                 </button>
                 <button
                   onClick={() => router.back()}
-                  className="px-4 py-2 text-sm font-medium rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+                  className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 transition outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50 focus-visible:ring-offset-2"
                 >
                   ← Back
                 </button>
               </div>
             </div>
             {hasTenders && (
-              <div className="mt-6 flex gap-4 text-sm text-gray-600">
+              <div className="mt-6 flex gap-4 text-sm text-slate-600">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span>{activeTendersCount} active tender{activeTendersCount !== 1 ? 's' : ''}</span>
@@ -208,10 +209,10 @@ export default function MyTendersListPage() {
           </div>
 
           {/* Search bar */}
-          <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-gray-200 p-4 mb-8 shadow-lg">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 mb-8 shadow-sm">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
@@ -219,13 +220,13 @@ export default function MyTendersListPage() {
                   placeholder="Search by tender name, client, or site..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                  className="w-full pl-10 pr-3 py-2.5 bg-white border border-slate-300 rounded-md text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-2 focus:ring-[#15406a]/20 transition"
                 />
               </div>
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition"
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium transition"
                 >
                   Clear
                 </button>
@@ -235,20 +236,20 @@ export default function MyTendersListPage() {
 
           {/* Empty state (no submissions at all) */}
           {showEmptyState && (
-            <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 p-12 text-center shadow-xl">
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
               <div className="max-w-md mx-auto">
-                <div className="w-24 h-24 mx-auto mb-6 text-gray-400">
+                <div className="w-24 h-24 mx-auto mb-6 text-slate-400">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-semibold text-gray-900">No submissions yet</h2>
-                <p className="text-gray-600 mt-2">
+                <h2 className="font-serif text-2xl font-semibold text-slate-900">No submissions yet</h2>
+                <p className="text-slate-600 mt-2">
                   You haven&apos;t submitted any BQs for tenders. Browse open tenders to get started.
                 </p>
                 <Link
                   href="/tenders"
-                  className="inline-block mt-6 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition"
+                  className="inline-flex items-center gap-2 mt-6 px-6 py-2.5 bg-[#15406a] text-white rounded-md font-bold tracking-wide shadow-md hover:-translate-y-0.5 hover:bg-[#0d2d4a] hover:shadow-lg transition-all"
                 >
                   Browse Open Tenders →
                 </Link>
@@ -258,9 +259,9 @@ export default function MyTendersListPage() {
 
           {/* No search results */}
           {showNoSearchResults && (
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200 p-8 text-center">
-              <p className="text-gray-600">No tenders match your search.</p>
-              <button onClick={() => setSearch("")} className="mt-3 text-blue-600 hover:underline">
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+              <p className="text-slate-600">No tenders match your search.</p>
+              <button onClick={() => setSearch("")} className="mt-3 text-[#15406a] hover:underline">
                 Clear search
               </button>
             </div>
@@ -285,20 +286,20 @@ export default function MyTendersListPage() {
                   : tender.latest_submission_status === "Submitted" 
                     ? "Submitted" 
                     : tender.latest_submission_status;
-                const submissionColor = tender.latest_submission_status === "Draft" 
-                  ? "text-gray-600" 
+                const submissionColor = tender.latest_submission_status === "Draft"
+                  ? "text-slate-600"
                   : "text-amber-600";
 
                 return (
                   <Link
                     key={tender.tender_id}
                     href={`/tenders/my/${tender.tender_id}`}
-                    className={`${cardWidthClass} group block relative bg-white backdrop-blur-sm rounded-2xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:border-cyan-400`}
+                    className={`${cardWidthClass} group block relative bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#15406a]/40`}
                     style={{ borderLeftColor: brandColor.borderColor, borderLeftWidth: "4px" }}
                   >
                     <div className="p-5">
                       <div className="flex justify-between items-start gap-2 mb-3">
-                        <h2 className="text-xl font-bold text-gray-900 line-clamp-2 flex-1">
+                        <h2 className="text-xl font-bold text-slate-900 line-clamp-2 flex-1">
                           {tender.tender_name}
                         </h2>
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${getTenderStatusBadgeStyle(tender.display_status)}`}>
@@ -307,25 +308,25 @@ export default function MyTendersListPage() {
                       </div>
 
                       <div className="space-y-1 mb-4">
-                        <p className="text-sm text-gray-600 flex items-center gap-1">
+                        <p className="text-sm text-slate-600 flex items-center gap-1">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                           </svg>
                           {tender.client_name} – {tender.branch_name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-slate-500">
                           {tender.work_type}
                         </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-xs mb-4">
                         <div>
-                          <span className="text-gray-500">Bid Deadline</span>
-                          <p className="font-medium text-gray-800">{formatDate(tender.closing_date)}</p>
+                          <span className="text-slate-500">Bid Deadline</span>
+                          <p className="font-medium text-slate-800">{formatDate(tender.closing_date)}</p>
                         </div>
                         <div>
-                          <span className="text-gray-500">Renovation</span>
-                          <p className="font-medium text-gray-800">
+                          <span className="text-slate-500">Renovation</span>
+                          <p className="font-medium text-slate-800">
                             {formatDate(tender.renovation_start_date)} – {formatDate(tender.renovation_end_date)}
                           </p>
                         </div>
@@ -333,20 +334,20 @@ export default function MyTendersListPage() {
 
                       {tender.closing_date && (
                         <div className={`text-xs font-medium mb-3 p-2 rounded-lg ${
-                          isDeadlineSoon 
+                          isDeadlineSoon
                             ? "bg-amber-50 text-amber-700 border border-amber-200"
-                            : "bg-gray-50 text-gray-600"
+                            : "bg-slate-50 text-slate-600"
                         }`}>
                           {daysLeft === 0 ? "Deadline passed" : daysLeft === 1 ? "Closes tomorrow" : `Closes in ${daysLeft} days`}
                         </div>
                       )}
 
-                      <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center text-xs">
-                        <span className="text-gray-500">Your BQ status:</span>
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Your BQ status:</span>
                         <span className={`font-medium ${submissionColor}`}>{submissionDisplay}</span>
                       </div>
 
-                      <div className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 group-hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition">
+                      <div className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#15406a]/5 group-hover:bg-[#15406a] text-[#15406a] group-hover:text-white rounded-md text-sm font-semibold transition-all">
                         View Details
                         <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />

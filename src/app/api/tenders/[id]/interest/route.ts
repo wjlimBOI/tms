@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ROLE_IDS } from "@/lib/roles";
-import { logInsert } from "@/lib/audit";
+import { logInsert, logDelete } from "@/lib/audit";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 import { sanitize } from "@/lib/sanitize";
 import { z } from "zod";
@@ -136,6 +136,66 @@ export async function POST(
     return NextResponse.json({ success: true, interest_id: interestId }, { status: 201 });
   } catch (error) {
     console.error("Tender interest POST error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+// ---------- DELETE — contractor withdraws their own registered interest ----------
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userRoleIds = session.user.roleIds || [];
+    if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR)) {
+      return NextResponse.json({ error: "Only contractors can withdraw interest" }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const tenderId = parseInt(id);
+    if (isNaN(tenderId)) {
+      return NextResponse.json({ error: "Invalid tender ID" }, { status: 400 });
+    }
+
+    await applyScheduledTenderTransitions();
+    const tenderRes = await query(
+      `SELECT ts.status_code FROM tender t
+       JOIN tender_status ts ON t.status_id = ts.status_id
+       WHERE t.tender_id = $1 AND t.is_deleted = false`,
+      [tenderId]
+    );
+    if (tenderRes.rows.length === 0) {
+      return NextResponse.json({ error: "Tender not found" }, { status: 404 });
+    }
+    if (tenderRes.rows[0].status_code !== "Open") {
+      return NextResponse.json({ error: "Interest can only be withdrawn while this tender is still open" }, { status: 400 });
+    }
+
+    const deleteRes = await query(
+      `DELETE FROM tender_interest WHERE tender_id = $1 AND contractor_id = $2 RETURNING interest_id`,
+      [tenderId, session.user.id]
+    );
+    if (deleteRes.rows.length === 0) {
+      return NextResponse.json({ error: "You have not registered interest in this tender" }, { status: 404 });
+    }
+
+    await logDelete(
+      "tender_interest",
+      deleteRes.rows[0].interest_id,
+      { tender_id: tenderId, contractor_id: session.user.id },
+      session.user.id,
+      request,
+      { action: "withdraw_interest" }
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Tender interest DELETE error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

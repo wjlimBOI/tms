@@ -9,13 +9,14 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useNotify } from "@/components/ui/notification-provider";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import DatePicker from "@/components/ui/DatePicker";
+import { isSuperUser } from "@/lib/roles";
 
 // Extend User interface
 interface User {
   user_id: number;
   username: string;
   email: string;
-  display_name?: string;
+  full_name?: string;
   role_id: number;
   role_name?: string;
   is_active: boolean;
@@ -171,7 +172,7 @@ export default function AdminUsersPage() {
   // Trigger fetches when dependencies change
   useEffect(() => {
     if (status === "loading") return;
-    if (!session || (session.user as any).role_id !== 1) {
+    if (!session || !isSuperUser((session.user as any).roleIds || [])) {
       router.push("/");
       return;
     }
@@ -267,7 +268,7 @@ export default function AdminUsersPage() {
     setFormData({
       username: user.username,
       email: user.email,
-      display_name: user.display_name || "",
+      display_name: user.full_name || "",
       password: "",
       role_id: user.role_id,
       is_active: user.is_active,
@@ -548,7 +549,7 @@ export default function AdminUsersPage() {
                       <tr key={user.user_id} className="hover:bg-gray-50 transition-colors duration-150">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{user.user_id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-left">
-                          {user.display_name || user.username}
+                          {user.full_name || user.username}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-left">{user.username}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-left">{user.email}</td>

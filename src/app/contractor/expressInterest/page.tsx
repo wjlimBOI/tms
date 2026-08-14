@@ -11,7 +11,56 @@ const EMAIL_HREF = `mailto:${EMAIL}?subject=Expression%20of%20Interest%20-%20Ren
 
 type ReferenceTab =
   | { id: string; label: string; kind: "text"; body: string }
-  | { id: string; label: string; kind: "pdf"; body: string; href: string };
+  | { id: string; label: string; kind: "pdf"; body: string; href: string }
+  | { id: string; label: string; kind: "steps" };
+
+interface FlowStep {
+  title: string;
+  description: string;
+}
+
+// The real end-to-end path from this application to an awarded contract —
+// see docs/system-workflow.md §3 ("The Contractor Journey") for the source
+// of truth this is kept in sync with. Steps 1-2 happen outside the platform
+// (this form, reviewed by the FM team over email); step 3 onward happens
+// once a contractor has a live account.
+const FLOW_STEPS: FlowStep[] = [
+  {
+    title: "Submit your Expression of Interest",
+    description:
+      "Complete this form and email the required company, personnel, financial, and project-experience documents to our Facilities Management team.",
+  },
+  {
+    title: "Application review",
+    description:
+      "Our Facilities Management team reviews your company profile, compliance documentation, and track record against the requirements above.",
+  },
+  {
+    title: "Account setup",
+    description:
+      "Approved contractors are registered on the platform and receive login access to view and respond to tenders.",
+  },
+  {
+    title: "Register interest in open tenders",
+    description:
+      "Browse open tenders on the platform and register interest to unlock full project details, contact information, and tender documents.",
+  },
+  {
+    title: "Submit your Bill of Quantities (BQ)",
+    description:
+      "Acknowledge the Form of Tender, then build and submit your itemised pricing before the tender closes. You can revise a submission at any point while the tender is still open.",
+  },
+  {
+    title: "Evaluation",
+    description:
+      "Our team compares submissions from all participating contractors. You may occasionally be asked for a revised quote — you'll be notified by email and in-app if so, with a clear deadline.",
+  },
+  {
+    title: "Award outcome",
+    description:
+      "Every participant receives a decision by email. The winning contractor proceeds to contract handover and Defects Liability Period tracking; all other participants retain a record of the tender.",
+  },
+];
 
 const REFERENCE_TABS: ReferenceTab[] = [
   {
@@ -48,8 +97,7 @@ const REFERENCE_TABS: ReferenceTab[] = [
   {
     id: "flow",
     label: "Flow of Events",
-    kind: "text",
-    body: "Sample Flow of Events timeline — this is a reference sample for review purposes only. The final flow of events will be provided upon successful selection.",
+    kind: "steps",
   },
 ];
 
@@ -122,6 +170,30 @@ function Section({
   );
 }
 
+function FlowOfEvents({ steps }: { steps: FlowStep[] }) {
+  return (
+    <ol className="relative">
+      {steps.map((step, i) => (
+        <li key={step.title} className="relative flex gap-4 pb-8 last:pb-0">
+          {i < steps.length - 1 && (
+            <span
+              aria-hidden="true"
+              className="absolute left-[15px] top-8 h-[calc(100%-1.25rem)] w-px bg-[#15406a]/20"
+            />
+          )}
+          <span className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#15406a] bg-[#f7f4ee] text-sm font-bold text-[#15406a]">
+            {i + 1}
+          </span>
+          <div className="pt-0.5">
+            <p className="text-base font-bold text-slate-900">{step.title}</p>
+            <p className="mt-1 text-sm leading-[1.7] text-slate-600">{step.description}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function isReferenceTabId(value: unknown): value is string {
   return typeof value === "string" && REFERENCE_TABS.some((t) => t.id === value);
 }
@@ -179,7 +251,7 @@ export default function ExpressInterestPage() {
             >
               <TabsList
                 variant="line"
-                className="h-auto w-full flex-wrap items-center justify-start gap-x-6 gap-y-2 rounded-none border-b border-slate-200 bg-transparent p-0 pb-3 group-data-horizontal/tabs:h-auto"
+                className="h-auto w-full flex-wrap items-center justify-start gap-x-6 gap-y-2 rounded-none border-b border-slate-200 bg-transparent p-0 pb-3 group-data-[orientation=horizontal]/tabs:h-auto"
               >
                 {REFERENCE_TABS.map((t) => (
                   <TabsTrigger
@@ -220,6 +292,8 @@ export default function ExpressInterestPage() {
                         </a>
                       </div>
                     </>
+                  ) : t.kind === "steps" ? (
+                    <FlowOfEvents steps={FLOW_STEPS} />
                   ) : (
                     <p className="text-[15px] leading-[1.8] text-slate-600">{t.body}</p>
                   )}

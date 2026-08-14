@@ -245,10 +245,11 @@ export async function PUT(
         try {
           const placeholders = notifyRoleIds.map((_, i) => `$${i + 1}`).join(',');
           const usersRes = await query(
-            `SELECT u.user_id, u.email, COALESCE(up.full_name, u.username) AS name
-             FROM users u
+            `SELECT DISTINCT u.user_id, u.email, COALESCE(up.full_name, u.username) AS name
+             FROM user_roles ur
+             JOIN users u ON u.user_id = ur.user_id
              LEFT JOIN user_profile up ON up.user_id = u.user_id
-             WHERE u.role_id IN (${placeholders}) AND u.is_active = true`,
+             WHERE ur.role_id IN (${placeholders}) AND u.is_active = true AND u.is_deleted = false`,
             notifyRoleIds
           );
 

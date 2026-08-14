@@ -4,8 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { parsePagination, paginationMeta } from '@/lib/pagination';
-import { hasRole, hasPermission } from '@/lib/permissions';
-import { ROLE_IDS } from '@/lib/roles';
+import { hasPermission } from '@/lib/permissions';
+import { isSuperViewer } from '@/lib/roles';
 
 // ------------------------------------------------------------------
 // Helper to get overall summary (unchanged)
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
   }
   const roleIds = (session.user as any).roleIds || [];
 
-  const canView = hasRole(roleIds, ROLE_IDS.ADMIN) || (await hasPermission(userId, roleIds, 'costings', 'view'));
+  const canView = isSuperViewer(roleIds) || (await hasPermission(userId, roleIds, 'costings', 'view'));
   if (!canView) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

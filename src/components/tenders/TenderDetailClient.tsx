@@ -9,6 +9,7 @@ import { getBrandColor } from "@/lib/brandColors";
 import { getTenderStatusBadgeStyle, getTenderStatusLabel } from "@/lib/statusColors";
 import { getLogoPath } from "@/lib/brandLogos";
 import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
+import { isSuperUser, isSuperViewer } from "@/lib/roles";
 
 interface BriefingDate {
   id: number;
@@ -106,7 +107,11 @@ export default function TenderDetailClient({ id }: { id: string }) {
       });
   }, [id]);
 
-  const isInternalTeam = (session?.user as any)?.role_id === 1;
+  const roleIds = ((session?.user as any)?.roleIds || []) as number[];
+  // View-only oversight (Budget Forecast display) vs. the Edit Tender link,
+  // which is a mutation and must not be shown to Executive Director.
+  const isInternalTeam = isSuperViewer(roleIds);
+  const canEditTenderLink = isSuperUser(roleIds);
 
   if (loading) {
     return (
@@ -168,7 +173,7 @@ export default function TenderDetailClient({ id }: { id: string }) {
               >
                 View Document
               </Link>
-              {isInternalTeam && (
+              {canEditTenderLink && (
                 <Link
                   href={`/admin/tenders/${tender.tender_id}`}
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white transition"

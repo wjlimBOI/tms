@@ -411,6 +411,16 @@ input[type="datetime-local"] {
     display: none !important;
   }
 
+  /* Next.js's dev-mode tooling indicator (the "N" overlay button) is
+     injected as a custom element directly on <body>, outside the React
+     tree - none of the rules above reach it since it isn't a <nav> and
+     has no print:hidden class. Left unhidden it prints as an empty box
+     in the corner of the first page. Dev-only (absent in production
+     builds), but harmless/cheap to guard here too. */
+  nextjs-portal {
+    display: none !important;
+  }
+
   /* Page background and text colors */
   body,
   .min-h-screen,

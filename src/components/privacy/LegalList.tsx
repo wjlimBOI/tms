@@ -6,8 +6,8 @@ interface LegalListProps {
 export function LegalList({ items, variant = 'disc' }: LegalListProps) {
   const listClass =
     variant === 'disc'
-      ? 'space-y-2 pl-6 list-disc marker:text-slate-500'
-      : 'space-y-2 pl-6 list-decimal marker:text-slate-500 marker:font-semibold';
+      ? 'mt-3 space-y-2 pl-6 list-disc marker:text-slate-500'
+      : 'mt-3 space-y-2 pl-6 list-decimal marker:text-slate-500 marker:font-semibold';
 
   return (
     <ul className={listClass}>

@@ -7,6 +7,7 @@ import { logInsert } from "@/lib/audit";
 import { sendExtensionRequestEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notifications";
 import { ROLE_IDS } from "@/lib/roles";
+import { getExtensionApproverRoleIds } from "@/lib/permissions";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 import { sanitize } from "@/lib/sanitize";
 
@@ -77,6 +78,19 @@ export async function POST(req: Request) {
     );
   }
 
+  // 3b. EOT requests are a last-chance window, not something to lodge weeks
+  // out — only accepted within 48 hours of closing.
+  const EOT_WINDOW_MS = 48 * 60 * 60 * 1000;
+  const eotWindowOpensAt = new Date(closingDate.getTime() - EOT_WINDOW_MS);
+  if (now < eotWindowOpensAt) {
+    return NextResponse.json(
+      {
+        error: `Extension requests can only be submitted within 48 hours of the closing time. This tender closes on ${closingDate.toLocaleString()}.`,
+      },
+      { status: 400 }
+    );
+  }
+
   // 4. Check if this tender has already been extended once (approved request exists)
   const approvedRes = await query(
     `SELECT id FROM tender_extension_requests WHERE tender_id = $1 AND status = 'Approved'`,
@@ -138,17 +152,16 @@ export async function POST(req: Request) {
   try {
     // Retrieve approver and CC role IDs from settings (or fallback to hardcoded)
     const settingsRes = await query(
-      `SELECT role_id, is_approver, is_cc FROM tender_extension_settings`
+      `SELECT role_id, is_cc FROM tender_extension_settings`
     );
-    const approverRoleIds = settingsRes.rows
-      .filter(r => r.is_approver)
-      .map(r => r.role_id);
     const ccRoleIds = settingsRes.rows
       .filter(r => r.is_cc)
       .map(r => r.role_id);
 
-    // If no settings exist, fallback to hardcoded roles
-    const finalApproverRoles = approverRoleIds.length > 0 ? approverRoleIds : [6];
+    // Single source of truth for "who can approve" — same helper the actual
+    // approval gate (tender-extension/[id]/route.ts) uses, so this
+    // notification list can never drift from who's really authorized.
+    const finalApproverRoles = await getExtensionApproverRoleIds();
     const finalCcRoles = ccRoleIds.length > 0 ? ccRoleIds : [10, 8];
 
     // Get approver and CC user info

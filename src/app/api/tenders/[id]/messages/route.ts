@@ -202,8 +202,12 @@ export async function POST(
 
       void (async () => {
         for (const c of contractorsRes.rows) {
-          await sendTrackedEmail("announcement", { userId: c.contractor_id, email: c.email }, tenderId, () =>
-            sendAnnouncementEmail({ to: c.email, recipientName: c.username, tenderName: tender.tender_name, tenderId, body })
+          await sendTrackedEmail(
+            "announcement",
+            { userId: c.contractor_id, email: c.email },
+            tenderId,
+            () => sendAnnouncementEmail({ to: c.email, recipientName: c.username, tenderName: tender.tender_name, tenderId, body }),
+            "announcements"
           );
         }
       })().catch((err) => console.error(`Announcement email dispatch failed for tender ${tenderId}:`, err));

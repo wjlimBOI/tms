@@ -1,6 +1,6 @@
 // lib/permissions.ts
 import pool from "./db";
-import { ROLE_IDS } from "./roles";
+import { ROLE_IDS, isSuperUser, isSuperViewer } from "./roles";
 
 // Helper to ensure roleIds is an array (for when a single number is passed)
 function normalizeRoleIds(roleIds: number | number[] | undefined): number[] {
@@ -23,20 +23,29 @@ export async function canEditSubmission(
 ): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
 
-  if (hasRole(roles, ROLE_IDS.ADMIN)) {
+  if (isSuperUser(roles)) {
     return true;
   }
   if (!hasRole(roles, ROLE_IDS.CONTRACTOR)) {
     return false;
   }
 
+  // Once a tender closes, no more submissions — staff move into reviewing
+  // what was submitted, comparing pricing across contractors, and
+  // negotiating before awarding (2026-08-10). A contractor editing or
+  // submitting a Draft BQ after Closed would undermine that comparison, so
+  // this is gated on tender status, not just submission status. The one
+  // exception: a specific resubmission_request targeting exactly this round
+  // (staff-initiated after negotiation) reopens editing for that round only.
   const result = await pool.query(
-    `SELECT status, round_no, contractor_id,
+    `SELECT ts.tender_id, ts.status, ts.round_no, ts.contractor_id, tstat.status_code,
             (SELECT MAX(round_no) FROM tender_submission
              WHERE tender_id = ts.tender_id AND contractor_id = ts.contractor_id
                AND is_deleted = false) as max_round
      FROM tender_submission ts
-     WHERE submission_id = $1 AND is_deleted = false`,
+     JOIN tender t ON t.tender_id = ts.tender_id
+     JOIN tender_status tstat ON tstat.status_id = t.status_id
+     WHERE ts.submission_id = $1 AND ts.is_deleted = false`,
     [submissionId]
   );
   if (result.rows.length === 0) {
@@ -46,8 +55,19 @@ export async function canEditSubmission(
   const ownsSubmission = sub.contractor_id === userId;
   const isDraft = sub.status === 'Draft';
   const isLatest = sub.round_no === sub.max_round;
+  let tenderStillOpen = sub.status_code === 'Open';
 
-  return ownsSubmission && isDraft && isLatest;
+  if (!tenderStillOpen && ownsSubmission) {
+    const grantRes = await pool.query(
+      `SELECT 1 FROM resubmission_request
+       WHERE tender_id = $1 AND contractor_id = $2 AND next_round_no = $3
+       LIMIT 1`,
+      [sub.tender_id, sub.contractor_id, sub.round_no]
+    );
+    tenderStillOpen = grantRes.rows.length > 0;
+  }
+
+  return ownsSubmission && isDraft && isLatest && tenderStillOpen;
 }
 
 export async function canEditLineItem(
@@ -77,7 +97,7 @@ export async function canViewTender(
   roleIds: number | number[]
 ): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
-  if (hasRole(roles, ROLE_IDS.ADMIN)) return true;
+  if (isSuperViewer(roles)) return true;
 
   const result = await pool.query(
     `SELECT created_by, branch_id FROM tender WHERE tender_id = $1 AND is_deleted = false`,
@@ -97,7 +117,7 @@ export async function canEditTender(
   roleIds: number | number[]
 ): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
-  if (hasRole(roles, ROLE_IDS.ADMIN)) return true;
+  if (isSuperUser(roles)) return true;
   if (hasRole(roles, ROLE_IDS.CONTRACTOR)) {
     const result = await pool.query(
       `SELECT created_by FROM tender WHERE tender_id = $1 AND is_deleted = false`,
@@ -113,10 +133,18 @@ export async function canDeleteTender(
   userId: number,
   roleIds: number | number[]
 ): Promise<boolean> {
-  return hasRole(roleIds, ROLE_IDS.ADMIN);
+  return isSuperUser(roleIds);
 }
 
-// ========== CONTRACTOR CLOSED TENDER PARTICIPATION CHECK ==========
+// ========== CONTRACTOR CLOSED/AWARDED TENDER PARTICIPATION CHECK ==========
+// A contractor who never participated in a tender loses visibility once it
+// stops being Open — both once it's Closed (pending an award decision) and
+// once it's Awarded (2026-08-10 decision: non-participants must not be able
+// to see an awarded tender at all; participants who didn't win keep it as a
+// historical record). Participation uses the same submission/interest/
+// tender_contractor/award union as canAccessTenderMessages and
+// canAccessTenderDocuments, for one consistent definition of "participates
+// in this tender" across the app.
 export async function canViewTenderWithParticipation(
   tenderId: number,
   userId: number,
@@ -126,7 +154,7 @@ export async function canViewTenderWithParticipation(
   // Admin and any non-contractor roles can view any tender
   if (!hasRole(roles, ROLE_IDS.CONTRACTOR)) return true; // only contractors need further checks
 
-  // Contractor: first check if tender is open
+  // Contractor: first check if tender is still open
   const tenderRes = await pool.query(
     `SELECT ts.status_code FROM tender t
      JOIN tender_status ts ON t.status_id = ts.status_id
@@ -136,16 +164,17 @@ export async function canViewTenderWithParticipation(
   if (tenderRes.rows.length === 0) return false;
   const statusCode = tenderRes.rows[0].status_code;
 
-  if (statusCode !== 'closed') return true;
+  if (statusCode !== 'closed' && statusCode !== 'awarded') return true;
 
-  // Tender is closed – check if contractor has any submission for this tender
-  const submissionRes = await pool.query(
-    `SELECT 1 FROM tender_submission
-     WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false
+  const participation = await pool.query(
+    `SELECT 1 FROM tender_submission WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false
+     UNION SELECT 1 FROM tender_interest WHERE tender_id = $1 AND contractor_id = $2
+     UNION SELECT 1 FROM tender_contractor WHERE tender_id = $1 AND contractor_id = $2
+     UNION SELECT 1 FROM tender_award WHERE tender_id = $1 AND winning_contractor_id = $2
      LIMIT 1`,
     [tenderId, userId]
   );
-  return submissionRes.rows.length > 0;
+  return participation.rows.length > 0;
 }
 
 // ========== HANDOVER / DLP PERMISSIONS ==========
@@ -160,7 +189,7 @@ export async function canMarkHandover(
   roleIds: number | number[]
 ): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
-  if (hasRole(roles, ROLE_IDS.ADMIN)) return true;
+  if (isSuperUser(roles)) return true;
   if (!hasRole(roles, ROLE_IDS.PROJECT_MANAGER) && !hasRole(roles, ROLE_IDS.SENIOR_PROJECT_MANAGER)) {
     return false;
   }
@@ -189,7 +218,11 @@ export async function canAccessTenderMessages(
 ): Promise<{ allowed: boolean; isStaff: boolean }> {
   const roles = normalizeRoleIds(roleIds);
 
-  if (hasRole(roles, ROLE_IDS.ADMIN)) return { allowed: true, isStaff: true };
+  // Full staff bypass (view + reply) for Admin/Developer only — Executive
+  // Director's oversight access is view-only elsewhere in this file, and
+  // isStaff here also grants the ability to post/reply, not just read.
+  if (isSuperUser(roles)) return { allowed: true, isStaff: true };
+  if (hasRole(roles, ROLE_IDS.EXECUTIVE_DIRECTOR)) return { allowed: true, isStaff: false };
 
   const tenderRes = await pool.query(
     `SELECT created_by, project_manager_email FROM tender WHERE tender_id = $1 AND is_deleted = false`,
@@ -209,11 +242,24 @@ export async function canAccessTenderMessages(
 
   if (hasRole(roles, ROLE_IDS.CONTRACTOR)) {
     if (!contractorId || contractorId !== userId) return { allowed: false, isStaff: false };
+
+    // Once a tender is awarded, only the winning contractor keeps chat
+    // access — everyone else is notified of the outcome by email
+    // (award/route.ts) and is expected to reach out by email/WhatsApp for
+    // anything further, to keep in-app data minimal (2026-08-10 decision).
+    // While still Open or Closed-but-unawarded, any participant can chat.
+    const awardRes = await pool.query(
+      `SELECT winning_contractor_id FROM tender_award WHERE tender_id = $1`,
+      [tenderId]
+    );
+    if (awardRes.rows.length > 0) {
+      return { allowed: awardRes.rows[0].winning_contractor_id === userId, isStaff: false };
+    }
+
     const participation = await pool.query(
       `SELECT 1 FROM tender_submission WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false
        UNION SELECT 1 FROM tender_interest WHERE tender_id = $1 AND contractor_id = $2
        UNION SELECT 1 FROM tender_contractor WHERE tender_id = $1 AND contractor_id = $2
-       UNION SELECT 1 FROM tender_award WHERE tender_id = $1 AND winning_contractor_id = $2
        LIMIT 1`,
       [tenderId, userId]
     );
@@ -226,9 +272,14 @@ export async function canAccessTenderMessages(
 // ========== TENDER DOCUMENTS (tender_document / tenders/documents/[filename]) ==========
 // Any staff (non-Contractor) role can view any tender's documents, matching
 // canViewTender's existing convention. A Contractor needs real participation
-// on this specific tender - reuses the same submission/interest/
-// tender_contractor/award union canAccessTenderMessages already established,
-// rather than inventing a second definition of "participates in this tender."
+// AND the tender must still be Open — once it's Closed or Awarded, document
+// access is cut off for every contractor, no exception even for the
+// eventual winner (2026-08-10 decision: reduce foul-play/manipulation risk
+// by not letting anyone keep pulling tender documents after bidding closes).
+// This is deliberately stricter than canAccessTenderMessages/
+// canViewTenderWithParticipation, which keep participants' visibility as a
+// historical record after closing — documents specifically do not get that
+// grace period.
 export async function canAccessTenderDocuments(
   tenderId: number,
   userId: number,
@@ -236,6 +287,15 @@ export async function canAccessTenderDocuments(
 ): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
   if (!hasRole(roles, ROLE_IDS.CONTRACTOR)) return true;
+
+  const tenderRes = await pool.query(
+    `SELECT ts.status_code FROM tender t
+     JOIN tender_status ts ON t.status_id = ts.status_id
+     WHERE t.tender_id = $1 AND t.is_deleted = false`,
+    [tenderId]
+  );
+  if (tenderRes.rows.length === 0) return false;
+  if (tenderRes.rows[0].status_code !== 'Open') return false;
 
   const participation = await pool.query(
     `SELECT 1 FROM tender_submission WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false
@@ -278,9 +338,75 @@ export async function hasPermission(
   return result.rows.length > 0;
 }
 
-// ========== DRAFT TENDER VISIBILITY ==========
-export async function canViewDraftTender(roleIds: number | number[]): Promise<boolean> {
+// ========== TENDER EXTENSION (EOT) APPROVAL ==========
+// Deliberately NOT bypassed by isSuperUser (Admin/Developer) — per project
+// decision (2026-08-10), EOT approval stays purely role-configurable via
+// `tender_extension_settings` (already has a real admin CRUD API at
+// /api/admin/extension-settings) rather than getting a hardcoded escape
+// hatch. Falls back to FM Regional Director if no settings row exists yet,
+// matching the fallback already used for the approval-notification email
+// list in src/app/api/tender-extension/route.ts.
+export async function getExtensionApproverRoleIds(): Promise<number[]> {
+  const result = await pool.query(
+    `SELECT role_id FROM tender_extension_settings WHERE is_approver = true`
+  );
+  const roleIds = result.rows.map((r: { role_id: number }) => r.role_id);
+  return roleIds.length > 0 ? roleIds : [ROLE_IDS.FM_REGIONAL_DIRECTOR];
+}
+
+export async function canApproveExtension(roleIds: number | number[]): Promise<boolean> {
   const roles = normalizeRoleIds(roleIds);
-  const allowedRoles: number[] = [ROLE_IDS.ADMIN]; // Admin only by default – add more role IDs here
-  return allowedRoles.some(allowed => roles.includes(allowed));
+  const approverRoleIds = await getExtensionApproverRoleIds();
+  return roles.some((r) => approverRoleIds.includes(r));
+}
+
+// ========== TENDER AWARD APPROVAL ==========
+// Mirrors the EOT-approval pattern above exactly (2026-08-12 decision):
+// deliberately NOT bypassed by isSuperUser (Admin/Developer) — Award moves
+// to FM Regional Director exclusively, role-configurable via
+// `tender_award_settings` (admin CRUD at /api/admin/award-settings) rather
+// than hardcoded. Falls back to FM Regional Director if no settings row
+// exists yet.
+export async function getAwardApproverRoleIds(): Promise<number[]> {
+  const result = await pool.query(
+    `SELECT role_id FROM tender_award_settings WHERE is_approver = true`
+  );
+  const roleIds = result.rows.map((r: { role_id: number }) => r.role_id);
+  return roleIds.length > 0 ? roleIds : [ROLE_IDS.FM_REGIONAL_DIRECTOR];
+}
+
+export async function canApproveAward(roleIds: number | number[]): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  const approverRoleIds = await getAwardApproverRoleIds();
+  return roles.some((r) => approverRoleIds.includes(r));
+}
+
+// ========== BRANCH REFERENCE-DATA MANAGEMENT ==========
+// Viewing (GET) is separate from managing (POST/PUT/DELETE) so Executive
+// Director's oversight bypass can see branches without also being able to
+// create/edit/delete them.
+export async function canViewBranches(userId: number, roleIds: number | number[]): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (isSuperViewer(roles)) return true;
+  return hasPermission(userId, roles, "Admin", "manage_branches");
+}
+
+export async function canManageBranches(userId: number, roleIds: number | number[]): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (isSuperUser(roles)) return true;
+  return hasPermission(userId, roles, "Admin", "manage_branches");
+}
+
+// ========== PROJECT-MANAGER REFERENCE-DATA MANAGEMENT ==========
+export async function canManageProjectManagers(userId: number, roleIds: number | number[]): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (isSuperUser(roles)) return true;
+  return hasPermission(userId, roles, "Admin", "manage_project_managers");
+}
+
+// ========== DRAFT TENDER VISIBILITY ==========
+export async function canViewDraftTender(userId: number, roleIds: number | number[]): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (isSuperViewer(roles)) return true;
+  return hasPermission(userId, roles, "Tender Management", "view_draft_tenders");
 }

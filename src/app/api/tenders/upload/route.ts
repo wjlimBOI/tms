@@ -4,8 +4,7 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/permissions";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperUser } from "@/lib/roles";
 import { matchesFileSignature } from "@/lib/fileValidation";
 import { query } from "@/lib/db";
 import { sanitize } from "@/lib/sanitize";
@@ -33,7 +32,7 @@ export async function POST(req: Request) {
   // closes the immediate gap - previously ANY authenticated user, including
   // Contractor, could write arbitrary allowed-type files to shared disk.
   const roleIds = (session.user as any).roleIds || [];
-  if (!hasRole(roleIds, ROLE_IDS.ADMIN)) {
+  if (!isSuperUser(roleIds)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

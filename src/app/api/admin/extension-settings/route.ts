@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { logInsert, logAuthEvent } from "@/lib/audit";
+import { isSuperUser } from "@/lib/roles";
 
 // ─── GET (unchanged) ──────────────────────────────────────────
 export async function GET() {
@@ -13,7 +14,7 @@ export async function GET() {
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  if (!userRoleIds.includes(1)) {
+  if (!isSuperUser(userRoleIds)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  if (!userRoleIds.includes(1)) {
+  if (!isSuperUser(userRoleIds)) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, req, {
       action: "create_extension_setting",
       reason: "Unauthorized",
@@ -45,11 +46,11 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { role_id, is_approver } = body;
+  const { role_id, is_approver, is_cc } = body;
 
-  if (!role_id || typeof is_approver !== "boolean") {
+  if (!role_id || (typeof is_approver !== "boolean" && typeof is_cc !== "boolean")) {
     return NextResponse.json(
-      { error: "Missing role_id or is_approver" },
+      { error: "Missing role_id, and at least one of is_approver or is_cc" },
       { status: 400 }
     );
   }
@@ -75,10 +76,10 @@ export async function POST(req: NextRequest) {
 
     // Insert new setting
     const result = await query(
-      `INSERT INTO tender_extension_settings (role_id, is_approver)
-       VALUES ($1, $2)
-       RETURNING id, role_id, is_approver, created_at, updated_at`,
-      [role_id, is_approver]
+      `INSERT INTO tender_extension_settings (role_id, is_approver, is_cc)
+       VALUES ($1, $2, $3)
+       RETURNING id, role_id, is_approver, is_cc, created_at, updated_at`,
+      [role_id, is_approver ?? false, is_cc ?? false]
     );
 
     const newSetting = result.rows[0];
@@ -93,7 +94,8 @@ export async function POST(req: NextRequest) {
       {
         action: "create_extension_setting",
         role_id,
-        is_approver,
+        is_approver: newSetting.is_approver,
+        is_cc: newSetting.is_cc,
         source: "admin_api"
       }
     );

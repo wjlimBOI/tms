@@ -4,8 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
-import { hasRole, hasPermission } from "@/lib/permissions";
-import { ROLE_IDS } from "@/lib/roles";
+import { hasPermission } from "@/lib/permissions";
+import { isSuperViewer } from "@/lib/roles";
 import { z } from "zod";
 
 const querySchema = z.object({
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   }
 
   const roleIds = (session.user as any).roleIds || [];
-  const canView = hasRole(roleIds, ROLE_IDS.ADMIN) || (await hasPermission(session.user.id, roleIds, "BQ", "view_cost_comparison"));
+  const canView = isSuperViewer(roleIds) || (await hasPermission(session.user.id, roleIds, "BQ", "view_cost_comparison"));
   if (!canView) {
     return NextResponse.json(
       { error: "Forbidden" },
@@ -71,17 +71,21 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Fetch submission metadata
     const submissions = await prisma.$queryRaw`
-      SELECT 
+      SELECT
         s.submission_id, s.version_name, s.round_no, s.status,
         COALESCE(s.client_name_override, br.brand_name) AS client_name,
         COALESCE(s.branch_name_override, b.branch_name) AS job_site,
-        t.tender_name,
-        u.username AS contractor_name
+        t.tender_id, t.tender_name,
+        u.user_id AS contractor_id,
+        u.username AS contractor_name,
+        u.email AS contractor_email,
+        up.phone AS contractor_phone
       FROM tender_submission s
       JOIN tender t ON s.tender_id = t.tender_id
       JOIN branch b ON t.branch_id = b.branch_id
       JOIN brand br ON b.brand_id = br.brand_id
       LEFT JOIN users u ON s.contractor_id = u.user_id
+      LEFT JOIN user_profile up ON up.user_id = u.user_id
       WHERE s.submission_id = ANY(${submissionIds}::int[]) AND s.is_deleted = false
     ` as any[];
     if (submissions.length !== submissionIds.length) {

@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { sanitize } from "@/lib/sanitize";
 import { z } from "zod";
+import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 
 // ─── Schema ──────────────────────────────────────────────────
 const querySchema = z
@@ -20,14 +21,17 @@ const querySchema = z
   .passthrough();
 
 // ─── Authorisation ────────────────────────────────────────────
+// Admin/Developer always pass; Internal Audit Team is the real role behind
+// what used to be a free-text `role_name === "Auditor"` match (no role by
+// that literal name exists in the `roles` table — it was fragile and would
+// silently stop matching anyone if the role were ever renamed).
 async function isAuthorized(userId: number): Promise<boolean> {
   const userRoles = await prisma.user_roles.findMany({
     where: { user_id: userId },
-    include: { roles: { select: { role_id: true, role_name: true } } },
+    select: { role_id: true },
   });
-  return userRoles.some(
-    (ur) => ur.roles.role_id === 1 || ur.roles.role_name === "Auditor"
-  );
+  const roleIds = userRoles.map((ur) => ur.role_id);
+  return isSuperUser(roleIds) || roleIds.includes(ROLE_IDS.INTERNAL_AUDIT_TEAM);
 }
 
 // ─── OPTIONS (CORS) ──────────────────────────────────────────

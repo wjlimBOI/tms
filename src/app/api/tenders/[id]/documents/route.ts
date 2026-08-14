@@ -6,8 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { hasRole, canAccessTenderDocuments } from "@/lib/permissions";
-import { ROLE_IDS } from "@/lib/roles";
+import { canAccessTenderDocuments } from "@/lib/permissions";
+import { isSuperUser } from "@/lib/roles";
 
 export async function GET(
   req: NextRequest,
@@ -50,7 +50,7 @@ export async function GET(
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const roleIds = (session?.user as any)?.roleIds || [];
-  if (!session?.user || !hasRole(roleIds, ROLE_IDS.ADMIN)) {
+  if (!session?.user || !isSuperUser(roleIds)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

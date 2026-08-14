@@ -658,6 +658,7 @@ model roles {
   sort_order                Int?                        @default(999)
   approval_chains           approval_chains[]
   role_permissions          role_permissions[]
+  tender_award_settings     tender_award_settings[]
   tender_extension_settings tender_extension_settings[]
   user_roles                user_roles[]
   users                     users[]
@@ -726,7 +727,10 @@ model tender_award {
   remark                                          String?           @db.VarChar(500)
   created_at                                      DateTime          @default(now()) @db.Timestamp(6)
   updated_at                                      DateTime          @default(now()) @db.Timestamp(6)
+  contract_received_at                            DateTime?         @db.Timestamp(6)
+  contract_received_by                            Int?
   users_tender_award_awarded_byTousers            users             @relation("tender_award_awarded_byTousers", fields: [awarded_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  users_tender_award_contract_received_byTousers  users?            @relation("tender_award_contract_received_byTousers", fields: [contract_received_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   tender_submission                               tender_submission @relation(fields: [final_submission_id], references: [submission_id], onDelete: NoAction, onUpdate: NoAction)
   tender                                          tender            @relation(fields: [tender_id], references: [tender_id], onDelete: NoAction, onUpdate: NoAction)
   users_tender_award_winning_contractor_idTousers users             @relation("tender_award_winning_contractor_idTousers", fields: [winning_contractor_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
@@ -929,6 +933,7 @@ model users {
   last_failed_attempt                                                     DateTime?                     @db.Timestamp(6)
   locked_until                                                            DateTime?                     @db.Timestamp(6)
   password_changed_at                                                     DateTime?                     @db.Timestamp(6)
+  display_name                                                            String?                       @db.VarChar(150)
   approval_history                                                        approval_history[]
   approval_requests                                                       approval_requests[]
   audit_log                                                               audit_log[]
@@ -956,6 +961,7 @@ model users {
   tender_tender_handover_byTousers                                        tender[]                      @relation("tender_handover_byTousers")
   tender_acknowledgments                                                  tender_acknowledgment[]
   tender_award_tender_award_awarded_byTousers                             tender_award[]                @relation("tender_award_awarded_byTousers")
+  tender_award_tender_award_contract_received_byTousers                   tender_award[]                @relation("tender_award_contract_received_byTousers")
   tender_award_tender_award_winning_contractor_idTousers                  tender_award[]                @relation("tender_award_winning_contractor_idTousers")
   tender_contractor_tender_contractor_approved_byTousers                  tender_contractor[]           @relation("tender_contractor_approved_byTousers")
   tender_contractor_tender_contractor_contractor_idTousers                tender_contractor[]           @relation("tender_contractor_contractor_idTousers")
@@ -1012,9 +1018,23 @@ model tender_extension_requests {
 
 model tender_extension_settings {
   id          Int       @id @default(autoincrement())
-  role_id     Int
+  role_id     Int       @unique
   is_approver Boolean?  @default(false)
   is_cc       Boolean?  @default(false)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  roles       roles     @relation(fields: [role_id], references: [role_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+// Mirrors tender_extension_settings, but for who may run the Award action
+// (Closed -> Awarded). Same reasoning as EOT approval: kept purely
+// role-configurable rather than hardcoded, and deliberately NOT bypassed by
+// isSuperUser (Admin/Developer) — see canApproveAward() in permissions.ts.
+// No is_cc column: award decision emails have no CC concept today.
+model tender_award_settings {
+  id          Int       @id @default(autoincrement())
+  role_id     Int       @unique
+  is_approver Boolean?  @default(false)
   created_at  DateTime? @default(now()) @db.Timestamp(6)
   updated_at  DateTime? @default(now()) @db.Timestamp(6)
   roles       roles     @relation(fields: [role_id], references: [role_id], onDelete: Cascade, onUpdate: NoAction)

@@ -8,21 +8,11 @@ import { useBQ } from "@/hooks/useBQ";
 import { getBrandColor } from "@/lib/brandColors";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-
-const ALL_CATEGORIES = [
-  { id: 1, name: "1. Preliminary & Demolition Works" },
-  { id: 2, name: "2. Air‑Conditioning Works" },
-  { id: 3, name: "3. Electrical Works" },
-  { id: 4, name: "4. Plumbing Works" },
-  { id: 5, name: "5. Ceiling Works" },
-  { id: 6, name: "6. Partition Works" },
-  { id: 7, name: "7. Wall Finishes & Painting" },
-  { id: 8, name: "8. Floor Finishes" },
-  { id: 9, name: "9. Joinery & Carpentry" },
-  { id: 10, name: "10. Signage Works" },
-  { id: 11, name: "11. Shopfront Feature" },
-  { id: 12, name: "12. Others" },
-];
+import { isSuperUser, ROLE_IDS } from "@/lib/roles";
+import StatusBanner from "@/components/ui/StatusBanner";
+import BqNotesPanel from "@/components/bq/BqNotesPanel";
+import { getBQStatusBadgeStyle, getBQStatusLabel } from "@/lib/statusColors";
+import { ArrowLeft, Printer, Download, Trash2, Settings, Lock, Save, CheckCircle2, AlertTriangle, Info, X } from "lucide-react";
 
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat("en-US", {
@@ -73,7 +63,9 @@ export default function EditCostEstimatePage() {
     updateStatus,
     updateSubmission,
     canEdit,
-    refresh,
+    workCategories,
+    lastUpdateError,
+    resubmissionRequest,
   } = useBQ(submissionId as string);
 
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -81,9 +73,8 @@ export default function EditCostEstimatePage() {
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [infoModal, setInfoModal] = useState({ title: "", message: "", note: "", type: "info" as "success" | "error" | "info", shouldRefresh: false });
+  const [infoModal, setInfoModal] = useState<{ title: string; message: string; note: string; type: "success" | "error" | "info"; shouldRefresh: boolean; actionHref?: string; actionLabel?: string }>({ title: "", message: "", note: "", type: "info", shouldRefresh: false });
   const [filteredBranches, setFilteredBranches] = useState<any[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [isDirty, setIsDirty] = useState(false);
@@ -91,8 +82,10 @@ export default function EditCostEstimatePage() {
 
   const [guidelinesAccepted, setGuidelinesAccepted] = useState(false);
 
-  const userRoleId = session?.user?.role_id;
-  const isAdmin = userRoleId === 1;
+  const userRoleIds = (session?.user as any)?.roleIds || [];
+  const isAdmin = isSuperUser(userRoleIds);
+  const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
+  const tenderStillOpen = submission?.tender_status_code === "Open";
 
   const currentClientName = submission?.client_name_override || submission?.brand_name || "—";
   const currentJobSite = submission?.branch_name_override || submission?.original_branch_name || "—";
@@ -185,19 +178,23 @@ export default function EditCostEstimatePage() {
   }, []);
 
   const handleBackToBQs = async () => {
-    if (isDirtyRef.current) {
-      const confirmLeave = await confirm({
-        title: "Unsaved changes",
-        description: "You have unsaved changes. If you leave now, they will be lost. Do you still want to leave?",
-        confirmText: "Leave",
-        variant: "destructive",
-      });
-      if (confirmLeave) {
-        setIsDirty(false);
-        isDirtyRef.current = false;
-        router.push("/bq/my");
-      }
-    } else {
+    const confirmLeave = await confirm(
+      isDirtyRef.current
+        ? {
+            title: "Unsaved changes",
+            description: "You have unsaved changes. If you leave now, they will be lost. Do you still want to leave?",
+            confirmText: "Leave",
+            variant: "destructive",
+          }
+        : {
+            title: "Return to My BQs?",
+            description: "Are you sure you want to go back to My BQs?",
+            confirmText: "Leave",
+          }
+    );
+    if (confirmLeave) {
+      setIsDirty(false);
+      isDirtyRef.current = false;
       router.push("/bq/my");
     }
   };
@@ -248,67 +245,6 @@ export default function EditCostEstimatePage() {
     window.open(`/api/bq/export?submissionId=${submissionId}`, "_blank");
   };
 
-  // ----- FIXED: Upload handler using /api/bq/import -----
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!submissionId) {
-      setInfoModal({
-        title: "Upload Failed",
-        message: "Submission ID missing.",
-        note: "Please refresh the page and try again.",
-        type: "error",
-        shouldRefresh: false
-      });
-      setShowInfoModal(true);
-      return;
-    }
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("submissionId", submissionId as string);
-
-    try {
-      // ✅ Use the correct import endpoint
-      const res = await fetch("/api/bq/import", { method: "POST", body: formData });
-      const data = await res.json();
-      if (res.ok) {
-        // Refresh the page data without reloading
-        await refresh();
-        setInfoModal({
-          title: "Upload Successful",
-          message: `Successfully updated ${data.updatedCount || 0} items. ${data.skippedItems ? `Skipped ${data.skippedItems} items.` : ''}`,
-          note: "The page has been refreshed with the new data.",
-          type: "success",
-          shouldRefresh: false // no page reload needed
-        });
-        setShowInfoModal(true);
-      } else {
-        setInfoModal({
-          title: "Upload Failed",
-          message: data.error || "Upload failed",
-          note: "Please check your Excel file format.",
-          type: "error",
-          shouldRefresh: false
-        });
-        setShowInfoModal(true);
-      }
-    } catch (err) {
-      setInfoModal({
-        title: "Upload Failed",
-        message: "Network error. Please try again.",
-        note: "Check your connection and try again.",
-        type: "error",
-        shouldRefresh: false
-      });
-      setShowInfoModal(true);
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
-
   const handleInfoModalClose = () => {
     setShowInfoModal(false);
     // If we set shouldRefresh to true, we would reload, but we now refresh via hook.
@@ -331,13 +267,27 @@ export default function EditCostEstimatePage() {
       isDirtyRef.current = false;
     } catch (err) {
       console.error("Submission failed:", err);
-      setInfoModal({
-        title: "Submission Failed",
-        message: "Failed to submit. Please try again.",
-        note: "If the problem persists, contact support.",
-        type: "error",
-        shouldRefresh: false
-      });
+      if (lastUpdateError?.code === "ACKNOWLEDGMENT_REQUIRED" && lastUpdateError.tenderId) {
+        setInfoModal({
+          title: "Form of Tender Required",
+          message: lastUpdateError.error || "You must sign the Form of Tender for this project before submitting your BQ.",
+          note: "",
+          type: "info",
+          shouldRefresh: false,
+          actionHref: `/tenders/${lastUpdateError.tenderId}/edit`,
+          actionLabel: "Go to Form of Tender",
+        });
+      } else {
+        setInfoModal({
+          title: "Submission Failed",
+          message: "Failed to submit. Please try again.",
+          note: "If the problem persists, contact support.",
+          type: "error",
+          shouldRefresh: false,
+          actionHref: "",
+          actionLabel: "",
+        });
+      }
       setShowInfoModal(true);
     } finally {
       setIsSubmitting(false);
@@ -350,33 +300,23 @@ export default function EditCostEstimatePage() {
 
   const formatDate = (dateStr: string | null | undefined) => (dateStr ? new Date(dateStr).toLocaleString() : "—");
 
-  const availableCategories = ALL_CATEGORIES.filter(cat => !categories.some(c => c.category_id === cat.id));
+  const availableCategories = workCategories
+    .filter(cat => !categories.some(c => c.category_id === cat.category_id))
+    .map(cat => ({ id: cat.category_id, name: cat.name }));
 
   const InfoModal = () => (
     <Dialog open onOpenChange={(open) => { if (!open) handleInfoModalClose(); }}>
       <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-full ${
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
               infoModal.type === 'success' ? 'bg-emerald-100' :
               infoModal.type === 'error' ? 'bg-rose-100' :
-              'bg-blue-100'
-            } flex items-center justify-center`}>
-              {infoModal.type === 'success' && (
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-              {infoModal.type === 'error' && (
-                <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              )}
-              {infoModal.type === 'info' && (
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              )}
+              'bg-[#15406a]/10'
+            }`}>
+              {infoModal.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+              {infoModal.type === 'error' && <X className="w-5 h-5 text-rose-600" />}
+              {infoModal.type === 'info' && <Info className="w-5 h-5 text-[#15406a]" />}
             </div>
             <DialogTitle className="text-xl font-bold text-gray-900">{infoModal.title}</DialogTitle>
           </div>
@@ -391,10 +331,18 @@ export default function EditCostEstimatePage() {
           <div className="flex gap-3 justify-end">
             <button
               onClick={handleInfoModalClose}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-sm shadow-sm transition"
+              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium text-sm hover:bg-gray-50 transition"
             >
-              OK
+              {infoModal.actionHref ? "Cancel" : "OK"}
             </button>
+            {infoModal.actionHref && (
+              <button
+                onClick={() => router.push(infoModal.actionHref as string)}
+                className="px-4 py-2 rounded-lg bg-[#15406a] hover:bg-[#0d2d4a] text-white font-medium text-sm shadow-sm transition-colors"
+              >
+                {infoModal.actionLabel || "Continue"}
+              </button>
+            )}
           </div>
         </div>
       </DialogContent>
@@ -402,9 +350,9 @@ export default function EditCostEstimatePage() {
   );
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee]">
       <div className="text-center">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <div className="w-10 h-10 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         <p className="text-gray-600 text-sm">Loading Bill of Quantities…</p>
       </div>
     </div>
@@ -422,21 +370,33 @@ export default function EditCostEstimatePage() {
     return submission?.renovation_type_name || "—";
   };
 
-  const statusTextColors: Record<string, string> = {
-    Draft: "text-amber-800",
-    Submitted: "text-sky-800",
-    Approved: "text-emerald-800",
-    Rejected: "text-rose-800",
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <div className="min-h-screen bg-[#f7f4ee]">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {isDirty && (
           <div className="fixed bottom-6 right-6 z-50 bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg text-xs font-semibold flex items-center gap-2 animate-pulse">
-            <span>⚠️</span> Unsaved changes – please submit or leave
+            <AlertTriangle className="w-4 h-4" /> Unsaved changes – please submit or leave
           </div>
         )}
+
+        {/* Top action bar - standardized to match the rest of the app
+            (Back left, Print right) */}
+        <div className="flex items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-200">
+          <button
+            onClick={handleBackToBQs}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm font-medium uppercase tracking-wide">Back to BQs</span>
+          </button>
+          <button
+            onClick={() => window.open(`/bq/${submissionId}/view?print=1`, '_blank')}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-slate-300 rounded hover:bg-slate-100 transition-colors"
+          >
+            <Printer className="w-4 h-4" />
+            Print
+          </button>
+        </div>
 
         {/* Category Management Modal */}
         <Dialog open={showCategoryModal} onOpenChange={(open) => { if (!open) setShowCategoryModal(false); }}>
@@ -482,18 +442,16 @@ export default function EditCostEstimatePage() {
           <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                  <div className="w-10 h-10 rounded-full bg-[#15406a]/10 flex items-center justify-center">
+                    <Info className="w-5 h-5 text-[#15406a]" />
                   </div>
                   <DialogTitle className="text-xl font-bold text-gray-900">Submit BQ</DialogTitle>
                 </div>
                 <p className="text-gray-600 mb-6">
                   Are you sure you want to submit this Bill of Quantities?
                   <br />
-                  <span className="text-amber-600 font-medium block mt-2">
-                    ⚠️ You will no longer be able to edit it after submission.
+                  <span className="flex items-center gap-1 text-amber-600 font-medium mt-2">
+                    <AlertTriangle className="w-3.5 h-3.5" /> You will no longer be able to edit it after submission.
                   </span>
                 </p>
                 <div className="flex gap-3 justify-end">
@@ -506,7 +464,7 @@ export default function EditCostEstimatePage() {
                   <button
                     onClick={handleConfirmSubmit}
                     disabled={isSubmitting}
-                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-sm shadow-sm disabled:opacity-50 transition"
+                    className="px-4 py-2 rounded-lg bg-[#15406a] hover:bg-[#0d2d4a] text-white font-medium text-sm shadow-sm disabled:opacity-50 transition-colors"
                   >
                     {isSubmitting ? "Submitting..." : "Submit"}
                   </button>
@@ -521,23 +479,21 @@ export default function EditCostEstimatePage() {
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                   </div>
                   <DialogTitle className="text-xl font-bold text-gray-900">Submission Successful</DialogTitle>
                 </div>
                 <p className="text-gray-600 mb-6">
                   Your Bill of Quantities has been submitted successfully.
                   <br />
-                  <span className="text-emerald-600 font-medium block mt-2">
-                    ✓ The page will now reload to reflect the updated status.
+                  <span className="flex items-center gap-1 text-emerald-600 font-medium mt-2">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> The page will now reload to reflect the updated status.
                   </span>
                 </p>
                 <div className="flex justify-end">
                   <button
                     onClick={handleSuccessModalClose}
-                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium text-sm shadow-sm transition"
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm transition-colors"
                   >
                     OK
                   </button>
@@ -549,8 +505,39 @@ export default function EditCostEstimatePage() {
         {/* General Info Modal (for upload results) */}
         {showInfoModal && <InfoModal />}
 
+        {/* Status banner — explains the current lock/negotiation state
+            instead of leaving a disabled form unexplained (2026-08-10) */}
+        <div className="mb-6">
+          {isContractor && resubmissionRequest ? (
+            <StatusBanner
+              variant="warning"
+              title="Revised quote requested"
+              message={[
+                resubmissionRequest.instructions,
+                resubmissionRequest.due_by ? `Due by ${new Date(resubmissionRequest.due_by).toLocaleDateString()}.` : null,
+              ].filter(Boolean).join(" ") || "Our team has asked you to review and submit a revised quote."}
+            />
+          ) : isContractor && !canEdit && !tenderStillOpen && currentStatus === "Draft" ? (
+            <StatusBanner
+              variant="locked"
+              title="This tender is no longer open for submissions"
+              message="Bidding has closed. If our team asked you to revise your quote, you'll receive an email with next steps."
+            />
+          ) : isContractor && !canEdit && currentStatus !== "Draft" ? (
+            <StatusBanner
+              variant="info"
+              title={`This BQ has been ${currentStatus.toLowerCase()}`}
+              message="No further edits can be made to this version."
+            />
+          ) : null}
+        </div>
+
         {/* Header Card */}
-        <div className="bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-md p-5 mb-6 transition-all">
+        {/* No backdrop-blur here - combined with the native Client/Brand and
+            Job Site <select> dropdowns below, it triggers a known Chromium
+            bug where the native dropdown popup renders with a broken
+            background (same class of issue fixed on bq/new). */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 mb-6">
           <div className="flex justify-center mb-5">
             <img
               src={currentLogo}
@@ -661,61 +648,47 @@ export default function EditCostEstimatePage() {
 
           <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-200 mt-2">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <span className="text-xl font-bold text-slate-900">
                 Bill of Quantities
               </span>
-              <div className="inline-flex items-center gap-1.5 flex-shrink-0 px-2.5 py-0.5 rounded-md text-xs font-semibold">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    currentStatus === 'Draft' ? 'bg-amber-500' :
-                    currentStatus === 'Submitted' ? 'bg-sky-500' :
-                    currentStatus === 'Approved' ? 'bg-emerald-500' :
-                    'bg-rose-500'
-                  }`}
-                />
-                <span className={statusTextColors[currentStatus] || "text-gray-700"}>
-                  {currentStatus}
-                </span>
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${getBQStatusBadgeStyle(currentStatus)}`}>
+                {getBQStatusLabel(currentStatus)}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              {canEdit && (
+                <>
+                  <button onClick={() => setShowCategoryModal(true)} className="flex items-center gap-1.5 bg-[#15406a]/10 text-[#15406a] px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[#15406a]/20 transition">
+                    <Settings className="w-3.5 h-3.5" />
+                    Manage Categories
+                  </button>
+                  {selectedItems.length > 0 && (
+                    <button onClick={handleDeleteSelected} className="flex items-center gap-1.5 bg-rose-50 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-rose-100 transition">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete ({selectedItems.length})
+                    </button>
+                  )}
+                  <button onClick={handleExport} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm">
+                    <Download className="w-3.5 h-3.5" />
+                    Download Excel
+                  </button>
+                </>
+              )}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                <div><span className="font-medium">Last Saved:</span> {formatDate(submission?.updated_at)}</div>
+                <div><span className="font-medium">Last Edited:</span> {formatDate(submission?.last_edit_at)}</div>
+                <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  <Save className="w-3 h-3" /> Auto-save
+                </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-              <div><span className="font-medium">Last Saved:</span> {formatDate(submission?.updated_at)}</div>
-              <div><span className="font-medium">Last Edited:</span> {formatDate(submission?.last_edit_at)}</div>
-              <div className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">💾 Auto‑save</div>
+          </div>
+          {!canEdit && (
+            <div className="mt-2 flex items-center gap-1 text-xs text-amber-600">
+              <Lock className="w-3 h-3" /> Read-only mode
             </div>
-          </div>
-          <div className="mt-2 text-xs text-gray-400">
-            {!canEdit && <span className="text-amber-600">🔒 Read‑only mode</span>}
-          </div>
+          )}
         </div>
-
-        {/* Action Bar */}
-        {canEdit && (
-          <div className="flex flex-wrap justify-between items-center gap-3 mb-6 bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-gray-200/50">
-            <div className="flex gap-2">
-              <button onClick={() => setShowCategoryModal(true)} className="bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-indigo-100 transition">
-                Manage Categories
-              </button>
-              {selectedItems.length > 0 && (
-                <button onClick={handleDeleteSelected} className="bg-rose-50 text-rose-700 px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-rose-100 transition">
-                  Delete ({selectedItems.length})
-                </button>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={handleExport} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm">
-                📥 Download Excel
-              </button>
-              <label className={`bg-sky-600 hover:bg-sky-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow-sm ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                📤 Upload Excel
-                <input type="file" accept=".xlsx, .xls" onChange={handleUpload} disabled={uploading} className="hidden" />
-              </label>
-              <button onClick={() => window.open(`/bq/${submissionId}/view?print=1`, '_blank')} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm">
-                🖨️ Print / PDF
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* BQ Tables */}
         <div className="space-y-6">
@@ -742,13 +715,13 @@ export default function EditCostEstimatePage() {
 
         {/* Submission Guidelines & Submit Button */}
         {canSubmit && (
-          <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-800 mb-3">📋 Submission Guidelines</h3>
-            <ul className="text-sm text-blue-700 space-y-2 list-disc list-inside mb-4">
-              <li><strong>Latest submission only:</strong> Only your most recent submission will be evaluated.</li>
-              <li><strong>Defect Liability Period (DLP):</strong> 12 months from the date of Practical Completion.</li>
-              <li><strong>Retention Period:</strong> 5% of the contract sum will be retained for 12 months after Practical Completion.</li>
-              <li><strong>No changes after submission:</strong> Once submitted, you cannot edit this Bill of Quantities.</li>
+          <div className="mt-8 p-6 bg-[#15406a]/5 border border-[#15406a]/20 rounded-lg">
+            <h3 className="text-lg font-semibold text-[#15406a] mb-3">Submission Guidelines</h3>
+            <ul className="text-sm text-slate-700 space-y-2 list-disc list-inside mb-4">
+              <li><strong className="text-red-600">Latest submission only:</strong> Only your most recent submission will be evaluated.</li>
+              <li><strong className="text-red-600">Defect Liability Period (DLP):</strong> 12 months from the date of Practical Completion.</li>
+              <li><strong className="text-red-600">Retention Period:</strong> 5% of the contract sum will be retained for 12 months after Practical Completion.</li>
+              <li><strong className="text-red-600">No changes after submission:</strong> Once submitted, you cannot edit this Bill of Quantities.</li>
             </ul>
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <label className="flex items-start gap-2 cursor-pointer">
@@ -756,7 +729,7 @@ export default function EditCostEstimatePage() {
                   type="checkbox"
                   checked={guidelinesAccepted}
                   onChange={(e) => setGuidelinesAccepted(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="mt-1 w-4 h-4 text-[#15406a] border-gray-300 rounded focus:ring-[#15406a]"
                 />
                 <span className="text-sm text-gray-700">
                   I confirm that I have read and agree to the above submission guidelines.
@@ -765,24 +738,32 @@ export default function EditCostEstimatePage() {
               <button
                 onClick={handleOpenSubmitModal}
                 disabled={!guidelinesAccepted || isSubmitting}
-                className={`px-6 py-2 rounded-lg text-sm font-semibold shadow-sm transition ${
+                className={`px-6 py-2 rounded-lg text-sm font-semibold shadow-md transition-all ${
                   guidelinesAccepted && !isSubmitting
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                    ? "bg-[#15406a] hover:bg-[#0d2d4a] hover:-translate-y-0.5 hover:shadow-lg text-white"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
-                {isSubmitting ? "Submitting..." : "📤 Submit Bill of Quantities"}
+                {isSubmitting ? "Submitting..." : "Submit Bill of Quantities"}
               </button>
             </div>
           </div>
         )}
 
+        {/* Notes from our team (review_comment thread) */}
+        {submission?.submission_id && (
+          <div className="mt-8">
+            <BqNotesPanel submissionId={submission.submission_id} canAddNotes={isAdmin} />
+          </div>
+        )}
+
         {/* Footer */}
         <div className="mt-8 flex flex-wrap justify-between items-center gap-3 pt-4 border-t border-gray-200">
-          <button onClick={handleBackToBQs} className="bg-gray-500 hover:bg-gray-600 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow">
-            ← Back to BQs
+          <button onClick={handleBackToBQs} className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Back to BQs
           </button>
-          <div className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+          <div className="text-xl font-bold text-slate-900">
             Grand Total: {formatCurrency(grandTotal)}
           </div>
         </div>

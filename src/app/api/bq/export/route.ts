@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import ExcelJS from "exceljs";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperViewer } from "@/lib/roles";
 
 async function buildXlsxBlob(rows: any[][], colWidths?: number[]): Promise<Blob> {
   const wb = new ExcelJS.Workbook();
@@ -17,22 +17,8 @@ async function buildXlsxBlob(rows: any[][], colWidths?: number[]): Promise<Blob>
   return new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
-const UNIT_MAP: Record<string, string> = {
-  NOS: "Nos",
-  SET: "Set",
-  M: "m",
-  M2: "m²",
-  M3: "m³",
-  MM: "mm",
-  MM2: "mm²",
-  CM2: "cm²",
-  KG: "kg",
-  LOT: "Lot",
-  LS: "L.S.",
-};
-
-function getUnitDisplay(code: string): string {
-  return UNIT_MAP[code] || code;
+function getUnitDisplay(code: string, unitMap: Record<string, string>): string {
+  return unitMap[code] || code;
 }
 
 function formatCurrency(value: number): string {
@@ -60,7 +46,7 @@ export async function GET(req: Request) {
 
   // Access control
   let hasAccess = false;
-  if (userRoleIds.includes(ROLE_IDS.ADMIN)) {
+  if (isSuperViewer(userRoleIds)) {
     hasAccess = true;
   } else {
     const check = await query(
@@ -83,6 +69,12 @@ export async function GET(req: Request) {
     [submissionId]
   );
   const categories = categoriesRes.rows;
+
+  // Unit code -> display name, from the real unit_measure table (not a
+  // hardcoded map) so a newly added unit shows up without a code change.
+  const unitsRes = await query(`SELECT unit_code, unit_name FROM unit_measure`);
+  const unitMap: Record<string, string> = {};
+  for (const row of unitsRes.rows) unitMap[row.unit_code] = row.unit_name;
 
   if (categories.length === 0) {
     const buffer = await buildXlsxBlob([["No categories found for this submission"]]);
@@ -157,7 +149,7 @@ export async function GET(req: Request) {
         itemNo,
         item.description,
         quantity,
-        getUnitDisplay(item.unit),
+        getUnitDisplay(item.unit, unitMap),
         unitPrice,
         discount,
         amount,

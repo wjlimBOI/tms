@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { z } from "zod";
+import { ROLE_IDS } from "@/lib/roles";
 
 // Zod schema for query parameter
 const querySchema = z.object({
@@ -14,7 +15,7 @@ const querySchema = z.object({
 // Helper: check if user is admin (role_id = 1)
 async function isAdmin(userId: number): Promise<boolean> {
   const userRole = await prisma.user_roles.findFirst({
-    where: { user_id: userId, role_id: 1 },
+    where: { user_id: userId, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   return !!userRole;
 }

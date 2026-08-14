@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { isSuperUser } from "@/lib/roles";
 
 interface AwardedTender {
   tender_id: number;
@@ -26,7 +27,7 @@ export default function AdminAwardsPage() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session || (session.user as any)?.role_id !== 1) {
+    if (!session || !isSuperUser((session.user as any)?.roleIds || [])) {
       router.push("/");
       return;
     }

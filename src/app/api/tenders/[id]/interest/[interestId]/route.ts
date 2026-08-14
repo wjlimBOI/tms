@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperUser } from "@/lib/roles";
 import { logUpdate } from "@/lib/audit";
 import { z } from "zod";
 
@@ -23,7 +23,7 @@ export async function PATCH(
     }
 
     const userRoleIds = session.user.roleIds || [];
-    if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
+    if (!isSuperUser(userRoleIds)) {
       return NextResponse.json({ error: "Only admins can approve interest" }, { status: 403 });
     }
 

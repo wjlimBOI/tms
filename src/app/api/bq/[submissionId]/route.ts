@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser, isSuperViewer } from "@/lib/roles";
 import { logUpdate } from "@/lib/audit";
 import { createNotification, sendTrackedEmail } from "@/lib/notifications";
 import { sendBqDecisionEmail } from "@/lib/email";
@@ -58,12 +58,14 @@ export async function GET(
           b.branch_name AS original_branch_name,
           br.brand_name,
           rt.type_id AS renovation_type_id,
-          rt.type_name AS renovation_type_name
+          rt.type_name AS renovation_type_name,
+          tstat.status_code AS tender_status_code
        FROM tender_submission ts
        JOIN tender t ON ts.tender_id = t.tender_id
        JOIN branch b ON t.branch_id = b.branch_id
        JOIN brand br ON b.brand_id = br.brand_id
        JOIN renovation_type rt ON t.renovation_type_id = rt.type_id
+       JOIN tender_status tstat ON tstat.status_id = t.status_id
        WHERE ts.submission_id = $1`,
       [submissionId]
     );
@@ -75,14 +77,15 @@ export async function GET(
 
     // 2. Permissions – use session roles
     const userRoleIds = (session.user as any)?.roleIds || [];
-    const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+    const isAdmin = isSuperUser(userRoleIds);
+    const canView = isSuperViewer(userRoleIds);
     const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
     const ownsSubmission = isContractor && submission.contractor_id === userId;
 
-    // Access control – only admins and the owning contractor may view this
-    // submission's pricing data (matches the pattern used by /api/bq/export
-    // and /api/bq/submission-item).
-    if (!isAdmin && !ownsSubmission) {
+    // Access control – only admins/developer/exec-director (view-only) and
+    // the owning contractor may view this submission's pricing data
+    // (matches the pattern used by /api/bq/export and /api/bq/submission-item).
+    if (!canView && !ownsSubmission) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -99,7 +102,12 @@ export async function GET(
       const maxRound = latestRes.rows[0]?.max_round || 0;
       const isLatest = submission.round_no === maxRound;
       const isDraft = submission.status === 'Draft';
-      canEdit = isDraft && isLatest;
+      // Once the tender closes, no more submissions/edits — matches
+      // canEditSubmission's gate (src/lib/permissions.ts), kept in sync so
+      // the frontend's "can I edit this?" flag never disagrees with what
+      // the actual save/submit endpoint will allow.
+      const tenderStillOpen = submission.tender_status_code === 'Open';
+      canEdit = isDraft && isLatest && tenderStillOpen;
     }
 
     // 3. Categories
@@ -153,7 +161,22 @@ export async function GET(
     );
     const items = itemsRes.rows;
 
-    return NextResponse.json({ submission, categories, items, canEdit });
+    // 5. Active resubmission grant for this exact round, if any — lets the
+    //    frontend explain *why* editing is (or isn't) allowed once a tender
+    //    has closed, instead of just a bare true/false canEdit (2026-08-10).
+    let resubmissionRequest: any = null;
+    if (submission.contractor_id) {
+      const rrRes = await query(
+        `SELECT instructions, due_by, created_at
+         FROM resubmission_request
+         WHERE tender_id = $1 AND contractor_id = $2 AND next_round_no = $3
+         ORDER BY created_at DESC LIMIT 1`,
+        [submission.tender_id, submission.contractor_id, submission.round_no]
+      );
+      resubmissionRequest = rrRes.rows[0] || null;
+    }
+
+    return NextResponse.json({ submission, categories, items, canEdit, resubmissionRequest });
   } catch (error) {
     console.error("Error fetching BQ data:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -204,7 +227,7 @@ export async function PATCH(
 
     const currentStatus = subRes.rows[0].status;
     const userRoleIds = (session.user as any)?.roleIds || [];
-    const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+    const isAdmin = isSuperUser(userRoleIds);
 
     if (!isAdmin) {
       return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
@@ -267,15 +290,20 @@ export async function PATCH(
         `"${bqLabel}" for "${tenderName}" has been ${decisionLabel}.`,
         `/bq/${submissionId}/view`
       );
-      await sendTrackedEmail("bq_decision", { userId: contractorId, email: contractorEmail }, subRes.rows[0].tender_id, () =>
-        sendBqDecisionEmail({
-          to: contractorEmail,
-          recipientName: contractorUsername,
-          bqLabel,
-          tenderName,
-          status: decisionLabel,
-          submissionId,
-        })
+      await sendTrackedEmail(
+        "bq_decision",
+        { userId: contractorId, email: contractorEmail },
+        subRes.rows[0].tender_id,
+        () =>
+          sendBqDecisionEmail({
+            to: contractorEmail,
+            recipientName: contractorUsername,
+            bqLabel,
+            tenderName,
+            status: decisionLabel,
+            submissionId,
+          }),
+        "statusChanges"
       );
     }
 

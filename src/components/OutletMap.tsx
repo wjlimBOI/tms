@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { getBrandColor } from "@/lib/brandColors";
+import { getBrandColorSlug } from "@/lib/brandColors";
 
 interface Outlet {
   branchId: number;
@@ -80,6 +80,65 @@ function coordKey(lat: number, lng: number): string {
   return `${lat.toFixed(5)},${lng.toFixed(5)}`;
 }
 
+// Neither "same coordinates" nor "same building name" alone is reliable
+// enough to group by on its own real data:
+//  - Same building name text can't be assumed exact - admins free-type it
+//    per branch address record, so "Lot 1 Shoppers' Mall" and "Lot One
+//    Shoppers' Mall" are the same physical mall but different strings (this
+//    is a real record in the data - it was silently splitting one location
+//    into two pins, each showing only its own subset of brands).
+//  - Same coordinates alone was the original approach, dropped because two
+//    brands in the same building can in principle be geocoded metres apart.
+// Outlets are merged if they match on EITHER signal (union-find), so a
+// building groups correctly whether its brands share exact coordinates,
+// share a clean building name, or - as with Lot 1/Lot One - only one of the
+// two lines up.
+function normalizedBuildingName(outlet: Outlet): string | null {
+  const name = outlet.buildingName?.trim().toLowerCase();
+  return name || null;
+}
+
+function buildOutletGroups(outlets: Outlet[]): Outlet[][] {
+  const parent = outlets.map((_, i) => i);
+  const find = (i: number): number => {
+    while (parent[i] !== i) {
+      parent[i] = parent[parent[i]];
+      i = parent[i];
+    }
+    return i;
+  };
+  const union = (a: number, b: number) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent[ra] = rb;
+  };
+
+  const byCoord = new Map<string, number>();
+  const byName = new Map<string, number>();
+  outlets.forEach((o, i) => {
+    const ck = coordKey(o.lat, o.lng);
+    const existingCoord = byCoord.get(ck);
+    if (existingCoord !== undefined) union(i, existingCoord);
+    else byCoord.set(ck, i);
+
+    const nk = normalizedBuildingName(o);
+    if (nk) {
+      const existingName = byName.get(nk);
+      if (existingName !== undefined) union(i, existingName);
+      else byName.set(nk, i);
+    }
+  });
+
+  const groups = new Map<number, Outlet[]>();
+  outlets.forEach((o, i) => {
+    const root = find(i);
+    const group = groups.get(root);
+    if (group) group.push(o);
+    else groups.set(root, [o]);
+  });
+  return Array.from(groups.values());
+}
+
 export default function OutletMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -146,17 +205,10 @@ export default function OutletMap() {
 
     markers.clearLayers();
 
-    // Group outlets sharing (effectively) the same coordinates into one pin,
-    // so a building with several BOI brands shows all of them from a single
-    // marker instead of stacking identical markers where only the topmost
-    // is ever reachable.
-    const groups = new Map<string, Outlet[]>();
-    outlets.forEach((o) => {
-      const key = coordKey(o.lat, o.lng);
-      const group = groups.get(key);
-      if (group) group.push(o);
-      else groups.set(key, [o]);
-    });
+    // Group outlets sharing a building into one pin, so a building with
+    // several brands shows all of them from a single marker instead of
+    // stacking separate markers where only the topmost is ever reachable.
+    const groups = buildOutletGroups(outlets);
 
     const points: L.LatLngExpression[] = [];
 
@@ -170,13 +222,13 @@ export default function OutletMap() {
       if (group.length === 1) {
         // Single brand at this location - no tabs needed.
         const cleanedAddress = cleanAddress(first.address, first.buildingName, first.postalCode);
-        const brandColor = getBrandColor(first.brandName).borderColor;
+        const brandColorClass = `brand-color-${getBrandColorSlug(first.brandName)}`;
         L.marker(point, { icon: pinIcon })
           .bindPopup(
             `<div class="outlet-popup">
               <strong class="outlet-popup-building">${buildingLabel}</strong>
-              <span class="outlet-popup-brand" style="color: ${brandColor}">
-                <span class="outlet-popup-brand-dot" style="background: ${brandColor}"></span>
+              <span class="outlet-popup-brand ${brandColorClass}">
+                <span class="outlet-popup-brand-dot"></span>
                 ${escapeHtml(first.brandName)}
               </span>
               <span class="outlet-popup-address">${escapeHtml(cleanedAddress)}${first.postalCode ? ` (${escapeHtml(first.postalCode)})` : ""}</span>
@@ -193,20 +245,32 @@ export default function OutletMap() {
       // show one brand's full detail at a time instead of a long list.
       const tabs = group
         .map((o, i) => {
-          const brandColor = getBrandColor(o.brandName).borderColor;
+          const brandColorClass = `brand-color-${getBrandColorSlug(o.brandName)}`;
           return `<button
             type="button"
-            class="outlet-popup-tab${i === 0 ? " outlet-popup-tab-active" : ""}"
+            role="tab"
+            id="outlet-tab-${first.lat}-${first.lng}-${i}"
+            aria-selected="${i === 0 ? "true" : "false"}"
+            aria-controls="outlet-panel-${first.lat}-${first.lng}-${i}"
+            class="outlet-popup-tab ${brandColorClass}${i === 0 ? " outlet-popup-tab-active" : ""}"
             data-tab-index="${i}"
-            style="--tab-color: ${brandColor}"
           >${escapeHtml(o.brandName)}</button>`;
         })
         .join("");
 
+      // Brand identity already lives in the tab itself (label + color) - the
+      // panel below only needs the one thing the tab doesn't show: this
+      // brand's address. Repeating the brand name/dot here was redundant.
       const panels = group
         .map((o, i) => {
           const cleanedAddress = cleanAddress(o.address, o.buildingName, o.postalCode);
-          return `<div class="outlet-popup-panel${i === 0 ? " outlet-popup-panel-active" : ""}" data-panel-index="${i}">
+          return `<div
+            class="outlet-popup-panel${i === 0 ? " outlet-popup-panel-active" : ""}"
+            role="tabpanel"
+            id="outlet-panel-${first.lat}-${first.lng}-${i}"
+            aria-labelledby="outlet-tab-${first.lat}-${first.lng}-${i}"
+            data-panel-index="${i}"
+          >
             <span class="outlet-popup-address">${escapeHtml(cleanedAddress)}${o.postalCode ? ` (${escapeHtml(o.postalCode)})` : ""}</span>
           </div>`;
         })
@@ -245,8 +309,12 @@ export default function OutletMap() {
       if (!popupEl) return;
       const index = tab.dataset.tabIndex;
 
-      popupEl.querySelectorAll(".outlet-popup-tab").forEach((el) => el.classList.remove("outlet-popup-tab-active"));
+      popupEl.querySelectorAll(".outlet-popup-tab").forEach((el) => {
+        el.classList.remove("outlet-popup-tab-active");
+        el.setAttribute("aria-selected", "false");
+      });
       tab.classList.add("outlet-popup-tab-active");
+      tab.setAttribute("aria-selected", "true");
 
       popupEl.querySelectorAll(".outlet-popup-panel").forEach((el) => {
         el.classList.toggle("outlet-popup-panel-active", (el as HTMLElement).dataset.panelIndex === index);

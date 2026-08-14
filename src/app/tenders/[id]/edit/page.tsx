@@ -6,16 +6,11 @@ import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useNotify } from "@/components/ui/notification-provider";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import "./tender-edit-print.css";
 import {
-  FileSignature,
   Printer,
   X,
   ArrowLeft,
-  CheckCircle,
-  ShieldCheck,
-  AlertCircle,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
@@ -166,11 +161,11 @@ export default function TenderEditPage() {
   const router = useRouter();
   const { id } = useParams();
   const { data: session, status: sessionStatus } = useSession();
+  const toast = useNotify();
 
   const [tender, setTender] = useState<TenderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState(true);
   const [activeSection, setActiveSection] = useState("project-team");
 
@@ -197,17 +192,6 @@ export default function TenderEditPage() {
   const [mainTenderer, setMainTenderer] = useState({ fullName: "", position: "", companyName: "", date: "" });
   const [witness, setWitness] = useState({ fullName: "", date: "" });
   const [declaration, setDeclaration] = useState({ iName: "", onBehalfOf: "", name: "", date: "" });
-
-  // Modals
-  const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
-  const [disclaimerAgreed, setDisclaimerAgreed] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessages, setErrorMessages] = useState<string[]>([]);
-
-  const [submittedTenderName, setSubmittedTenderName] = useState("");
-  const [submittedContractor, setSubmittedContractor] = useState("");
-  const [submittedAmount, setSubmittedAmount] = useState("");
 
   const [projectRows, setProjectRows] = useState<ProjectRow[]>(
     Array(5)
@@ -423,15 +407,30 @@ export default function TenderEditPage() {
   };
   const handlePrint = () => window.print();
 
-  // ===== Submit logic =====
-  const performSubmit = useCallback(async () => {
-    setIsSubmitting(true);
+  // Signing the Form of Tender is what unlocks BQ submission (the backend
+  // requires a tender_acknowledgment row before Draft -> Submitted). It
+  // does not submit anything itself - actual bid submission happens by
+  // email - so this only persists the form and records the signature.
+  const [saving, setSaving] = useState(false);
+  const handleSaveAndSign = async () => {
+    if (!mainSignature || !declarationSignature) {
+      setAlert({
+        type: "error",
+        title: "Signature Required",
+        message: "Please sign both the Main Tenderer Sign-Off and the Declaration sections before saving.",
+      });
+      return;
+    }
+    if (!lumpSumRaw.trim()) {
+      setAlert({
+        type: "error",
+        title: "Lump Sum Required",
+        message: "Please enter the lump sum amount before saving.",
+      });
+      return;
+    }
+    setSaving(true);
     try {
-      const num = parseFloat(lumpSumRaw.replace(/[^0-9.]/g, ""));
-      const lumpSumFormatted = !isNaN(num)
-        ? num.toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-        : lumpSumRaw;
-
       const res = await fetch(`/api/tenders/${id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -442,7 +441,6 @@ export default function TenderEditPage() {
           agreedStampPreview,
           stampPreview: mainStampPreview,
           lumpSumRaw,
-          lumpSumFormatted,
           amountInWords,
           mainTenderer: { ...mainTenderer, signature: mainSignature, address: mainAddress },
           witness: { ...witness, signature: witnessSignature, address: witnessAddress },
@@ -452,74 +450,22 @@ export default function TenderEditPage() {
           currentCommitment: commitmentRows,
         }),
       });
-
-      const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Unable to submit your tender. Please try again.");
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save the Form of Tender");
       }
-
-      setSubmittedTenderName(tender?.tender_name || "this tender");
-      setSubmittedContractor(agreedName);
-      setSubmittedAmount(lumpSumRaw);
-      setShowDisclaimerModal(false);
-      setShowSuccessModal(true);
-    } catch (err: any) {
-      setShowDisclaimerModal(false);
+      toast.success("Form of Tender saved and signed.");
+    } catch (err) {
       setAlert({
         type: "error",
-        title: "Submission Failed",
-        message: err.message || "Unable to submit your tender. Please try again.",
-        details: "Your entries have been preserved — please try submitting again. If the problem persists, contact support.",
+        title: "Unable to Save",
+        message: err instanceof Error ? err.message : "We couldn't save your Form of Tender. Please try again.",
+        details: "Nothing you entered was lost - it's still on this page.",
       });
     } finally {
-      setIsSubmitting(false);
+      setSaving(false);
     }
-  }, [
-    id,
-    tender,
-    agreedName,
-    agreedDate,
-    agreedSignature,
-    agreedStampPreview,
-    mainStampPreview,
-    lumpSumRaw,
-    amountInWords,
-    mainTenderer,
-    mainSignature,
-    mainAddress,
-    witness,
-    witnessSignature,
-    witnessAddress,
-    declaration,
-    declarationSignature,
-    tendererAddress,
-    declarationStampPreview,
-    projectRows,
-    commitmentRows,
-  ]);
-
-  const handleSubmit = useCallback(async () => {
-    const missing: string[] = [];
-    if (!agreedName.trim()) missing.push("Name of Contractor / Tenderer");
-    if (!agreedDate.trim()) missing.push("Agreement date");
-    if (!lumpSumRaw.trim()) missing.push("Total Lump Sum (SGD)");
-    if (!mainSignature) missing.push("Main tenderer signature");
-    if (!declaration.iName.trim()) missing.push("Declaration: I, (your name)");
-    if (!declaration.onBehalfOf.trim()) missing.push("Declaration: on behalf of (company name)");
-    if (!declaration.name.trim()) missing.push("Declaration: Name of Tenderer");
-    if (!declaration.date.trim()) missing.push("Declaration: Date");
-    if (!declarationSignature) missing.push("Declaration: Signature of Tenderer");
-    if (!tendererAddress.trim()) missing.push("Declaration: Address of Tenderer");
-
-    if (missing.length > 0) {
-      setErrorMessages(missing);
-      setShowErrorModal(true);
-      return;
-    }
-
-    setShowDisclaimerModal(true);
-    setDisclaimerAgreed(false);
-  }, [agreedName, agreedDate, lumpSumRaw, mainSignature, declaration, declarationSignature, tendererAddress]);
+  };
 
 
   // ===== Loading & error states =====
@@ -691,13 +637,6 @@ export default function TenderEditPage() {
               <span className="text-sm font-medium uppercase tracking-wide">Back</span>
             </button>
           </div>
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-slate-300 rounded hover:bg-slate-100 transition-colors"
-          >
-            <Printer className="w-4 h-4" />
-            Print
-          </button>
         </div>
 
         {/* --- Document Content --- */}
@@ -1291,191 +1230,35 @@ export default function TenderEditPage() {
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end pt-4 print:hidden">
+            {/* Bid submission now happens by email, not through this form - Save
+                & Sign only records the signature (unlocks BQ submission) and
+                keeps a copy for print/reference. */}
+            <div className="flex flex-wrap justify-end gap-3 pt-4 print:hidden">
               <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="px-8 py-3 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                onClick={handlePrint}
+                className="px-6 py-3 rounded border border-slate-300 text-slate-700 font-medium hover:bg-slate-100 transition-colors flex items-center gap-2"
               >
-                <FileSignature className="w-4 h-4" />
-                {isSubmitting ? "Submitting..." : "Submit Tender"}
+                <Printer className="w-4 h-4" />
+                Print Now
+              </button>
+              <button
+                onClick={handleSaveAndSign}
+                disabled={saving}
+                className="px-6 py-3 rounded bg-cyan-600 text-white font-medium hover:bg-cyan-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save & Sign"
+                )}
               </button>
             </div>
           </div>
         </div>
-
-        {/* Floating print button */}
-        <div className="fixed bottom-6 right-6 z-50 md:hidden print:hidden">
-          <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-full shadow-lg transition-all duration-300">
-            <Printer className="w-5 h-5" />
-            <span className="text-sm font-medium">Print / PDF</span>
-          </button>
-        </div>
       </div>
-
-      {/* ===== ERROR MODAL (missing fields) ===== */}
-      <Dialog open={showErrorModal} onOpenChange={(open) => { if (!open) setShowErrorModal(false); }}>
-        <DialogContent className="max-w-md p-8 print:hidden">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="w-8 h-8 text-red-600" />
-              <DialogTitle className="text-xl font-bold text-slate-900">Missing Required Fields</DialogTitle>
-            </div>
-            <p className="text-slate-600 mb-4">Please complete the following before submitting:</p>
-            <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
-              {errorMessages.map((msg, idx) => (
-                <li key={idx}>{msg}</li>
-              ))}
-            </ul>
-            <button
-              onClick={() => setShowErrorModal(false)}
-              className="mt-6 w-full px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
-            >
-              OK, I'll fix that
-            </button>
-        </DialogContent>
-      </Dialog>
-
-      {/* ===== DISCLAIMER MODAL ===== */}
-      <Dialog
-        open={showDisclaimerModal}
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowDisclaimerModal(false);
-            setDisclaimerAgreed(false);
-          }
-        }}
-      >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-8 print:hidden">
-            <div className="flex items-center gap-3 mb-6">
-              <ShieldCheck className="w-8 h-8 text-amber-600" />
-              <DialogTitle className="text-2xl font-bold text-slate-900">CONTRACTOR'S DECLARATION</DialogTitle>
-            </div>
-
-            <div className="prose prose-sm max-w-none">
-              <p className="text-slate-700 font-medium">
-                By submitting this tender, I/we, the undersigned, hereby confirm and declare the following:
-              </p>
-              <ul className="list-disc pl-5 space-y-2 text-slate-600">
-                <li>
-                  We have thoroughly read, understood, and accepted all the terms, conditions, and requirements stated in the
-                  Tender Documents, Drawings, and all accompanying appendices.
-                </li>
-                <li>We have inspected the site and are fully aware of the scope of works, site conditions, and all constraints.</li>
-                <li>All information provided in this submission is true, complete, and accurate to the best of our knowledge.</li>
-                <li>We irrevocably agree to be bound by the contract if our tender is accepted by the Company.</li>
-                <li>
-                  We acknowledge that the Company is not obliged to accept the lowest or any tender and reserves the right to
-                  reject any tender without assigning any reason.
-                </li>
-                <li>We agree to the validity period of the tender as stipulated in the Tender Documents.</li>
-              </ul>
-              <p className="text-slate-700 mt-4 font-semibold">
-                We understand that this declaration forms a material part of the tender and that any false statement may result in
-                disqualification or legal action.
-              </p>
-            </div>
-
-            {/* Submission details */}
-            <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <span className="font-semibold text-slate-700">Tender:</span>
-                <span className="text-slate-800">{tender?.tender_name}</span>
-                <span className="font-semibold text-slate-700">Contractor:</span>
-                <span className="text-slate-800">{agreedName}</span>
-                <span className="font-semibold text-slate-700">Total Lump Sum:</span>
-                <span className="text-slate-800 font-medium">SGD {lumpSumRaw}</span>
-              </div>
-            </div>
-
-            {/* Agreement checkbox */}
-            <div className="mt-6 flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <input
-                type="checkbox"
-                id="disclaimerAgreed"
-                checked={disclaimerAgreed}
-                onChange={(e) => setDisclaimerAgreed(e.target.checked)}
-                className="mt-1 w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-              />
-              <label htmlFor="disclaimerAgreed" className="text-sm text-amber-800 font-medium">
-                I/we agree to the above declaration and confirm that all information provided is true and accurate.
-              </label>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
-              <button
-                onClick={() => {
-                  setShowDisclaimerModal(false);
-                  setDisclaimerAgreed(false);
-                }}
-                className="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={performSubmit}
-                disabled={!disclaimerAgreed || isSubmitting}
-                className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors ${
-                  !disclaimerAgreed || isSubmitting
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700"
-                }`}
-              >
-                {isSubmitting ? "Submitting..." : "Confirm & Submit Tender"}
-              </button>
-            </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ===== SUCCESS MODAL ===== */}
-      <Dialog
-        open={showSuccessModal}
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowSuccessModal(false);
-            router.push(`/tenders/${id}`);
-          }
-        }}
-      >
-        <DialogContent className="max-w-md p-8 text-center print:hidden">
-            <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 text-emerald-600" />
-              </div>
-            </div>
-            <DialogTitle className="text-2xl font-bold text-slate-900 mb-2">Tender Submitted Successfully</DialogTitle>
-            <p className="text-slate-600 mb-6">Your submission has been received.</p>
-
-            <div className="bg-slate-50 rounded-lg p-4 mb-6 text-left">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm border-b border-slate-200 pb-2">
-                  <span className="font-semibold text-slate-600">Tender</span>
-                  <span className="text-slate-800 font-medium">{submittedTenderName}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm border-b border-slate-200 pb-2">
-                  <span className="font-semibold text-slate-600">Contractor</span>
-                  <span className="text-slate-800 font-medium">{submittedContractor}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-semibold text-slate-600">Total Lump Sum</span>
-                  <span className="text-slate-800 font-medium">SGD {submittedAmount}</span>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-500 mb-6">A confirmation email will be sent to you shortly.</p>
-            <button
-              onClick={() => {
-                setShowSuccessModal(false);
-                router.push(`/tenders/${id}`);
-              }}
-              className="w-full px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors"
-            >
-              View Tender
-            </button>
-        </DialogContent>
-      </Dialog>
 
     </div>
   );

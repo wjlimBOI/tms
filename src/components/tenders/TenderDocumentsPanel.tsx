@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import { FileText, Upload, Trash2 } from "lucide-react";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperUser } from "@/lib/roles";
 import { useNotify } from "@/components/ui/notification-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/Button";
@@ -33,7 +33,7 @@ export default function TenderDocumentsPanel({ tenderId }: { tenderId: number })
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const roleIds = ((session?.user as any)?.roleIds || []) as number[];
-  const isAdmin = roleIds.includes(ROLE_IDS.ADMIN);
+  const isAdmin = isSuperUser(roleIds);
 
   const [accessible, setAccessible] = useState<boolean | null>(null);
   const [documents, setDocuments] = useState<TenderDocument[]>([]);
@@ -115,10 +115,15 @@ export default function TenderDocumentsPanel({ tenderId }: { tenderId: number })
 
   return (
     <div id="documents" className="print:hidden mb-6 p-4 bg-white rounded-lg border border-slate-200 scroll-mt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <h3 className="flex items-center gap-2 font-semibold text-slate-800">
-          <FileText className="w-4 h-4" /> Documents
-        </h3>
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+        <div>
+          <h3 className="flex items-center gap-2 font-semibold text-slate-800">
+            <FileText className="w-4 h-4" /> Documents
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Site plans, drawings and other supporting files our team has attached to this tender — download anything here before you submit your bid.
+          </p>
+        </div>
         {isAdmin && (
           <>
             <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelected} accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png,.webp" />
@@ -133,7 +138,7 @@ export default function TenderDocumentsPanel({ tenderId }: { tenderId: number })
       {loading ? (
         <div className="text-sm text-slate-400 py-4 text-center">Loading documents…</div>
       ) : documents.length === 0 ? (
-        <div className="text-sm text-slate-400 py-4 text-center">No documents have been uploaded for this tender yet.</div>
+        <div className="text-sm text-slate-400 py-4 text-center mt-2">No documents have been uploaded for this tender yet — check back closer to the closing date, or contact your project manager if you were expecting one.</div>
       ) : (
         <ul className="divide-y divide-slate-100">
           {documents.map((doc) => (

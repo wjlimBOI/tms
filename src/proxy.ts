@@ -29,7 +29,10 @@ export function proxy(request: NextRequest) {
   // /documents/* is the public reference-document folder (PDFs meant to be
   // viewed inline via <iframe> on the same origin, e.g. the express-interest
   // page) - it must not get frame-ancestors 'none' / X-Frame-Options: DENY,
-  // or the browser refuses to render them in-page even same-origin.
+  // or the browser refuses to render them in-page even same-origin. The
+  // embedding *page* also needs frame-src 'self' (not 'none') below, or the
+  // page's own CSP blocks it from opening the iframe in the first place,
+  // regardless of the target document's headers.
   const isPageRoute =
     !pathname.startsWith('/api/') &&
     !pathname.startsWith('/_next/') &&
@@ -42,6 +45,14 @@ export function proxy(request: NextRequest) {
     let scriptSrc = `'self' 'nonce-${nonce}' 'strict-dynamic'`;
     if (isDev) scriptSrc += ` 'unsafe-eval'`;
 
+    // upgrade-insecure-requests/block-all-mixed-content assume the site is
+    // actually served over HTTPS - in dev the server only listens on HTTP,
+    // so these silently rewrite same-origin http:// subresource requests
+    // (e.g. the contract-document <iframe> on the express-interest page) to
+    // https://, which then fails to connect since nothing's listening there.
+    // Production (behind real TLS) still gets both.
+    const httpsOnlyDirectives = isDev ? "" : "upgrade-insecure-requests; block-all-mixed-content;";
+
     const cspHeader = `
       default-src 'self';
       script-src ${scriptSrc};
@@ -49,13 +60,12 @@ export function proxy(request: NextRequest) {
       img-src 'self' data: blob: https:;
       font-src 'self';
       connect-src 'self' https:;
-      frame-src 'none';
+      frame-src 'self';
       object-src 'none';
       base-uri 'self';
       form-action 'self';
       frame-ancestors 'none';
-      upgrade-insecure-requests;
-      block-all-mixed-content;
+      ${httpsOnlyDirectives}
     `;
 
     response.headers.set(

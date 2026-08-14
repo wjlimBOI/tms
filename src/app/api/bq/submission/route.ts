@@ -6,7 +6,7 @@ import { query, getClient } from "@/lib/db";
 import { bqSubmissionCreateSchema, bqSubmissionUpdateSchema } from "@/lib/validation";
 import { logInsert, logUpdate, logAuthEvent } from "@/lib/audit";
 import { canEditSubmission } from "@/lib/permissions";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
 import { createApprovalRequestIfConfigured } from "@/lib/approvals";
 
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userRoleIds = (session.user as any).roleIds || [];
-  if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR) && !userRoleIds.includes(ROLE_IDS.ADMIN)) {
+  if (!userRoleIds.includes(ROLE_IDS.CONTRACTOR) && !isSuperUser(userRoleIds)) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, req, `User ${session.user.id} attempted to create BQ without permission`);
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -255,6 +255,29 @@ export async function PUT(req: Request) {
 
   const oldDataRes = await query(`SELECT * FROM tender_submission WHERE submission_id = $1`, [submission_id]);
   const oldData = oldDataRes.rows[0];
+
+  // A contractor must have signed the tender's Form of Tender (the real,
+  // in-app acknowledgment mechanism — tenders/[id]/edit's signature flow,
+  // POST /api/tenders/[id]/submit — writes tender_acknowledgment) before
+  // their BQ can move from Draft to Submitted. Staff-driven transitions
+  // (e.g. Admin/Developer reverting or otherwise adjusting status) are not
+  // gated here — this only fires on the real Draft->Submitted event.
+  if (oldData.status !== "Submitted" && allowedFields.status === "Submitted") {
+    const ackRes = await query(
+      `SELECT 1 FROM tender_acknowledgment WHERE tender_id = $1 AND contractor_id = $2`,
+      [oldData.tender_id, oldData.contractor_id]
+    );
+    if (ackRes.rows.length === 0) {
+      return NextResponse.json(
+        {
+          error: "You must sign the Form of Tender for this project before submitting your BQ.",
+          code: "ACKNOWLEDGMENT_REQUIRED",
+          tenderId: oldData.tender_id,
+        },
+        { status: 409 }
+      );
+    }
+  }
 
   const updates: string[] = [];
   const values: any[] = [];

@@ -4,6 +4,7 @@ import './globals.css';
 import RootProviders from './providers/RootProviders';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import ForcePasswordChange from '@/components/ForcePasswordChange';
 
 export const metadata = {
   title: 'Project & Cost Management System',
@@ -17,6 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body className="bg-gray-50 min-h-screen flex flex-col">
         <RootProviders session={session}>
+          <ForcePasswordChange />
           <Navbar />
           <main className="flex-1">
             {children}

@@ -7,6 +7,7 @@ import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { z } from "zod";
 import { sanitize } from "@/lib/sanitize";
 import { logUpdate, logAuthEvent } from "@/lib/audit"; // ✅ added audit imports
+import { ROLE_IDS } from "@/lib/roles";
 
 // Zod schema for request body validation
 const rolePermissionsBodySchema = z.object({
@@ -17,7 +18,7 @@ const rolePermissionsBodySchema = z.object({
 // Helper: check if user is admin
 async function isAdmin(userId: number): Promise<boolean> {
   const userRole = await prisma.user_roles.findFirst({
-    where: { user_id: userId, role_id: 1 },
+    where: { user_id: userId, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   return !!userRole;
 }

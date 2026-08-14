@@ -11,6 +11,7 @@ import { z } from "zod";
 import { passwordValidation } from "@/lib/validation";
 import { logInsert, logAuthEvent } from "@/lib/audit";
 import { sanitize } from "@/lib/sanitize";
+import { ROLE_IDS } from "@/lib/roles";
 
 // ─── Zod Schemas ───────────────────────────────────────────────
 
@@ -27,6 +28,7 @@ const querySchema = z.object({
 const createUserSchema = z.object({
   username: z.string().min(3).max(100),
   email: z.string().email().max(150),
+  display_name: z.string().max(200).nullable().optional(),
   role_id: z.number().int().positive(),
   is_active: z.boolean().default(true),
   access_start_date: z.string().date().nullable().optional(),
@@ -46,7 +48,7 @@ function generateSecureToken(): string {
 
 async function isAdmin(userId: number): Promise<boolean> {
   const userRole = await prisma.user_roles.findFirst({
-    where: { user_id: userId, role_id: 1 },
+    where: { user_id: userId, role_id: { in: [ROLE_IDS.ADMIN, ROLE_IDS.DEVELOPER] } },
   });
   return !!userRole;
 }
@@ -283,6 +285,7 @@ export async function POST(request: NextRequest) {
   } = validation.data;
   const username = sanitize(validation.data.username);
   const company_name = validation.data.company_name ? sanitize(validation.data.company_name) : validation.data.company_name;
+  const display_name = validation.data.display_name ? sanitize(validation.data.display_name) : validation.data.display_name;
 
   const tempPassword = generateTempPassword();
   const hashedPassword = await bcrypt.hash(tempPassword, 12);
@@ -320,6 +323,7 @@ export async function POST(request: NextRequest) {
         data: {
           user_id: newUser.user_id,
           company_name: company_name || null,
+          full_name: display_name || null,
         },
       });
 

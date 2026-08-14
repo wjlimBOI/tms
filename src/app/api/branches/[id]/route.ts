@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query, getClient } from "@/lib/db";
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
-import { ROLE_IDS } from "@/lib/roles";
+import { canViewBranches, canManageBranches } from "@/lib/permissions";
 
 // ---------- GET (fetch single branch with address) ----------
 export async function GET(
@@ -12,7 +12,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
+  const roleIds = (session?.user as any)?.roleIds || [];
+  if (!session || !(await canViewBranches(session.user.id, roleIds))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -75,7 +76,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
+  const roleIds = (session?.user as any)?.roleIds || [];
+  if (!session || !(await canManageBranches(session.user.id, roleIds))) {
     await logAuthEvent("PERMISSION_DENIED", session?.user?.id || 0, req, {
       action: "update_branch",
       reason: "Unauthorized",
@@ -283,7 +285,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || !((session.user as any)?.roleIds || []).includes(ROLE_IDS.ADMIN)) {
+  const roleIds = (session?.user as any)?.roleIds || [];
+  if (!session || !(await canManageBranches(session.user.id, roleIds))) {
     await logAuthEvent("PERMISSION_DENIED", session?.user?.id || 0, req, {
       action: "delete_branch",
       reason: "Unauthorized",

@@ -10,7 +10,7 @@ import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
 import { isoToLocalDateTime } from "@/lib/dateUtils";
 import DatePicker from "@/components/ui/DatePicker";
 import DateTimePicker from "@/components/ui/DateTimePicker";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 import { DEFAULT_CRITICAL, DEFAULT_SCOPE, DEFAULT_TERMS } from "@/lib/tenderClauses";
 import {
   DEFAULT_COMPANY_ADDRESS,
@@ -270,7 +270,7 @@ export default function AdminEditTenderPage() {
   const [pmContacts, setPmContacts] = useState<{ id: number; name: string; email: string; phone: string | null }[]>([]);
 
   const userRoleIds = (session?.user as any)?.roleIds || [];
-  const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+  const isAdmin = isSuperUser(userRoleIds);
   const isLegal = userRoleIds.includes(ROLE_IDS.LEGAL_TEAM);
 
   const canEditMetadata = isAdmin;

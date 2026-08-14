@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ROLE_IDS } from "@/lib/roles";
+import { isSuperViewer } from "@/lib/roles";
 
 export async function GET(
   req: Request,
@@ -15,7 +15,7 @@ export async function GET(
   }
 
   const userRoleIds = (session.user as any)?.roleIds || [];
-  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
+  if (!isSuperViewer(userRoleIds)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

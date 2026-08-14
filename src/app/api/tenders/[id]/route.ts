@@ -8,7 +8,7 @@ import { canViewTenderWithParticipation, canViewDraftTender } from "@/lib/permis
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
 import { syncTenderToCalendar } from "@/lib/syncTenderToCalendar";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 import { applyScheduledTenderTransitions } from "@/lib/tenderLifecycle";
 import { z } from "zod";
 
@@ -62,7 +62,7 @@ export async function GET(
   const userId = (session.user as any).id;
 
   // Draft visibility
-  const canViewDraft = await canViewDraftTender(userRoleIds);
+  const canViewDraft = await canViewDraftTender(userId, userRoleIds);
   if (tender.status_code === 'draft' && !canViewDraft) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }
@@ -99,7 +99,15 @@ export async function GET(
             t.project_manager_name,
             t.project_manager_email,
             t.project_manager_phone,
-            hu.username AS handover_by_name
+            hu.username AS handover_by_name,
+            ta.award_id,
+            ta.winning_contractor_id,
+            ta.contract_value,
+            ta.awarded_date,
+            ta.contract_received_at,
+            ta.contract_received_by,
+            wc.username AS winning_contractor_name,
+            rcb.username AS contract_received_by_name
      FROM tender t
      JOIN branch b ON t.branch_id = b.branch_id
      LEFT JOIN branch_address ba ON b.branch_id = ba.branch_id AND ba.is_primary = true
@@ -108,6 +116,9 @@ export async function GET(
      JOIN tender_status ts ON t.status_id = ts.status_id
      LEFT JOIN project_managers pm ON t.project_manager_id = pm.id
      LEFT JOIN users hu ON hu.user_id = t.handover_by
+     LEFT JOIN tender_award ta ON ta.tender_id = t.tender_id
+     LEFT JOIN users wc ON wc.user_id = ta.winning_contractor_id
+     LEFT JOIN users rcb ON rcb.user_id = ta.contract_received_by
      WHERE t.tender_id = $1 AND t.is_deleted = false`,
     [tenderId]
   );
@@ -152,7 +163,7 @@ export async function PUT(
   }
 
   const userRoleIds = ((session.user as any).roleIds as number[]) || [];
-  const isAdmin = userRoleIds.includes(ROLE_IDS.ADMIN);
+  const isAdmin = isSuperUser(userRoleIds);
   const isLegal = userRoleIds.includes(ROLE_IDS.LEGAL_TEAM);
   if (!isAdmin && !isLegal) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, request, "Non-authorized user attempted to update tender");
@@ -341,7 +352,7 @@ export async function DELETE(
   }
 
   const userRoleIds = ((session.user as any).roleIds as number[]) || [];
-  if (!userRoleIds.includes(ROLE_IDS.ADMIN)) {
+  if (!isSuperUser(userRoleIds)) {
     await logAuthEvent("PERMISSION_DENIED", session.user.id, request, "Non-admin attempted to delete tender");
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }

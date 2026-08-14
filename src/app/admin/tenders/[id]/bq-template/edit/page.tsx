@@ -19,6 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import ExcelJS from "exceljs"; // ✅ replaced xlsx
 import { useNotify } from "@/components/ui/notification-provider";
+import { isSuperUser } from "@/lib/roles";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -104,29 +105,18 @@ function getItemNumber(
   return numberStr;
 }
 
-// ------------- STATIC UNIT MAPPING -------------
-const UNIT_MAP: { display: string; code: string }[] = [
-  { display: "Nos", code: "NOS" },
-  { display: "Set", code: "SET" },
-  { display: "m", code: "M" },
-  { display: "m²", code: "M2" },
-  { display: "m³", code: "M3" },
-  { display: "mm", code: "MM" },
-  { display: "mm²", code: "MM2" },
-  { display: "cm²", code: "CM2" },
-  { display: "kg", code: "KG" },
-  { display: "Lot", code: "LOT" },
-  { display: "L.S.", code: "LS" },
-];
+// Units are sourced from /api/units (the real unit_measure table) — see
+// the units state in the main component below, passed down where needed.
+type UnitOption = { unit_code: string; unit_name: string };
 
-function getDisplayFromCode(code: string): string {
-  const found = UNIT_MAP.find((u) => u.code === code);
-  return found ? found.display : code;
+function getDisplayFromCode(code: string, units: UnitOption[]): string {
+  const found = units.find((u) => u.unit_code === code);
+  return found ? found.unit_name : code;
 }
 
-function getCodeFromDisplay(display: string): string {
-  const found = UNIT_MAP.find((u) => u.display === display);
-  return found ? found.code : display;
+function getCodeFromDisplay(display: string, units: UnitOption[]): string {
+  const found = units.find((u) => u.unit_name === display);
+  return found ? found.unit_code : display;
 }
 
 // Sortable row component
@@ -137,6 +127,7 @@ interface SortableItemRowProps {
   onUpdate: (itemId: number, field: keyof BQTemplateItem, value: any) => void;
   onDelete: (itemId: number) => void;
   onAddSub: (parentId: number) => void;
+  units: UnitOption[];
   children?: React.ReactNode;
 }
 
@@ -147,6 +138,7 @@ function SortableItemRow({
   onUpdate,
   onDelete,
   onAddSub,
+  units,
   children,
 }: SortableItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -159,7 +151,7 @@ function SortableItemRow({
   };
 
   const indent = level * 24;
-  const displayUnit = getDisplayFromCode(item.unit);
+  const displayUnit = getDisplayFromCode(item.unit, units);
 
   const [marketCheck, setMarketCheck] = useState<{
     status: "idle" | "loading" | "done" | "error";
@@ -239,7 +231,7 @@ function SortableItemRow({
             list="unit-datalist"
             value={displayUnit}
             onChange={(e) => {
-              const storedCode = getCodeFromDisplay(e.target.value);
+              const storedCode = getCodeFromDisplay(e.target.value, units);
               onUpdate(item.item_id, "unit", storedCode);
             }}
             className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
@@ -368,6 +360,7 @@ export default function BQTemplateEditPage() {
   } | null>(null);
   const [saveTimer, setSaveTimer] = useState<NodeJS.Timeout | null>(null);
   const [tenderName, setTenderName] = useState<string>("");
+  const [units, setUnits] = useState<UnitOption[]>([]);
   const fetchedRef = useRef(false);
 
   // Find & reuse an existing item
@@ -409,6 +402,16 @@ export default function BQTemplateEditPage() {
     } catch (err) {
       console.error("Failed to fetch tender name", err);
       setTenderName(`#${tenderId}`);
+    }
+  };
+
+  const fetchUnits = async () => {
+    try {
+      const res = await fetch("/api/units");
+      const data = await res.json();
+      setUnits(data);
+    } catch (err) {
+      console.error("Failed to fetch units", err);
     }
   };
 
@@ -471,6 +474,7 @@ export default function BQTemplateEditPage() {
         fetchEnabledCategories(),
         fetchAllCategories(),
         fetchTenderName(),
+        fetchUnits(),
       ]);
 
       const itemsArray = Array.isArray(fetchedItems) ? fetchedItems : [];
@@ -508,7 +512,7 @@ export default function BQTemplateEditPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
-    if (session?.user && (session.user as any)?.role_id !== 1) router.push("/dashboard");
+    if (session?.user && !isSuperUser((session.user as any)?.roleIds || [])) router.push("/dashboard");
     if (session?.user && tenderId && !fetchedRef.current) {
       fetchedRef.current = true;
       loadData();
@@ -613,7 +617,7 @@ export default function BQTemplateEditPage() {
       newItemForm.quantity.trim() === "" ? null : parseFloat(newItemForm.quantity);
     const rateValue =
       newItemForm.rate.trim() === "" ? null : parseFloat(newItemForm.rate);
-    const storedUnitCode = getCodeFromDisplay(newItemForm.unitDisplay);
+    const storedUnitCode = getCodeFromDisplay(newItemForm.unitDisplay, units);
 
     const siblings = items.filter(
       (i) =>
@@ -827,7 +831,7 @@ export default function BQTemplateEditPage() {
           itemNumber,
           item.description,
           item.quantity ?? "",
-          getDisplayFromCode(item.unit),
+          getDisplayFromCode(item.unit, units),
           item.rate ?? "",
         ]);
 
@@ -838,7 +842,7 @@ export default function BQTemplateEditPage() {
             subNumber,
             sub.description,
             sub.quantity ?? "",
-            getDisplayFromCode(sub.unit),
+            getDisplayFromCode(sub.unit, units),
             sub.rate ?? "",
           ]);
         });
@@ -916,6 +920,7 @@ export default function BQTemplateEditPage() {
                 onUpdate={handleUpdate}
                 onDelete={handleDelete}
                 onAddSub={handleAddSub}
+                units={units}
               >
                 {renderItemTree(item.item_id, categoryId, level + 1)}
               </SortableItemRow>
@@ -1033,7 +1038,7 @@ export default function BQTemplateEditPage() {
                     <div>
                       <p className="text-sm text-gray-800">{r.description}</p>
                       <p className="text-xs text-gray-500">
-                        {r.category_name} · {getDisplayFromCode(r.unit)} · used on {r.usage_count} tender
+                        {r.category_name} · {getDisplayFromCode(r.unit, units)} · used on {r.usage_count} tender
                         {r.usage_count === 1 ? "" : "s"}
                         {r.avg_rate !== null && <> · avg rate {r.avg_rate.toFixed(2)}</>}
                       </p>
@@ -1102,9 +1107,9 @@ export default function BQTemplateEditPage() {
         </div>
 
         <datalist id="unit-datalist">
-          {UNIT_MAP.map((unit) => (
-            <option key={unit.code} value={unit.display}>
-              {unit.display}
+          {units.map((unit) => (
+            <option key={unit.unit_code} value={unit.unit_name}>
+              {unit.unit_name}
             </option>
           ))}
         </datalist>

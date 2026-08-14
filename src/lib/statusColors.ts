@@ -63,6 +63,24 @@ export const STATUS_CONFIG: Record<StatusDomain, StatusConfigMap> = {
         dot: 'bg-purple-400',
       },
     },
+    awarded: {
+      label: 'Awarded',
+      style: {
+        bg: 'bg-indigo-50',
+        text: 'text-indigo-700',
+        border: 'border-indigo-200',
+        dot: 'bg-indigo-500',
+      },
+    },
+    cancelled: {
+      label: 'Cancelled',
+      style: {
+        bg: 'bg-slate-100',
+        text: 'text-slate-600',
+        border: 'border-slate-300',
+        dot: 'bg-slate-400',
+      },
+    },
   },
   bq: {
     draft: {
