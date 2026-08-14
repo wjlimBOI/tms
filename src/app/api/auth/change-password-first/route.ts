@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { passwordValidation } from "@/lib/validation";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
+import { CURRENT_TERMS_VERSION } from "@/lib/legal";
 
 // OPTIONS preflight handler
 export async function OPTIONS(request: NextRequest) {
@@ -46,10 +47,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Parse and validate body
-    const { new_password } = await request.json();
+    const { new_password, agreed_to_terms } = await request.json();
     if (!new_password) {
       return NextResponse.json(
         { error: "New password required" },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    if (agreed_to_terms !== true) {
+      return NextResponse.json(
+        { error: "You must agree to the Terms of Use and Privacy Policy to continue" },
         { status: 400, headers: corsHeaders }
       );
     }
@@ -78,6 +85,8 @@ export async function POST(request: NextRequest) {
         must_change_password: false,
         password_changed_at: new Date(),
         updated_at: new Date(),
+        terms_accepted_at: new Date(),
+        terms_accepted_version: CURRENT_TERMS_VERSION,
       },
     });
 

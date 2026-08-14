@@ -5,6 +5,7 @@ import RootProviders from './providers/RootProviders';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ForcePasswordChange from '@/components/ForcePasswordChange';
+import CookieConsentBanner from '@/components/CookieConsentBanner';
 
 export const metadata = {
   title: 'Project & Cost Management System',
@@ -24,6 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
           </main>
           <Footer />
+          <CookieConsentBanner />
         </RootProviders>
       </body>
     </html>

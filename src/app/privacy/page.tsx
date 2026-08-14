@@ -6,7 +6,7 @@ import {
   DocumentHeader,
   TableOfContents,
   SectionHeader,
-  LegalList,
+  Clause,
 } from '@/components/privacy';
 
 export default function PrivacyPage() {
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
     { id: 'section7', label: "7. Age Requirements and Children's Privacy" },
     { id: 'section8', label: '8. Changes to this Privacy Policy' },
     { id: 'section9', label: '9. Contact and Enquiries' },
-    { id: 'appendix', label: 'Appendix A: Data Retention Periods' },
+    { id: 'section10', label: '10. Data Retention Periods' },
   ];
 
   const handlePrint = () => {
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
           <DocumentHeader
             title="Privacy Policy"
             effectiveDate="19 June 2026"
-            version="1.1"
+            version="2.1"
             lastUpdated="14 August 2026"
           />
         </div>
@@ -72,97 +72,154 @@ export default function PrivacyPage() {
 
           {/* Content */}
           <div className="min-w-0 flex-1 max-w-3xl">
-            <div className="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-semibold prose-headings:tracking-tight prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-base prose-a:text-[#15406a] prose-ul:space-y-2 prose-li:marker:text-slate-500 print:prose-p:text-black print:prose-headings:text-black print:prose-a:text-black print:prose-strong:text-black">
+            <div className="prose prose-slate max-w-none prose-headings:font-serif prose-headings:font-semibold prose-headings:tracking-tight prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-base prose-a:text-[#15406a] print:prose-p:text-black print:prose-headings:text-black print:prose-a:text-black print:prose-strong:text-black">
 
               <p className="lead text-slate-600 text-lg">
-                <strong>Privacy Commitment.</strong> At Beauty One International Pte Ltd. (&quot;Company,&quot; &quot;we,&quot; &quot;our,&quot; or &quot;us&quot;), we value the privacy of our users and are committed to protecting the personal data entrusted to us. This Privacy Policy (the &quot;Policy&quot;) explains how we collect, use, store, disclose and protect personal data when you access or use the Tender Management System (&quot;TMS&quot; or the &quot;Platform&quot;), in compliance with the Singapore Personal Data Protection Act (<strong>PDPA</strong>). This Policy should be read together with our <a href="/terms" className="text-[#15406a] hover:underline">Terms of Service</a>.
+                <strong>Privacy Commitment.</strong> At Beauty One International Pte Ltd., we value the privacy of our users and are committed to protecting the personal data entrusted to us. This Privacy Policy explains how we collect, use, store, disclose and protect personal data when you access or use the Tender Management System (&quot;TMS&quot; or the &quot;Platform&quot;). This Policy should be read together with our <a href="/terms" className="text-[#15406a] hover:underline">Terms of Use</a>.
               </p>
-
-              <p className="mt-6">This Policy applies to all users of TMS, including:</p>
-              <LegalList
-                items={[
-                  <span key="1">
-                    <strong>Internal Team Members:</strong> Admin, Finance GM, FM Regional Director, Legal Team and other authorised personnel who access TMS for project governance, tender management, and operational oversight.
-                  </span>,
-                  <span key="2">
-                    <strong>Contractors:</strong> Third‑party contracting firms and their authorised personnel who express interest in, and submit tender bids, Bills of Quantities and related documentation through TMS.
-                  </span>,
-                ]}
-              />
 
               <SectionHeader id="section1" level={2}>1. Collection of Personal Data</SectionHeader>
-              <p>TMS accounts are created for you by our Admin users, not through self‑registration — but we still collect personal data at account creation and throughout your subsequent use of the Platform.</p>
-              <LegalList
-                items={[
-                  <span key="1-1"><strong>Account &amp; Profile Data:</strong> Full name, official job title, corporate email address, telephone number, company or organisation details, and account credentials (securely hashed, never stored in plain text).</span>,
-                  <span key="1-2"><strong>Platform Activity Data:</strong> Tender interest expressions, Bill of Quantities (BQ) submissions and pricing, extension‑of‑time requests, in‑tender messages sent to other Users, comments, and documents you upload.</span>,
-                  <span key="1-3"><strong>Communications:</strong> Records of correspondence when you contact us, and messages exchanged with other Users through TMS&rsquo;s in‑tender messaging feature.</span>,
-                  <span key="1-4"><strong>Technical &amp; Usage Data:</strong> IP address, browser type and version, device information, login activity (successful and failed attempts), access times, and audit‑trail records of actions taken within TMS.</span>,
-                ]}
-              />
-              <p>You are responsible for ensuring that personal data you provide through TMS is accurate, and that you have the necessary authority or permission to provide personal data relating to another individual (for example, naming a colleague in a submission).</p>
+              <Clause number="1.1">
+                We may collect personal data that you provide when your account is set up, when you use TMS, communicate with other Users, submit information through the Platform, contact us or otherwise interact with our services.
+              </Clause>
+              <Clause number="1.2">
+                Depending on how you use TMS, the information we collect may include your name, email address, telephone number, company or organisation details, account credentials, business information, communications, documents and other information you choose to provide through the Platform.
+              </Clause>
+              <Clause number="1.3">
+                We may also automatically collect certain technical and usage information when you use TMS, such as your IP address, browser type, device information, login activity, access times and information about how you interact with the Platform.
+              </Clause>
+              <Clause number="1.4">
+                You are responsible for ensuring that personal data you provide through TMS is accurate and that you have the necessary authority or permission to provide personal data relating to another individual.
+              </Clause>
 
               <SectionHeader id="section2" level={2}>2. Purposes of Collection, Use and Disclosure</SectionHeader>
-              <LegalList
-                items={[
-                  <span key="2-1"><strong>Operating TMS:</strong> Creating and managing accounts, authenticating Users, facilitating tender and BQ workflows, processing submissions, and providing in‑app and email notifications.</span>,
-                  <span key="2-2"><strong>Security &amp; Compliance:</strong> Maintaining security, preventing fraud and misuse, investigating incidents, maintaining audit‑trail records, and complying with applicable laws, regulations or lawful requests.</span>,
-                  <span key="2-3"><strong>Business Administration:</strong> Improving the Platform, providing support, and administering our business, including financial and statutory audit requirements.</span>,
-                ]}
-              />
-              <p>Where you have chosen to receive optional communications, we may use your email address to send relevant Platform updates, deadline reminders and other alerts. You may disable optional email notifications through your notification preferences settings. We will not use your personal data for purposes incompatible with those described in this Policy unless permitted or required by applicable law.</p>
+              <Clause number="2.1">
+                We collect and use personal data where reasonably necessary to provide, operate and maintain TMS, including creating and managing accounts, authenticating Users, facilitating Platform activities, processing submissions, providing communications and notifications, and supporting Users.
+              </Clause>
+              <Clause number="2.2">
+                We may also use personal data to maintain security, prevent fraud and misuse, investigate incidents, maintain electronic records, improve the Platform, provide support, administer our business and comply with applicable laws, regulations or lawful requests.
+              </Clause>
+              <Clause number="2.3">
+                Where you have chosen to receive optional communications, we may use your email address to send relevant Platform updates, alerts and other communications. You may disable optional email notifications through your account settings where this feature is available.
+              </Clause>
+              <Clause number="2.4">
+                We will not use your personal data for purposes that are incompatible with the purposes described in this Privacy Policy unless permitted or required by applicable law or where we have obtained the appropriate consent.
+              </Clause>
 
               <SectionHeader id="section3" level={2}>3. Cookies, Account Information and Electronic Communications</SectionHeader>
-              <p>TMS uses only strictly necessary cookies — session authentication and security (e.g., CSRF protection) — to keep you signed in and protect your account. We do not use analytics, advertising, or third‑party tracking cookies. You can manage or block cookies through your browser settings, though because TMS uses only essential cookies, disabling them will prevent you from logging in or using TMS.</p>
-              <p>When your account is created, we use your email address to deliver your welcome email and temporary credentials, verify account‑related actions such as password resets, and send security notices (for example, alerts of a new login) and Platform notifications. You may enable or disable optional notification categories through your account settings; disabling optional notifications does not prevent us from sending essential account, security, legal or service‑related communications. We do not guarantee that emails or other electronic communications will always be successfully delivered, received or read — you remain responsible for monitoring your TMS account directly.</p>
+              <Clause number="3.1">
+                TMS uses only strictly necessary cookies — session authentication and security (for example, CSRF protection) — to keep you signed in, maintain your session and protect your account. We do not use analytics, advertising or tracking cookies.
+              </Clause>
+              <Clause number="3.2">
+                Because TMS uses only strictly necessary cookies, there are no optional cookies for you to manage or disable. You can block cookies entirely through your browser settings, but doing so will prevent you from logging in or using TMS.
+              </Clause>
+              <Clause number="3.3">
+                When your account is created, we use your email address to deliver your welcome email and temporary credentials, verify account‑related actions such as password resets, and send security notices and Platform notifications.
+              </Clause>
+              <Clause number="3.4">
+                You may enable or disable optional notification categories through your account settings where available. Disabling optional notifications does not prevent us from sending essential account, security, legal or service‑related communications.
+              </Clause>
+              <Clause number="3.5">
+                We do not guarantee that emails or other electronic communications will always be successfully delivered, received or read.
+              </Clause>
 
               <SectionHeader id="section4" level={2}>4. Access, Correction, Disclosure and Retention of Personal Data</SectionHeader>
-              <LegalList
-                items={[
-                  <span key="4-1"><strong>Access &amp; Correction:</strong> You may request access to or correction of personal data we hold about you, subject to applicable law and our ability to verify your identity and authority. Requests are handled by our Legal Team / Data Protection Officer, who can retrieve a full record of what TMS holds about a given user.</span>,
-                  <span key="4-2"><strong>Deletion &amp; Withdrawal of Consent:</strong> Where appropriate and permitted by law, you may request deletion of your personal data or withdraw previously provided consent. This may affect our ability to provide certain features, and we may continue to retain information where permitted or required by law (for example, financial audit records).</span>,
-                  <span key="4-3"><strong>Internal Access:</strong> Access to personal data within TMS is role‑based and limited to authorised persons who require the information for legitimate business, operational, administrative, security or legal purposes.</span>,
-                  <span key="4-4"><strong>Service Providers:</strong> We disclose personal data to our authorised service providers (such as our email delivery provider and cloud hosting infrastructure) only as reasonably necessary to operate and support TMS, and we take reasonable steps to require appropriate handling and protection of that data.</span>,
-                  <span key="4-5"><strong>Legal Disclosure:</strong> We may disclose personal data where required or permitted by law, regulation, court order, governmental authority or other lawful request, or where reasonably necessary to protect our rights, property, Users or the security of TMS.</span>,
-                ]}
-              />
-              <p>We retain personal data for as long as reasonably necessary for the purposes for which it was collected, including account administration, business and operational requirements, security, dispute management, audit purposes and legal or regulatory obligations — see <a href="#appendix" className="text-[#15406a] hover:underline">Appendix A</a> for our retention periods by data category. When personal data is no longer required, we securely delete it, anonymise it for analytical purposes where beneficial, or archive it in encrypted, access‑controlled storage for legal hold purposes.</p>
+              <Clause number="4.1">
+                You may request access to or correction of personal data that we hold about you, subject to applicable law and our ability to verify your identity and authority.
+              </Clause>
+              <Clause number="4.2">
+                Where appropriate and permitted by law, you may also request that your personal data be deleted or that consent previously provided be withdrawn. Withdrawal of consent may affect our ability to provide certain features or services, and we may continue to retain or process information where permitted or required by law.
+              </Clause>
+              <Clause number="4.3">
+                Access to personal data within TMS is limited to authorised persons who require the information for legitimate business, operational, administrative, security or legal purposes.
+              </Clause>
+              <Clause number="4.4">
+                We may disclose personal data to our authorised service providers, contractors, technology providers and other parties where reasonably necessary to operate and support TMS, provide services, maintain security, process information on our behalf or comply with applicable law.
+              </Clause>
+              <Clause number="4.5">
+                We may also disclose personal data where required or permitted by law, regulation, court order, governmental authority or other lawful request, or where reasonably necessary to protect our rights, property, Users or the security of TMS.
+              </Clause>
+              <Clause number="4.6">
+                We retain personal data for as long as reasonably necessary for the purposes for which it was collected, including account administration, business and operational requirements, security, dispute management, audit purposes and legal or regulatory obligations — see <a href="#section10" className="text-[#15406a] hover:underline">Section 10</a> for our retention periods by data category. When personal data is no longer required, we may securely delete, anonymise or otherwise dispose of it in accordance with our retention practices and applicable law.
+              </Clause>
+              <Clause number="4.7">
+                Where personal data is processed by third‑party service providers on our behalf, we take reasonable steps to require appropriate handling and protection of that data.
+              </Clause>
 
               <SectionHeader id="section5" level={2}>5. Protection and Security of Personal Data</SectionHeader>
-              <p>We take reasonable and appropriate technical and organisational measures to protect personal data against unauthorised access, collection, use, disclosure, alteration, loss or destruction.</p>
-              <LegalList
-                items={[
-                  <span key="5-1"><strong>Encryption:</strong> Data transmitted between client devices and our servers is encrypted in transit (TLS), with certificate verification enforced in production. Select highly sensitive fields are encrypted at the application layer using AES‑256‑GCM before storage.</span>,
-                  <span key="5-2"><strong>Access Controls:</strong> Role‑Based Access Control (RBAC) enforces access to each feature and data category per‑request based on your assigned role. Sessions expire automatically after a period of inactivity, requiring re‑authentication, and password complexity is enforced.</span>,
-                  <span key="5-3"><strong>Monitoring:</strong> Login attempts (successful and failed) are recorded with IP address and device information, and account holders are alerted by email of new logins. Comprehensive audit trails record data access, modification and deletion events.</span>,
-                  <span key="5-4"><strong>Backups:</strong> Regular database backups are maintained to support recovery in the event of data loss.</span>,
-                ]}
-              />
-              <p>However, no electronic system or method of transmission over the Internet can be guaranteed to be completely secure. You should take reasonable steps to protect your account credentials and devices. If we become aware of a data breach or security incident affecting personal data, we will take appropriate steps to investigate, contain and address the incident, and notify affected data subjects and the Personal Data Protection Commission (PDPC) where the breach is notifiable under the PDPA.</p>
+              <Clause number="5.1">
+                We take reasonable and appropriate measures to protect personal data against unauthorised access, collection, use, disclosure, alteration, loss or destruction.
+              </Clause>
+              <Clause number="5.2">
+                These measures may include access controls, authentication mechanisms, encryption, system monitoring, secure storage, backups and other technical or organisational safeguards appropriate to the nature of the information and the risks involved.
+              </Clause>
+              <Clause number="5.3">
+                However, no electronic system or method of transmission over the Internet can be guaranteed to be completely secure. You should take reasonable steps to protect your account credentials and devices.
+              </Clause>
+              <Clause number="5.4">
+                If we become aware of a data breach or security incident affecting personal data, we will take appropriate steps to investigate, contain and address the incident and make any notifications required by applicable law.
+              </Clause>
 
-              <SectionHeader id="section6" level={2}>6. Consent and Third-Party Services</SectionHeader>
-              <p>By using TMS, providing personal data to us or submitting information through the Platform, you acknowledge that your personal data may be collected, used and processed in accordance with this Policy, subject to applicable law. Where consent is required by applicable law, we will seek the appropriate consent before collecting, using or disclosing personal data for the relevant purpose; you may withdraw consent where permitted by law, although doing so may affect our ability to provide certain services or features.</p>
-              <p>Where TMS displays a map (for example, project or outlet locations), map tiles are loaded directly from OpenStreetMap, which may receive your IP address as part of that request. Aside from this, TMS does not embed third‑party analytics, advertising, or tracking services. Where TMS links to a third‑party website or service, that service has its own privacy policy and practices, and we are not responsible for its privacy, security or data‑handling practices. You should review the privacy policy of any third‑party service before providing personal data to it.</p>
+              <SectionHeader id="section6" level={2}>6. Consent and Third‑Party Services</SectionHeader>
+              <Clause number="6.1">
+                By using TMS, providing personal data to us or submitting information through the Platform, you acknowledge that your personal data may be collected, used and processed in accordance with this Privacy Policy, subject to applicable law.
+              </Clause>
+              <Clause number="6.2">
+                Where consent is required by applicable law, we will seek the appropriate consent before collecting, using or disclosing personal data for the relevant purpose. You may withdraw consent where permitted by law, although doing so may affect our ability to provide certain services or features.
+              </Clause>
+              <Clause number="6.3">
+                TMS may contain links to or integrations with third‑party websites, applications or services — for example, TMS loads map tiles directly from OpenStreetMap when displaying project or outlet locations, which may receive your IP address as part of that request. These third parties may have their own privacy policies and practices.
+              </Clause>
+              <Clause number="6.4">
+                We are not responsible for the privacy, security or data‑handling practices of third‑party websites or services that we do not control. You should review the privacy policy of any third‑party service before providing personal data to it.
+              </Clause>
 
               <SectionHeader id="section7" level={2}>7. Age Requirements and Children&apos;s Privacy</SectionHeader>
-              <p>TMS is a business‑to‑business platform intended only for individuals who are 18 years of age or older, accessing TMS in a professional capacity on behalf of Beauty One International Pte Ltd. or a contracting organisation. Accounts are provisioned by our Admin users, not through open self‑registration, and TMS is not intended for use by children or persons below 18 years of age. We do not knowingly permit persons below 18 to hold or use an account.</p>
-              <p>If we become aware that an account has been created or maintained by a person below 18 years of age, we will suspend or terminate the account and take reasonable steps to delete the associated personal data, subject to any legal or operational requirement to retain such information.</p>
+              <Clause number="7.1">
+                TMS is intended only for individuals who are 18 years of age or older.
+              </Clause>
+              <Clause number="7.2">
+                You must be at least 18 years old to hold or use a TMS account. By using TMS, you represent that you meet this requirement.
+              </Clause>
+              <Clause number="7.3">
+                TMS is not intended for children or persons below 18 years of age, and we do not knowingly permit persons below 18 to hold or use an account.
+              </Clause>
+              <Clause number="7.4">
+                If we become aware that an account has been created or maintained by a person below 18 years of age, we may suspend or terminate the account and take reasonable steps to delete the associated personal data, subject to any legal or operational requirement to retain such information.
+              </Clause>
 
               <SectionHeader id="section8" level={2}>8. Changes to this Privacy Policy</SectionHeader>
-              <p>We may update this Policy from time to time to reflect changes to TMS, our practices, applicable laws or regulatory requirements. Where material changes are made, we may notify Users through TMS, email or other reasonable means. The latest version of this Policy will be published on TMS with the updated &quot;Last Updated&quot; date shown above. Your continued use of TMS after an updated Policy takes effect constitutes acknowledgement of the updated Policy; if you do not agree with the changes, you should stop using TMS and may contact us regarding your account and personal data.</p>
+              <Clause number="8.1">
+                We may update this Privacy Policy from time to time to reflect changes to TMS, our practices, applicable laws or regulatory requirements.
+              </Clause>
+              <Clause number="8.2">
+                Where material changes are made, we may notify Users through TMS, email or other reasonable means.
+              </Clause>
+              <Clause number="8.3">
+                The latest version of this Privacy Policy will be published on TMS with the updated &quot;Last Updated&quot; date.
+              </Clause>
+              <Clause number="8.4">
+                Your continued use of TMS after an updated Privacy Policy takes effect constitutes acknowledgement of the updated Policy. If you do not agree with the changes, you should stop using TMS and may contact us regarding your account and personal data.
+              </Clause>
 
               <SectionHeader id="section9" level={2}>9. Contact and Enquiries</SectionHeader>
-              <p>If you have questions, concerns, or requests relating to your personal data, or feedback regarding this Policy, please contact our Data Protection Officer:</p>
-              <p>
-                <strong>Data Protection Officer</strong><br />
-                Beauty One International Pte Ltd.<br />
+              <Clause number="9.1">
+                If you have questions, concerns, requests relating to your personal data, or feedback regarding this Privacy Policy, please contact us at:
+                <br /><br />
+                <strong>Beauty One International Pte Ltd.</strong><br />
+                Attn: Data Protection Officer<br />
                 2 Venture Drive, #21‑01, VISION EXCHANGE, Singapore 608526<br />
-                <strong>Email:</strong> dpo@beautyone.com.sg<br />
-                <strong>For data subject requests:</strong> tender_enquiries@beautyone.com.sg
-              </p>
-              <p>When making an access, correction, deletion or other personal data request, we may need to verify your identity before processing the request. Requests are acknowledged within seven (7) business days and substantively responded to within thirty (30) days (or sooner if required by law), free of charge unless manifestly unfounded or excessive. You may also lodge a complaint with the Personal Data Protection Commission (PDPC).</p>
+                Email: dpo@beautyone.com.sg<br />
+                Data subject requests: tender_enquiries@beautyone.com.sg
+              </Clause>
+              <Clause number="9.2">
+                When making an access, correction, deletion or other personal data request, we may need to verify your identity before processing the request.
+              </Clause>
 
-              <SectionHeader id="appendix" level={2}>Appendix A: Data Retention Periods</SectionHeader>
+              <SectionHeader id="section10" level={2}>10. Data Retention Periods</SectionHeader>
+              <Clause number="10.1">
+                In addition to the general retention principle in Section 4.6, the table below sets out the specific retention periods we apply to the main categories of data processed through TMS.
+              </Clause>
               <div className="overflow-x-auto my-6">
                 <table className="min-w-full text-sm border border-slate-200">
                   <thead className="bg-slate-50">
@@ -183,7 +240,9 @@ export default function PrivacyPage() {
                   </tbody>
                 </table>
               </div>
-              <p>Data may be retained longer if required to establish, exercise, or defend a legal claim, or where mandated by applicable law.</p>
+              <Clause number="10.2">
+                Data may be retained longer if required to establish, exercise, or defend a legal claim, or where mandated by applicable law.
+              </Clause>
 
               <p className="mt-14 text-xs text-slate-400 border-t border-slate-200 pt-6">
                 This Privacy Policy is provided for informational purposes and does not constitute legal advice. Copyright © 2026 Beauty One International Pte Ltd. All rights reserved.

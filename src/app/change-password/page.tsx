@@ -16,6 +16,7 @@ export default function ChangePasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -43,13 +44,17 @@ export default function ChangePasswordPage() {
       toast.error("Passwords do not match");
       return;
     }
+    if (!agreedToTerms) {
+      toast.error("You must agree to the Terms of Use and Privacy Policy to continue");
+      return;
+    }
 
     setSubmitting(true);
     try {
       const res = await fetch("/api/auth/change-password-first", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ new_password: newPassword }),
+        body: JSON.stringify({ new_password: newPassword, agreed_to_terms: agreedToTerms }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -126,9 +131,40 @@ export default function ChangePasswordPage() {
             </ul>
           )}
 
+          <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-cyan-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
+              required
+            />
+            <span>
+              I have read and agree to the{" "}
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-cyan-700 hover:underline"
+              >
+                Terms of Use
+              </a>{" "}
+              and{" "}
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-cyan-700 hover:underline"
+              >
+                Privacy Policy
+              </a>
+              .
+            </span>
+          </label>
+
           <button
             type="submit"
-            disabled={submitting || !isValid || !passwordsMatch}
+            disabled={submitting || !isValid || !passwordsMatch || !agreedToTerms}
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
           >
             {submitting && (

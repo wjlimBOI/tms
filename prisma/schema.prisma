@@ -649,17 +649,17 @@ model role_permissions {
 }
 
 model roles {
-  role_id                   Int                         @id @default(autoincrement())
-  role_name                 String                      @unique @db.VarChar(100)
+  role_id                   Int                        @id @default(autoincrement())
+  role_name                 String                     @unique @db.VarChar(100)
   description               String?
-  created_at                DateTime?                   @default(now()) @db.Timestamp(6)
-  updated_at                DateTime?                   @default(now()) @db.Timestamp(6)
-  display_name              String?                     @db.VarChar(100)
-  sort_order                Int?                        @default(999)
+  created_at                DateTime?                  @default(now()) @db.Timestamp(6)
+  updated_at                DateTime?                  @default(now()) @db.Timestamp(6)
+  display_name              String?                    @db.VarChar(100)
+  sort_order                Int?                       @default(999)
   approval_chains           approval_chains[]
   role_permissions          role_permissions[]
-  tender_award_settings     tender_award_settings[]
-  tender_extension_settings tender_extension_settings[]
+  tender_award_settings     tender_award_settings?
+  tender_extension_settings tender_extension_settings?
   user_roles                user_roles[]
   users                     users[]
 }
@@ -934,6 +934,9 @@ model users {
   locked_until                                                            DateTime?                     @db.Timestamp(6)
   password_changed_at                                                     DateTime?                     @db.Timestamp(6)
   display_name                                                            String?                       @db.VarChar(150)
+  notification_preferences                                                Json?                         @default("{\"alerts\": true, \"newTenders\": true, \"announcements\": true, \"statusChanges\": true}")
+  terms_accepted_at                                                       DateTime?                     @db.Timestamp(6)
+  terms_accepted_version                                                  String?                       @db.VarChar(20)
   approval_history                                                        approval_history[]
   approval_requests                                                       approval_requests[]
   audit_log                                                               audit_log[]
