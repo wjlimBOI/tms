@@ -56,6 +56,21 @@ export default function DateTimePicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // Set once the dropdown has actually rendered and its real height is
+  // known — see the layout effect below.
+  const measuredHeightRef = useRef(420);
+  // Below a certain natural height, a mid-page field (say, in a table row)
+  // can have less room below it than the full calendar+time panel needs but
+  // still plenty to show it scrollably right where the field is. Flipping
+  // to "top" and subtracting the *full* estimated height in that case
+  // walked the dropdown up past nearby content and often past the top of
+  // the viewport into unrelated page chrome (header, page title) — nowhere
+  // near the field it belongs to. Anchoring to whichever side has more
+  // room, and capping the box to that side's actual available space
+  // (scrollable if needed) instead of the full estimate, keeps it hugging
+  // the field always. The sticky time row stays pinned to the bottom of
+  // that scroll area regardless.
+  const MIN_USABLE_HEIGHT = 260;
 
   const updatePosition = useCallback(() => {
     if (!buttonRef.current) return;
@@ -64,12 +79,21 @@ export default function DateTimePicker({
     const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
     const viewportHeight = window.innerHeight;
 
-    const estimatedHeight = 420;
+    const estimatedHeight = measuredHeightRef.current;
     const spaceBelow = viewportHeight - rect.bottom;
     const spaceAbove = rect.top;
-    const placement = spaceBelow < estimatedHeight && spaceAbove > spaceBelow ? "top" : "bottom";
+    const fitsBelow = spaceBelow >= estimatedHeight;
+    const placement: "top" | "bottom" =
+      fitsBelow || spaceBelow >= MIN_USABLE_HEIGHT || spaceBelow >= spaceAbove ? "bottom" : "top";
 
-    const top = placement === "bottom" ? rect.bottom + scrollTop : rect.top + scrollTop - estimatedHeight;
+    const available = placement === "bottom" ? spaceBelow : spaceAbove;
+    const boxHeight = Math.min(estimatedHeight, Math.max(available - 8, 200));
+
+    let top = placement === "bottom" ? rect.bottom + scrollTop : rect.top + scrollTop - boxHeight;
+    const minTop = scrollTop + 8;
+    const maxTop = Math.max(minTop, scrollTop + viewportHeight - 8 - boxHeight);
+    top = Math.min(Math.max(top, minTop), maxTop);
+
     let left = rect.left + scrollLeft;
 
     const dropdownWidth = window.innerWidth < 640 ? window.innerWidth - 32 : 320;
@@ -83,7 +107,7 @@ export default function DateTimePicker({
       top,
       left,
       minWidth: window.innerWidth < 640 ? `calc(100vw - 32px)` : "320px",
-      maxHeight: `calc(100vh - 40px)`,
+      maxHeight: boxHeight,
       overflowY: "auto",
       zIndex: 9999,
     });
@@ -98,6 +122,17 @@ export default function DateTimePicker({
       setIsOpen(false);
     }
   }, [isOpen, updatePosition, disabled]);
+
+  // Re-measure against the dropdown's real rendered height once it's in the
+  // DOM, then reposition using that instead of the initial guess.
+  useEffect(() => {
+    if (!isOpen || !dropdownRef.current) return;
+    const actualHeight = dropdownRef.current.getBoundingClientRect().height;
+    if (actualHeight > 0 && Math.abs(actualHeight - measuredHeightRef.current) > 4) {
+      measuredHeightRef.current = actualHeight;
+      updatePosition();
+    }
+  }, [isOpen, updatePosition]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

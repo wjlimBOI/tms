@@ -729,7 +729,7 @@ export default function AdminEditTenderPage() {
               type="submit"
               form="tender-form"
               disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-[#15406a] hover:bg-[#0d2d4a] text-white text-sm font-medium rounded transition-colors disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               {saving ? "Saving..." : "Save"}

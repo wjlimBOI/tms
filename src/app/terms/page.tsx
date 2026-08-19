@@ -248,7 +248,7 @@ export default function TermsPage() {
                 <br /><br />
                 <strong>Beauty One International Pte Ltd.</strong><br />
                 2 Venture Drive, #21‑01, VISION EXCHANGE, Singapore 608526<br />
-                Email: legal@beautyone.com.sg
+                Email: tender_enquiries@beautyone.com.sg
               </Clause>
 
               <p className="mt-14 text-xs text-slate-400 border-t border-slate-200 pt-6">

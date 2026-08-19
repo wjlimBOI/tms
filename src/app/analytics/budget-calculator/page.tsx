@@ -45,9 +45,9 @@ export default function BudgetPlannerPage() {
 
   if (status === 'loading' || hasAccess === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50" role="status" aria-live="polite">
+      <div className="min-h-screen flex items-center justify-center bg-white" role="status" aria-live="polite">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" aria-hidden="true" />
+          <div className="w-10 h-10 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-3" aria-hidden="true" />
           <p className="text-slate-600">Loading...</p>
         </div>
       </div>
@@ -57,7 +57,7 @@ export default function BudgetPlannerPage() {
   if (hasAccess === false) return null;
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen">
+    <div className="p-6 bg-white min-h-screen">
       <div className="max-w-5xl mx-auto">
         <CapExCalculator />
       </div>

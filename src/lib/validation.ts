@@ -118,6 +118,10 @@ export const handoverSchema = z.object({
   notes: z.string().max(2000).optional().nullable(),
 });
 
+export const dlpCaseStatusSchema = z.object({
+  dlp_case_status: z.enum(['processing', 'completed']).nullable(),
+});
+
 // ===========================================
 // TENDER MESSAGING SCHEMA
 // ===========================================
@@ -125,6 +129,23 @@ export const tenderMessageSchema = z.object({
   body: z.string().min(1).max(4000),
   contractor_id: z.number().int().positive().optional(),
   is_announcement: z.boolean().optional(),
+});
+
+// ===========================================
+// TEAM MESSAGING SCHEMA
+// ===========================================
+export const directMessageSchema = z.object({
+  body: z.string().min(1).max(4000),
+});
+
+export const createConversationSchema = z.object({
+  participant_user_ids: z.array(z.number().int().positive()).min(1).max(50),
+  title: z.string().min(1).max(150).optional().nullable(),
+});
+
+export const messagesDirectorySchema = z.object({
+  search: z.string().min(1).max(100),
+  limit: z.coerce.number().int().positive().max(50).default(20),
 });
 
 // ===========================================

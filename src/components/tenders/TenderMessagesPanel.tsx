@@ -6,7 +6,6 @@ import { format } from "date-fns";
 import { MessageSquare, Send, Megaphone, FileText, HelpCircle } from "lucide-react";
 import { ROLE_IDS } from "@/lib/roles";
 import { useNotify } from "@/components/ui/notification-provider";
-import { Button } from "@/components/ui/Button";
 import AnnouncementModal from "@/components/tenders/AnnouncementModal";
 
 interface Message {
@@ -195,15 +194,13 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
           Messages
         </h3>
         {isStaff && contractors.length > 0 && (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
             onClick={() => setShowAnnouncementModal(true)}
-            className="gap-1.5"
+            className="flex items-center gap-1.5 rounded-md border-2 border-[#15406a] bg-white px-3 py-1.5 text-xs font-semibold text-[#15406a] transition-colors hover:bg-[#15406a] hover:text-white"
           >
             <Megaphone className="w-3.5 h-3.5" /> Send Announcement
-          </Button>
+          </button>
         )}
       </div>
 
@@ -212,7 +209,7 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
           <select
             value={selectedContractorId ?? ""}
             onChange={(e) => handleSelectContractor(parseInt(e.target.value))}
-            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#15406a]"
           >
             {contractors.map((c) => (
               <option key={c.contractor_id} value={c.contractor_id}>
@@ -254,14 +251,14 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              rows={2}
+              rows={4}
               maxLength={4000}
               placeholder={isStaff ? "Reply to this contractor..." : "Ask a question about this tender..."}
-              className="flex-1 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 px-3 py-2 text-sm resize-none"
+              className="flex-1 min-h-[6rem] rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#15406a] px-3 py-2 text-sm resize-y"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -269,35 +266,36 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
                 }
               }}
             />
-            <Button type="button" onClick={handleSend} disabled={sending || !draft.trim()} className="shrink-0 self-end gap-1.5">
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={sending || !draft.trim()}
+              className="flex shrink-0 items-center justify-center gap-1.5 self-center rounded-md bg-[#15406a] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0d2d4a] disabled:pointer-events-none disabled:opacity-50"
+            >
               <Send className="w-3.5 h-3.5" /> {sending ? "Sending…" : "Send"}
-            </Button>
+            </button>
           </div>
 
           {isContractor && (
             <div className="flex flex-wrap gap-2 mt-2">
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={() => handleRequest("drawings")}
                 disabled={requestingType !== null || !draft.trim()}
-                className="gap-1.5"
+                className="flex items-center gap-1.5 rounded-md border border-[#15406a] bg-white px-3 py-1.5 text-xs font-semibold text-[#15406a] transition-colors hover:bg-[#15406a] hover:text-white disabled:pointer-events-none disabled:opacity-50"
               >
                 <FileText className="w-3.5 h-3.5" />
                 {requestingType === "drawings" ? "Sending…" : "Request Drawings"}
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={() => handleRequest("information")}
                 disabled={requestingType !== null || !draft.trim()}
-                className="gap-1.5"
+                className="flex items-center gap-1.5 rounded-md border border-[#15406a] bg-white px-3 py-1.5 text-xs font-semibold text-[#15406a] transition-colors hover:bg-[#15406a] hover:text-white disabled:pointer-events-none disabled:opacity-50"
               >
                 <HelpCircle className="w-3.5 h-3.5" />
                 {requestingType === "information" ? "Sending…" : "Request More Info"}
-              </Button>
+              </button>
               <p className="text-[11px] text-slate-400 self-center">
                 Type your request above, then choose an option — the project manager is notified by email.
               </p>

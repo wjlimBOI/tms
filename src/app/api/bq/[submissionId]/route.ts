@@ -294,7 +294,7 @@ export async function PATCH(
         "bq_decision",
         { userId: contractorId, email: contractorEmail },
         subRes.rows[0].tender_id,
-        () =>
+        (ccEmails) =>
           sendBqDecisionEmail({
             to: contractorEmail,
             recipientName: contractorUsername,
@@ -302,6 +302,7 @@ export async function PATCH(
             tenderName,
             status: decisionLabel,
             submissionId,
+            cc: ccEmails,
           }),
         "statusChanges"
       );

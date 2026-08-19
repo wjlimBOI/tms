@@ -8,7 +8,56 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { generateLocalDescription } from "@/lib/description-generator";
 
 const MAX_INPUT_LENGTH = 500;
-const MAX_PAST_EXAMPLES = 15;
+const MAX_PAST_EXAMPLES = 8;
+const CANDIDATE_POOL_SIZE = 60;
+const STOPWORDS = new Set([
+  "the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with",
+  "at", "by", "is", "are", "will", "be", "this", "that", "it", "as",
+]);
+
+function tokenize(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length > 2 && !STOPWORDS.has(w))
+  );
+}
+
+interface PastExampleCandidate {
+  tender_description: string;
+  renovation_type_id: number;
+}
+
+// Ranks past descriptions so the ones fed to the model are the ones most
+// like the current request — same renovation type first, then keyword
+// overlap with the staff note, with recency as a light tiebreaker. This is
+// what lets grounding quality improve as more real tenders accumulate:
+// a bigger pool means better matches surface instead of just "whatever was
+// created most recently."
+function rankPastExamples(
+  candidates: PastExampleCandidate[],
+  input: string,
+  tenderName: string | undefined,
+  renovationTypeId: number | undefined
+): string[] {
+  const queryTokens = tokenize(`${input} ${tenderName || ""}`);
+  const scored = candidates.map((c, idx) => {
+    let score = 0;
+    if (renovationTypeId != null && c.renovation_type_id === renovationTypeId) {
+      score += 5;
+    }
+    const descTokens = tokenize(c.tender_description);
+    for (const t of queryTokens) {
+      if (descTokens.has(t)) score += 1;
+    }
+    // Light recency tiebreaker: candidates array is already ordered newest-first.
+    score += Math.max(0, (candidates.length - idx) / candidates.length) * 0.5;
+    return { description: c.tender_description, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, MAX_PAST_EXAMPLES).map((s) => s.description);
+}
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -21,7 +70,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Too many requests, please try again shortly" }, { status: 429 });
   }
 
-  let body: { input?: string; tenderName?: string; renovationType?: string };
+  let body: { input?: string; tenderName?: string; renovationType?: string; renovationTypeId?: number };
   try {
     body = await req.json();
   } catch {
@@ -39,18 +88,27 @@ export async function POST(req: Request) {
   // Ground the generation in real past descriptions so new tenders stay
   // stylistically aligned with existing ones. This is retrieval-based
   // grounding, not model fine-tuning — as more tenders are created with
-  // real descriptions, future generations automatically reflect them.
+  // real descriptions, the candidate pool grows and rankPastExamples()
+  // surfaces the ones most relevant to this request (same renovation type,
+  // overlapping keywords) instead of just the most recent ones, so
+  // generation quality keeps improving as usage accumulates.
   const pastRes = await query(
-    `SELECT tender_description
+    `SELECT tender_description, renovation_type_id
      FROM tender
      WHERE tender_description IS NOT NULL
        AND length(trim(tender_description)) > 0
        AND is_deleted = false
      ORDER BY created_at DESC
      LIMIT $1`,
-    [MAX_PAST_EXAMPLES]
+    [CANDIDATE_POOL_SIZE]
   );
-  const pastExamples: string[] = pastRes.rows.map((r: { tender_description: string }) => r.tender_description);
+  const candidates: PastExampleCandidate[] = pastRes.rows;
+  const pastExamples: string[] = rankPastExamples(
+    candidates,
+    input,
+    body.tenderName,
+    body.renovationTypeId
+  );
 
   let client;
   try {

@@ -376,6 +376,7 @@ export async function sendAwardResultEmail({
   tenderId,
   won,
   contractValue,
+  cc,
 }: {
   to: string;
   recipientName: string;
@@ -383,6 +384,7 @@ export async function sendAwardResultEmail({
   tenderId: number;
   won: boolean;
   contractValue?: number;
+  cc?: string[];
 }): Promise<void> {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
   const tenderUrl = `${baseUrl}/tenders/${tenderId}`;
@@ -404,6 +406,7 @@ export async function sendAwardResultEmail({
   await transporter.sendMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
+    cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
     subject,
     html: renderEmail({ title, bodyHtml: body, cta: { text: "View Tender", url: tenderUrl } }),
   });
@@ -417,6 +420,7 @@ export async function sendBqDecisionEmail({
   tenderName,
   status,
   submissionId,
+  cc,
 }: {
   to: string;
   recipientName: string;
@@ -424,6 +428,7 @@ export async function sendBqDecisionEmail({
   tenderName: string;
   status: "approved" | "rejected";
   submissionId: number;
+  cc?: string[];
 }): Promise<void> {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
   const bqUrl = `${baseUrl}/bq/${submissionId}/view`;
@@ -438,6 +443,7 @@ export async function sendBqDecisionEmail({
   await transporter.sendMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
+    cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
     subject,
     html: renderEmail({ title, bodyHtml: body, cta: { text: "View BQ", url: bqUrl } }),
   });
@@ -455,6 +461,7 @@ export async function sendResubmissionRequestEmail({
   standing,
   instructions,
   dueBy,
+  cc,
 }: {
   to: string;
   recipientName: string;
@@ -463,6 +470,7 @@ export async function sendResubmissionRequestEmail({
   standing: "higher" | "lower" | "mixed";
   instructions?: string | null;
   dueBy?: string | null;
+  cc?: string[];
 }): Promise<void> {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
   const tenderUrl = `${baseUrl}/tenders/${tenderId}`;
@@ -485,6 +493,7 @@ export async function sendResubmissionRequestEmail({
   await transporter.sendMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
+    cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
     subject,
     html: renderEmail({ title: "Revised Quote Requested", bodyHtml: body, cta: { text: "View Tender", url: tenderUrl } }),
   });
@@ -497,12 +506,14 @@ export async function sendDlpReminderEmail({
   tenderName,
   tenderId,
   dueDate,
+  cc,
 }: {
   to: string;
   recipientName: string;
   tenderName: string;
   tenderId: number;
   dueDate: string;
+  cc?: string[];
 }): Promise<void> {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
   const tenderUrl = `${baseUrl}/tenders/${tenderId}`;
@@ -517,6 +528,7 @@ export async function sendDlpReminderEmail({
   await transporter.sendMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
+    cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
     subject,
     html: renderEmail({ title, bodyHtml: body, cta: { text: "View Tender", url: tenderUrl } }),
   });
@@ -529,12 +541,14 @@ export async function sendSubmissionDeadlineReminderEmail({
   tenderName,
   tenderId,
   closingDate,
+  cc,
 }: {
   to: string;
   recipientName: string;
   tenderName: string;
   tenderId: number;
   closingDate: string;
+  cc?: string[];
 }): Promise<void> {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
   const tenderUrl = `${baseUrl}/tenders/${tenderId}`;
@@ -549,6 +563,7 @@ export async function sendSubmissionDeadlineReminderEmail({
   await transporter.sendMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
+    cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
     subject,
     html: renderEmail({ title, bodyHtml: body, cta: { text: "Submit Bid", url: tenderUrl } }),
   });
@@ -561,12 +576,14 @@ export async function sendAnnouncementEmail({
   tenderName,
   tenderId,
   body: announcementBody,
+  cc,
 }: {
   to: string;
   recipientName: string;
   tenderName: string;
   tenderId: number;
   body: string;
+  cc?: string[];
 }): Promise<void> {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
   const tenderUrl = `${baseUrl}/tenders/${tenderId}#messages`;
@@ -582,6 +599,7 @@ export async function sendAnnouncementEmail({
   await transporter.sendMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
+    cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
     subject,
     html: renderEmail({ title, bodyHtml: body, cta: { text: "View Discussion", url: tenderUrl } }),
   });
@@ -636,6 +654,41 @@ export async function sendLoginAlertEmail(
   await transporter.sendMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to: email,
+    subject,
+    html: renderEmail({ title, bodyHtml: body }),
+  });
+}
+
+// ==================== PDPA DATA SUBJECT REQUEST SUMMARY EMAIL ====================
+// Sent by an Admin/Legal Team member from admin/security's Data Subject
+// Request tool, compiling what TMS holds on the recipient into a short
+// summary (AI-generated with a deterministic local fallback — see
+// src/app/api/admin/data-subject-request/summary/route.ts) for a PDPA
+// "right of access" response. summaryText may contain the admin's manual
+// edits, so it's escaped like any other user-influenced content before
+// interpolation, and rendered with line breaks preserved.
+export async function sendDsrSummaryEmail({
+  to,
+  recipientName,
+  summaryText,
+}: {
+  to: string;
+  recipientName: string;
+  summaryText: string;
+}): Promise<void> {
+  const subject = "Your TMS data summary";
+  const title = "Your TMS Data Summary";
+
+  const body = `
+    <p style="margin:0 0 14px;">Dear ${escapeHtml(recipientName)},</p>
+    <p style="margin:0 0 14px;">Further to your data access request, here is a summary of the information Beauty One International Pte Ltd. holds about you in the Tender Management System (TMS):</p>
+    <p style="margin:0 0 14px;white-space:pre-wrap;">${escapeHtml(summaryText)}</p>
+    <p style="font-size:13px;color:#64748b;margin:0;">If you have questions about this summary or would like to exercise any of your rights under the PDPA, please contact our Data Protection Officer at dpo@beautyone.com.sg.</p>
+  `;
+
+  await transporter.sendMail({
+    from: `"TMS System" <${process.env.SMTP_FROM}>`,
+    to,
     subject,
     html: renderEmail({ title, bodyHtml: body }),
   });

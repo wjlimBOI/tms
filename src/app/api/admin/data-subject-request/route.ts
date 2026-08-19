@@ -1,6 +1,6 @@
 // app/api/admin/data-subject-request/route.ts
 //
-// Admin-facing PDPA "right of access" tool (Privacy Policy §5): lets Admin/
+// Admin-facing PDPA "right of access" tool (Privacy Policy §4): lets Admin/
 // Legal Team look up a user and retrieve everything the system holds about
 // them in one place, instead of manually querying a dozen tables by hand
 // when a data subject request comes in. Three-step flow: ?search= (paged)
@@ -19,7 +19,7 @@ import { logEvent, extractAuditContext } from "@/lib/audit";
 import { z } from "zod";
 import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 
-async function isAuthorized(userId: number): Promise<boolean> {
+export async function isAuthorized(userId: number): Promise<boolean> {
   const userRoles = await prisma.user_roles.findMany({
     where: { user_id: userId },
     select: { role_id: true },

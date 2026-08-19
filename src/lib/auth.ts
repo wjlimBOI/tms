@@ -100,6 +100,7 @@ export const authOptions: NextAuthOptions = {
         // 2. Find user
         const user = await prisma.users.findUnique({
           where: { username },
+          include: { user_profile: true },
         });
         if (!user) {
           // Run a dummy compare so this path takes about as long as the
@@ -242,7 +243,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // 10. Return user object
-        const displayName = user.display_name || user.username;
+        const displayName = user.user_profile?.full_name || user.display_name || user.username;
         return {
           id: String(user.user_id),
           name: displayName,

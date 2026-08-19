@@ -1,21 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format, formatDistanceToNow, differenceInDays } from "date-fns";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, SlidersHorizontal, ChevronUp, ChevronDown, X, Pin, Plus } from "lucide-react";
 import {
   getBQStatusStyles,
   getBQStatusLabel,
   getDlpStatusBadgeStyle,
 } from "@/lib/statusColors";
 import { ROLE_IDS, isSuperViewer } from "@/lib/roles";
+import { getBrandColor } from "@/lib/brandColors";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog";
-import { Button, buttonVariants } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
+import { useNotify } from "@/components/ui/notification-provider";
+import NotificationDetailModal from "@/components/dashboard/NotificationDetailModal";
+import { EventDetailModal, type CalendarEventDetail } from "@/components/calendar/EventDetailModal";
+import { getEventMainTitle, getEventPeriodLabel, formatEventDateRange } from "@/lib/calendarEvent";
 import type { AwardedTenderItem, DashboardNotification } from "@/types/dashboard";
+
+// Registry for the customizable widget section — see the "Customize
+// Dashboard" preferences UI below. Persisted via
+// /api/user/preferences/dashboard-layout (users.dashboard_layout, a real
+// column that already had a working GET/POST API but no frontend ever
+// wired to it).
+const DASHBOARD_WIDGETS = [
+  { id: "activeTenders", label: "Active Tenders" },
+  { id: "dlpDeadlines", label: "DLP Deadlines" },
+  { id: "upcomingEvents", label: "Upcoming Events" },
+  { id: "notifications", label: "Notifications" },
+  { id: "awardedTenders", label: "Awarded Tenders" },
+] as const;
+type DashboardWidgetId = (typeof DASHBOARD_WIDGETS)[number]["id"];
+const DEFAULT_WIDGET_ORDER: DashboardWidgetId[] = DASHBOARD_WIDGETS.map((w) => w.id);
+const WIDGET_ID_SET = new Set<string>(DEFAULT_WIDGET_ORDER);
+
+interface PinnedReminder {
+  id: string;
+  text: string;
+  dueDate?: string;
+  createdAt: string;
+}
 
 function normalizeBQStatus(rawStatus: string): "draft" | "submitted" {
   const lower = rawStatus?.toLowerCase() || "";
@@ -31,8 +59,8 @@ interface DashboardStats {
     activeCases: number;
     overdueCases?: number;
     nextDueDate?: string;
-    upcomingList?: Array<{ outlet: string; dueDate: string; status?: string; daysLeft: number; daysOverdue?: number }>;
-    overdueList?: Array<{ outlet: string; dueDate: string; status?: string; daysLeft: number; daysOverdue?: number }>;
+    upcomingList?: Array<{ outlet: string; brandName?: string; dueDate: string; status?: string; daysLeft: number; daysOverdue?: number }>;
+    overdueList?: Array<{ outlet: string; brandName?: string; dueDate: string; status?: string; daysLeft: number; daysOverdue?: number }>;
   };
   awardedTenders?: AwardedTenderItem[];
   notifications?: DashboardNotification[];
@@ -60,15 +88,32 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<DashboardNotification | null>(null);
-  const [showDlpModal, setShowDlpModal] = useState(false);
 
   const [tenders, setTenders] = useState<any[]>([]);
   const [tendersLoading, setTendersLoading] = useState(true);
   const [tendersError, setTendersError] = useState<string | null>(null);
 
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEventDetail | null>(null);
+  const [eventDetailOpen, setEventDetailOpen] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
+
+  const toast = useNotify();
+  const [widgetOrder, setWidgetOrder] = useState<DashboardWidgetId[]>(DEFAULT_WIDGET_ORDER);
+  const [hiddenWidgets, setHiddenWidgets] = useState<Set<DashboardWidgetId>>(new Set());
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
+  const [draftOrder, setDraftOrder] = useState<DashboardWidgetId[]>(DEFAULT_WIDGET_ORDER);
+  const [draftHidden, setDraftHidden] = useState<Set<DashboardWidgetId>>(new Set());
+  const [savingPrefs, setSavingPrefs] = useState(false);
+
+  // Prototype only — see the "Pinned & Reminders" section below. Stored in
+  // localStorage per-user for now, no backend yet, so it won't sync across
+  // devices. First iteration on the pin/reminder idea; expanding this to
+  // pin specific tenders/notifications/DLP items directly is a follow-up.
+  const [pinnedReminders, setPinnedReminders] = useState<PinnedReminder[]>([]);
+  const [newReminderText, setNewReminderText] = useState("");
+  const [newReminderDate, setNewReminderDate] = useState("");
 
   const userRole = (session?.user as any)?.role_id;
   const roleIds = ((session?.user as any)?.roleIds || []) as number[];
@@ -90,8 +135,119 @@ export default function DashboardPage() {
     if (isAdmin) {
       fetchTenders();
       fetchCalendarEvents();
+      fetchDashboardPreferences();
     }
   }, [session, status, router, isContractor, isAdmin]);
+
+  const reminderStorageKey = session?.user?.id ? `dashboard-reminders-${session.user.id}` : null;
+
+  useEffect(() => {
+    if (!reminderStorageKey) return;
+    try {
+      const raw = window.localStorage.getItem(reminderStorageKey);
+      setPinnedReminders(raw ? JSON.parse(raw) : []);
+    } catch (err) {
+      console.error("Failed to load pinned reminders:", err);
+    }
+  }, [reminderStorageKey]);
+
+  const addReminder = () => {
+    const text = newReminderText.trim();
+    if (!text || !reminderStorageKey) return;
+    const next: PinnedReminder[] = [
+      ...pinnedReminders,
+      { id: crypto.randomUUID(), text, dueDate: newReminderDate || undefined, createdAt: new Date().toISOString() },
+    ];
+    setPinnedReminders(next);
+    window.localStorage.setItem(reminderStorageKey, JSON.stringify(next));
+    setNewReminderText("");
+    setNewReminderDate("");
+  };
+
+  const removeReminder = (id: string) => {
+    if (!reminderStorageKey) return;
+    const next = pinnedReminders.filter((r) => r.id !== id);
+    setPinnedReminders(next);
+    window.localStorage.setItem(reminderStorageKey, JSON.stringify(next));
+  };
+
+  // Loads the saved widget order/visibility, if any. A missing or
+  // corrupted layout (e.g. an old widget id no longer in DASHBOARD_WIDGETS)
+  // silently falls back to the default order instead of breaking the page.
+  const fetchDashboardPreferences = async () => {
+    try {
+      const res = await fetch("/api/user/preferences/dashboard-layout");
+      if (!res.ok) return;
+      const data = await res.json();
+      const layout = data?.layout;
+      if (!layout || typeof layout !== "object") return;
+
+      const savedOrder: string[] = Array.isArray(layout.order) ? layout.order : [];
+      const validOrder = savedOrder.filter((id): id is DashboardWidgetId => WIDGET_ID_SET.has(id));
+      const missing = DEFAULT_WIDGET_ORDER.filter((id) => !validOrder.includes(id));
+      setWidgetOrder([...validOrder, ...missing]);
+
+      const savedHidden: string[] = Array.isArray(layout.hidden) ? layout.hidden : [];
+      setHiddenWidgets(new Set(savedHidden.filter((id): id is DashboardWidgetId => WIDGET_ID_SET.has(id))));
+    } catch (err) {
+      console.error("Failed to load dashboard preferences:", err);
+    }
+  };
+
+  const openCustomizeModal = () => {
+    setDraftOrder(widgetOrder);
+    setDraftHidden(new Set(hiddenWidgets));
+    setShowCustomizeModal(true);
+  };
+
+  useEffect(() => {
+    if (!showCustomizeModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !savingPrefs) setShowCustomizeModal(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showCustomizeModal, savingPrefs]);
+
+  const moveDraftWidget = (index: number, direction: -1 | 1) => {
+    setDraftOrder((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const toggleDraftHidden = (id: DashboardWidgetId) => {
+    setDraftHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const saveDashboardPreferences = async () => {
+    setSavingPrefs(true);
+    try {
+      const res = await fetch("/api/user/preferences/dashboard-layout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ layout: { order: draftOrder, hidden: Array.from(draftHidden) } }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      setWidgetOrder(draftOrder);
+      setHiddenWidgets(draftHidden);
+      setShowCustomizeModal(false);
+      toast.success("Dashboard preferences saved.");
+    } catch (err) {
+      console.error("Failed to save dashboard preferences:", err);
+      toast.error("Couldn't save your dashboard preferences. Please try again.");
+    } finally {
+      setSavingPrefs(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -163,6 +319,22 @@ export default function DashboardPage() {
     return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   };
 
+  const BrandBadge = ({ brandName }: { brandName?: string | null }) => {
+    if (!brandName) return null;
+    // Original bright brand color, softened with alpha so it doesn't shout
+    // on a white card - full white text kept legible over it.
+    const { borderColor } = getBrandColor(brandName);
+    return (
+      <span
+        className="inline-block px-1.5 py-0.5 rounded-md text-[10px] font-semibold whitespace-nowrap flex-shrink-0 text-white"
+        style={{ backgroundColor: `${borderColor}bf` }}
+        title={brandName}
+      >
+        {brandName}
+      </span>
+    );
+  };
+
   const getUrgencyColor = (daysLeft: number) => {
     if (daysLeft <= 2) return "text-rose-700 bg-rose-100/80 border-rose-200";
     if (daysLeft <= 5) return "text-amber-700 bg-amber-100/80 border-amber-200";
@@ -190,9 +362,9 @@ export default function DashboardPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-10 h-10 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-slate-500 text-sm">Loading dashboard...</p>
         </div>
       </div>
@@ -201,10 +373,10 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center max-w-sm px-4">
           <p className="text-rose-600 mb-4">{error}</p>
-          <Button onClick={fetchDashboardData} disabled={loading}>
+          <Button onClick={fetchDashboardData} disabled={loading} className="bg-[#15406a] hover:bg-[#0d2d4a] text-white">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             {loading ? "Retrying..." : "Retry"}
           </Button>
@@ -219,9 +391,9 @@ export default function DashboardPage() {
 
   if (isContractor) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-10 h-10 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-slate-500 text-sm">Redirecting to tenders...</p>
         </div>
       </div>
@@ -234,14 +406,94 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-white p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-[1920px] mx-auto">
-          {/* Header – unchanged */}
-          <div className="mb-4 sm:mb-6">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-slate-900">
+          {/* Header */}
+          <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="font-serif text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-slate-900">
               Welcome back, {userName}
             </h1>
+            {isAdmin && (
+              <button
+                onClick={openCustomizeModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white transition-colors"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                Customize Dashboard
+              </button>
+            )}
           </div>
+
+          {/* ===== PINNED & REMINDERS (prototype) ===== */}
+          <Card className="bg-white border-slate-200 shadow-none p-0 gap-0 mb-4 sm:mb-6 overflow-hidden">
+            <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 border-b border-slate-200">
+              <CardTitle className="text-base sm:text-lg font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                <Pin className="w-4 h-4 text-[#15406a]" aria-hidden="true" />
+                Pinned &amp; Reminders
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-4">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  addReminder();
+                }}
+                className="flex flex-wrap items-center gap-2 mb-3"
+              >
+                <label htmlFor="new-reminder-text" className="sr-only">Reminder text</label>
+                <input
+                  id="new-reminder-text"
+                  type="text"
+                  value={newReminderText}
+                  onChange={(e) => setNewReminderText(e.target.value)}
+                  placeholder="Add a reminder..."
+                  maxLength={140}
+                  className="flex-1 min-w-[160px] text-sm border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#15406a] focus:border-transparent"
+                />
+                <label htmlFor="new-reminder-date" className="sr-only">Due date (optional)</label>
+                <input
+                  id="new-reminder-date"
+                  type="date"
+                  value={newReminderDate}
+                  onChange={(e) => setNewReminderDate(e.target.value)}
+                  className="text-sm border border-slate-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#15406a] focus:border-transparent"
+                />
+                <Button type="submit" size="sm" disabled={!newReminderText.trim()} className="bg-[#15406a] hover:bg-[#0d2d4a] text-white flex-shrink-0">
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </Button>
+              </form>
+
+              {pinnedReminders.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-3">
+                  Nothing pinned yet. Add a reminder above to try it out.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {pinnedReminders.map((r) => (
+                    <div
+                      key={r.id}
+                      className="group flex items-center gap-2 max-w-full border border-slate-200 rounded-full pl-3 pr-1.5 py-1 bg-slate-50"
+                    >
+                      <span className="text-sm text-slate-800 truncate max-w-[240px]" title={r.text}>{r.text}</span>
+                      {r.dueDate && (
+                        <span className="text-[10px] font-medium text-[#15406a] bg-[#15406a1a] px-1.5 py-0.5 rounded-full flex-shrink-0">
+                          {formatDate(r.dueDate)}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeReminder(r.id)}
+                        aria-label={`Remove reminder: ${r.text}`}
+                        className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex-shrink-0"
+                      >
+                        <X className="w-3 h-3" aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* ===== TIER 1: KEY METRICS ===== */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -263,15 +515,16 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* ===== TIER 2: PRIMARY TASKS ===== */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-4 sm:mb-6">
-            {/* ===== ACTIVE TENDERS ===== */}
+          {/* ===== CUSTOMIZABLE WIDGETS ===== */}
+          {(() => {
+            const widgetRenderers: Record<DashboardWidgetId, () => React.ReactNode> = {
+              activeTenders: () => (
             <Card className="bg-white border-slate-200 shadow-none overflow-hidden flex flex-col p-0 gap-0">
               <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 border-b border-slate-200">
                 <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800">
                   Active Tenders
                 </CardTitle>
-                <Link href="/tenders" className="text-[10px] sm:text-xs text-cyan-600 hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600">View all →</Link>
+                <Link href="/tenders" className="text-[10px] sm:text-xs text-[#15406a] hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15406a]">View all →</Link>
               </CardHeader>
               <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
                 {tendersLoading ? (
@@ -306,37 +559,40 @@ export default function DashboardPage() {
                       return (
                         <div key={tender.tender_id} className="flex flex-col border-b border-slate-100 pb-2 last:border-0">
                           <div className="flex items-start justify-between gap-2">
-                            <p
-                              className="text-sm font-medium text-slate-900 truncate flex-1 min-w-0"
-                              title={tender.tender_name}
-                            >
-                              {tender.tender_name}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                              <BrandBadge brandName={tender.brand_name} />
+                              <p
+                                className="text-sm font-medium text-slate-900 truncate min-w-0"
+                                title={tender.tender_name}
+                              >
+                                {tender.tender_name}
+                              </p>
+                            </div>
                             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                               {isPast ? (
                                 <span className="inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-200 text-slate-600">
-                                  Past due
+                                  Closed
                                 </span>
                               ) : (
                                 <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] font-medium border ${getUrgencyColor(daysLeft)}`}>
                                   {daysLeft}d
                                 </span>
                               )}
-                              <Link href={`/tenders/${tender.tender_id}`} className="text-xs text-cyan-600 hover:underline font-medium flex-shrink-0">
+                              <Link href={`/tenders/${tender.tender_id}`} className="text-xs text-[#15406a] hover:underline font-medium flex-shrink-0">
                                 View
                               </Link>
                             </div>
                           </div>
 
                           {renovationPeriod && (
-                            <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-cyan-700 mt-0.5">
-                              <span>🛠️ Renovation: {renovationPeriod}</span>
+                            <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-slate-500 mt-0.5">
+                              <span>Renovation: {renovationPeriod}</span>
                             </div>
                           )}
 
                           {hasClosingData && (
                             <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-slate-500 mt-0.5">
-                              {endDate && <span>{formatDate(endDate)}</span>}
+                              {endDate && <span>Closes: {formatDate(endDate)}</span>}
                               {endDate && tender.estimated_budget && (
                                 <span className="w-1 h-1 rounded-full bg-slate-300" />
                               )}
@@ -352,42 +608,33 @@ export default function DashboardPage() {
                 )}
               </CardContent>
             </Card>
-
-            {/* DLP Deadlines */}
+              ),
+              dlpDeadlines: () => (
             <Card className="bg-white border-slate-200 shadow-none overflow-hidden flex flex-col p-0 gap-0">
               <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 border-b border-slate-200">
-                <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800">
                   DLP Deadlines
-                  {!!stats?.dlpSummary?.overdueCases && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 normal-case tracking-normal">
-                      {stats.dlpSummary.overdueCases} overdue
-                    </span>
-                  )}
                 </CardTitle>
-                <Button
-                  variant="link"
-                  size="inline"
-                  onClick={() => setShowDlpModal(true)}
-                  className="text-[10px] sm:text-xs text-cyan-600 no-underline hover:underline"
-                >
-                  View all
-                </Button>
+                <Link href="/admin/dlp-deadlines" className="text-[10px] sm:text-xs text-[#15406a] hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15406a]">View all →</Link>
               </CardHeader>
               <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
-                {!stats?.dlpSummary?.overdueList?.length && !stats?.dlpSummary?.upcomingList?.length ? (
+                {!stats?.dlpSummary?.upcomingList?.length ? (
                   <div className="text-sm text-slate-500 text-center py-4">No upcoming DLP deadlines.</div>
                 ) : (
                   <div className="space-y-2">
-                    {[...(stats.dlpSummary.overdueList || []), ...(stats.dlpSummary.upcomingList || [])]
+                    {stats.dlpSummary.upcomingList
                       .slice(0, 5)
                       .map((item: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center text-sm border-b border-slate-100 pb-2 last:border-0">
-                          <div className="min-w-0">
-                            <p className="font-medium text-slate-900 truncate max-w-[120px] sm:max-w-[180px]">{item.outlet}</p>
+                        <div key={idx} className="flex justify-between items-center gap-2 text-sm border-b border-slate-100 pb-2 last:border-0">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <BrandBadge brandName={item.brandName} />
+                              <p className="font-medium text-slate-900 truncate" title={item.outlet}>{item.outlet}</p>
+                            </div>
                             <p className="text-[10px] sm:text-xs text-slate-500">Due: {formatDate(item.dueDate)}</p>
                           </div>
-                          <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] font-medium ${getDlpStatusBadgeStyle(item.status || 'upcoming')}`}>
-                            {item.status === 'overdue' ? `${item.daysOverdue}d overdue` : `${item.daysLeft}d`}
+                          <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] font-medium flex-shrink-0 ${getDlpStatusBadgeStyle(item.status || 'upcoming')}`}>
+                            {item.daysLeft}d
                           </span>
                         </div>
                       ))}
@@ -395,14 +642,14 @@ export default function DashboardPage() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Upcoming Events */}
+              ),
+              upcomingEvents: () => (
             <Card className="bg-white border-slate-200 shadow-none overflow-hidden flex flex-col p-0 gap-0">
               <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 border-b border-slate-200">
                 <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800">
                   Upcoming Events
                 </CardTitle>
-                <Link href="/calendar" className="text-[10px] sm:text-xs text-cyan-600 hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600">View all →</Link>
+                <Link href="/calendar/upcoming" className="text-[10px] sm:text-xs text-[#15406a] hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15406a]">View all →</Link>
               </CardHeader>
               <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[220px] sm:max-h-[280px]">
                 {eventsLoading ? (
@@ -418,36 +665,44 @@ export default function DashboardPage() {
                   <div className="text-sm text-slate-500 text-center py-4">No upcoming events</div>
                 ) : (
                   <div className="space-y-2">
-                    {upcomingEvents.slice(0, 5).map((event) => (
-                      <div key={event.event_id} className="flex items-center gap-2 sm:gap-3 text-sm border-b border-slate-100 pb-2 last:border-0">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[10px] sm:text-xs font-bold text-cyan-700">
-                            {format(new Date(event.start_date), "dd")}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-900 truncate max-w-[120px] sm:max-w-[200px]">{event.title}</p>
-                          <p className="text-[10px] sm:text-xs text-slate-500">
-                            {format(new Date(event.start_date), "MMM d")}
-                            {event.brand_name && ` · ${event.brand_name}`}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    {upcomingEvents.slice(0, 5).map((event) => {
+                      const mainTitle = getEventMainTitle(event.title, event.tender_name);
+                      const periodLabel = getEventPeriodLabel(event.title, event.tender_name);
+                      const dateRange = formatEventDateRange(event.start_date, event.end_date);
+                      return (
+                        <button
+                          key={event.event_id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedEvent(event);
+                            setEventDetailOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2 text-sm text-left border-b border-slate-100 pb-2 last:border-0 rounded-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15406a] transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <BrandBadge brandName={event.brand_name} />
+                              <p className="font-medium text-slate-900 truncate text-xs sm:text-sm" title={mainTitle}>{mainTitle}</p>
+                            </div>
+                            <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
+                              {periodLabel ? `${periodLabel}: ` : ""}{dateRange}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
-
-          {/* ===== TIER 3: SECONDARY INFO ===== */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            {/* Notifications */}
+              ),
+              notifications: () => (
             <Card className="bg-white border-slate-200 shadow-none overflow-hidden flex flex-col p-0 gap-0">
-              <CardHeader className="px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 border-b border-slate-200 space-y-0">
+              <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 border-b border-slate-200">
                 <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800">
                   Notifications
                 </CardTitle>
+                <Link href="/admin/notifications" className="text-[10px] sm:text-xs text-[#15406a] hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15406a]">View all →</Link>
               </CardHeader>
               <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[180px] sm:max-h-[200px]">
                 {!stats?.notifications?.length ? (
@@ -456,7 +711,7 @@ export default function DashboardPage() {
                   <div className="space-y-2">
                     {stats.notifications.slice(0, 4).map((notif) => (
                       <div key={notif.id} className="flex items-start gap-2 text-sm border-b border-slate-100 pb-2 last:border-0">
-                        <div className="w-1.5 h-1.5 mt-1.5 rounded-full bg-cyan-600 flex-shrink-0" />
+                        <div className="w-1.5 h-1.5 mt-1.5 rounded-full bg-[#15406a] flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-slate-800 truncate text-xs sm:text-sm">{notif.message}</p>
                           <p className="text-[10px] sm:text-xs text-slate-500">{formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}</p>
@@ -465,7 +720,7 @@ export default function DashboardPage() {
                           variant="link"
                           size="inline"
                           onClick={() => openNotificationModal(notif)}
-                          className="text-cyan-600 text-xs no-underline hover:underline flex-shrink-0 font-medium"
+                          className="text-[#15406a] text-xs no-underline hover:underline flex-shrink-0 font-medium"
                         >
                           View
                         </Button>
@@ -475,14 +730,14 @@ export default function DashboardPage() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Awarded Tenders */}
+              ),
+              awardedTenders: () => (
             <Card className="bg-white border-slate-200 shadow-none overflow-hidden flex flex-col p-0 gap-0">
               <CardHeader className="flex-row justify-between items-center space-y-0 px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50/80 border-b border-slate-200">
                 <CardTitle className="text-base sm:text-lg lg:text-xl font-bold uppercase tracking-wider text-slate-800">
                   Awarded Tenders
                 </CardTitle>
-                <Link href="/admin/awards" className="text-[10px] sm:text-xs text-cyan-600 hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600">View all →</Link>
+                <Link href="/admin/awards" className="text-[10px] sm:text-xs text-[#15406a] hover:underline rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15406a]">View all →</Link>
               </CardHeader>
               <CardContent className="flex-1 p-3 sm:p-4 overflow-auto max-h-[180px] sm:max-h-[200px]">
                 {!stats?.awardedTenders?.length ? (
@@ -492,15 +747,21 @@ export default function DashboardPage() {
                     {stats.awardedTenders.slice(0, 4).map((item) => (
                       <div key={item.tender_id} className="flex justify-between items-center text-sm border-b border-slate-100 pb-2 last:border-0">
                         <div className="min-w-0 flex-1">
-                          <p
-                            className="font-medium text-slate-900 truncate max-w-[120px] sm:max-w-[200px]"
-                            title={item.tender_name}
-                          >
-                            {item.tender_name}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <BrandBadge brandName={item.brand_name} />
+                            <p
+                              className="font-medium text-slate-900 truncate"
+                              title={item.tender_name}
+                            >
+                              {item.tender_name}
+                            </p>
+                          </div>
+                          <p className="text-[10px] sm:text-xs text-slate-500 truncate">
+                            {item.contractor_name}
+                            {item.awarded_date && ` · Awarded: ${formatDate(item.awarded_date)}`}
                           </p>
-                          <p className="text-[10px] sm:text-xs text-slate-500">{item.contractor_name}</p>
                         </div>
-                        <span className="text-xs sm:text-sm font-semibold text-emerald-700 whitespace-nowrap ml-2">
+                        <span className="text-xs sm:text-sm font-semibold text-emerald-700 whitespace-nowrap ml-2 flex-shrink-0">
                           {formatCurrency(item.contract_value)}
                         </span>
                       </div>
@@ -509,153 +770,129 @@ export default function DashboardPage() {
                 )}
               </CardContent>
             </Card>
-          </div>
+              ),
+            };
+
+            const visibleWidgets = widgetOrder.filter((id) => !hiddenWidgets.has(id));
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                {visibleWidgets.length === 0 ? (
+                  <Card className="bg-white border-slate-200 shadow-none p-8 text-center md:col-span-2 lg:col-span-3">
+                    <p className="text-sm text-slate-500">
+                      All dashboard sections are hidden. Use &ldquo;Customize Dashboard&rdquo; above to show some again.
+                    </p>
+                  </Card>
+                ) : (
+                  visibleWidgets.map((id) => <div key={id}>{widgetRenderers[id]()}</div>)
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
-      {/* Notification Modal */}
-      <Dialog
-        open={selectedNotification !== null}
-        onOpenChange={(open) => {
-          if (!open) closeNotificationModal();
-        }}
-      >
-        <DialogContent
-          showCloseButton={false}
-          className="max-w-2xl w-full rounded-lg p-0 gap-0 max-h-[90vh] overflow-y-auto sm:max-w-2xl"
-        >
-          {selectedNotification && (
-            <>
-              <div className="sticky top-0 z-10 bg-white px-6 py-4 border-b border-slate-200 bg-slate-50 rounded-t-lg flex justify-between items-center">
-                <DialogTitle className="text-lg font-semibold text-slate-900">
-                  {selectedNotification.type === "awarded" ? "Tender Award Details" : "BQ Submission Details"}
-                </DialogTitle>
-                <DialogClose
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="text-slate-400 hover:text-slate-600"
-                      aria-label="Close dialog"
-                    />
-                  }
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </DialogClose>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-slate-500 uppercase">Event Type</label>
-                  <p className="text-sm font-semibold text-slate-900 mt-1 capitalize">{selectedNotification.type}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-500 uppercase">Message</label>
-                  <p className="text-sm text-slate-900 mt-1">{selectedNotification.message}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 uppercase">Tender Name</label>
-                    <p className="text-sm text-slate-900 mt-1">{selectedNotification.tender_name || "—"}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 uppercase">Contractor</label>
-                    <p className="text-sm text-slate-900 mt-1">{selectedNotification.contractor_name || "—"}</p>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-500 uppercase">
-                    {selectedNotification.type === "awarded" ? "Contract Value" : "Details"}
-                  </label>
-                  {selectedNotification.type === "awarded" && typeof selectedNotification.contract_value === "number" ? (
-                    <div className="mt-2 bg-slate-50 rounded-md p-3 text-sm text-slate-600">
-                      <p className="font-semibold text-slate-900">{formatCurrency(selectedNotification.contract_value)}</p>
-                      <p className="text-xs text-slate-500 mt-1">A full BQ line-item breakdown isn&apos;t available here — view the full tender page for details.</p>
-                    </div>
-                  ) : selectedNotification.type === "submitted" ? (
-                    <div className="mt-2 bg-slate-50 rounded-md p-3 text-sm text-slate-600">
-                      <p>The contractor has submitted a BQ for this tender. Please review the details on the tender page.</p>
-                    </div>
-                  ) : (
-                    <div className="mt-2 bg-slate-50 rounded-md p-3 text-sm text-slate-600">
-                      <p>No further details available.</p>
-                    </div>
-                  )}
-                </div>
-                <div className="pt-4 border-t border-slate-200 flex justify-end gap-3">
-                  {selectedNotification.link && (
-                    <Link href={selectedNotification.link} className={buttonVariants({ className: "bg-cyan-700 hover:bg-cyan-800 text-white" })}>
-                      Go to Tender Page
-                    </Link>
-                  )}
-                  <DialogClose render={<Button variant="outline" />}>Close</DialogClose>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <NotificationDetailModal notification={selectedNotification} onClose={closeNotificationModal} />
+      <EventDetailModal
+        event={selectedEvent}
+        open={eventDetailOpen}
+        onClose={() => setEventDetailOpen(false)}
+      />
 
-      {/* DLP Modal */}
-      <Dialog open={showDlpModal} onOpenChange={setShowDlpModal}>
-        <DialogContent
-          showCloseButton={false}
-          className="max-w-2xl w-full rounded-2xl p-0 gap-0 max-h-[90vh] overflow-y-auto sm:max-w-2xl"
-        >
-          <div className="sticky top-0 bg-white px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-            <div>
-              <DialogTitle className="text-lg font-semibold text-slate-900">Upcoming DLP Deadlines</DialogTitle>
-              <p className="text-xs text-slate-500">Defect Liability Period expiry dates</p>
-            </div>
-            <DialogClose
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-slate-400 hover:text-slate-600"
-                  aria-label="Close dialog"
-                />
-              }
+      {/* Customize Dashboard Modal — a plain hand-built card instead of the
+          shared base-ui Dialog. Same fix already applied to
+          confirm-dialog.tsx and AgreementAcknowledgementModal for the
+          "crosshair" rendering artifact (moire lines from the shared
+          Dialog's ring/backdrop compositing over a busy background) —
+          removing just backdrop-blur wasn't enough there, so this one
+          skips the shared Dialog/ring/grid machinery entirely. */}
+      {showCustomizeModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget && !savingPrefs) setShowCustomizeModal(false);
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="customize-dashboard-title"
+              className="w-full max-w-md rounded-lg bg-white shadow-lg border border-slate-200"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </DialogClose>
-          </div>
-          <div className="p-6">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <caption className="sr-only">Defect Liability Period deadlines by outlet, overdue first</caption>
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Outlet</th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">DLP Due Date</th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {[...(stats?.dlpSummary?.overdueList ?? []), ...(stats?.dlpSummary?.upcomingList ?? [])].map((item: any, idx: number) => (
-                    <tr key={idx} className="hover:bg-slate-50 transition">
-                      <td className="px-4 py-3 text-sm text-slate-900">{item.outlet}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{formatDate(item.dueDate)}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getDlpStatusBadgeStyle(item.status || 'upcoming')}`}>
-                          {item.status === 'overdue' ? `${item.daysOverdue} days overdue` : `${item.daysLeft} days left`}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h2 id="customize-dashboard-title" className="text-lg font-semibold text-slate-900">
+                  Customize Dashboard
+                </h2>
+                <button
+                  onClick={() => !savingPrefs && setShowCustomizeModal(false)}
+                  aria-label="Close dialog"
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-5 h-5" aria-hidden="true" />
+                </button>
+              </div>
+              <div className="p-6 space-y-2">
+                <p className="text-xs text-slate-500 mb-3">
+                  Choose which sections to show, and use the arrows to reorder them.
+                </p>
+                {draftOrder.map((id, idx) => {
+                  const widget = DASHBOARD_WIDGETS.find((w) => w.id === id)!;
+                  const isHidden = draftHidden.has(id);
+                  return (
+                    <div
+                      key={id}
+                      className="flex items-center justify-between gap-3 border border-slate-200 rounded-lg px-3 py-2"
+                    >
+                      <label className="flex items-center gap-2 text-sm text-slate-800 flex-1 min-w-0 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!isHidden}
+                          onChange={() => toggleDraftHidden(id)}
+                          className="text-[#15406a] focus:ring-[#15406a]"
+                        />
+                        <span className={`truncate ${isHidden ? "text-slate-400" : ""}`}>{widget.label}</span>
+                      </label>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => moveDraftWidget(idx, -1)}
+                          className="p-1 rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                          aria-label={`Move ${widget.label} up`}
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === draftOrder.length - 1}
+                          onClick={() => moveDraftWidget(idx, 1)}
+                          className="p-1 rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none"
+                          aria-label={`Move ${widget.label} down`}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowCustomizeModal(false)} disabled={savingPrefs}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={saveDashboardPreferences}
+                  disabled={savingPrefs}
+                  className="bg-[#15406a] hover:bg-[#0d2d4a] text-white"
+                >
+                  {savingPrefs ? "Saving…" : "Save Preferences"}
+                </Button>
+              </div>
             </div>
-            {((stats?.dlpSummary?.upcomingList?.length ?? 0) + (stats?.dlpSummary?.overdueList?.length ?? 0)) === 0 && (
-              <div className="text-center py-8 text-slate-500 text-sm">No upcoming DLP deadlines.</div>
-            )}
-          </div>
-          <div className="sticky bottom-0 bg-white px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-            <DialogClose render={<Button className="bg-cyan-700 hover:bg-cyan-800 text-white" />}>
-              Close
-            </DialogClose>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </div>,
+          document.body
+        )}
     </>
   );
 }

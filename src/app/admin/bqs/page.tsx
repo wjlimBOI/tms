@@ -201,7 +201,7 @@ const DetailDrawer = ({ isOpen, onClose, bq, bqDetail, loading, onSetStatus }: {
                 {(bqDetail.submission.status === "Approved" || bqDetail.submission.status === "Rejected") && (
                   <button
                     onClick={() => onSetStatus(bqDetail.submission.submission_id, "revert")}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
+                    className="px-4 py-2 rounded-lg text-sm font-medium border-2 border-[#15406a] bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition"
                   >
                     Revert to Submitted
                   </button>
@@ -634,7 +634,7 @@ export default function AdminTenderBQsPage() {
                                 <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={(e) => { e.stopPropagation(); openDrawer(bq); }}
-                                    className="bg-cyan-100 text-cyan-800 px-2.5 py-1 rounded-md text-xs font-medium hover:bg-cyan-200 transition whitespace-nowrap"
+                                    className="border-2 border-[#15406a] bg-white text-[#15406a] px-2.5 py-1 rounded-md text-xs font-medium hover:bg-[#15406a] hover:text-white transition whitespace-nowrap"
                                   >
                                     Inspect
                                   </button>
@@ -693,7 +693,7 @@ const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void
   <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
     <div className="bg-red-100 border border-red-300 rounded-2xl p-8 text-center max-w-md">
       <p className="text-red-700">{message}</p>
-      <button onClick={onRetry} className="mt-4 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition">
+      <button onClick={onRetry} className="mt-4 px-4 py-2 bg-[#15406a] text-white rounded-lg hover:bg-[#0d2d4a] transition">
         Back to Tenders
       </button>
     </div>

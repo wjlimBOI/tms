@@ -11,6 +11,14 @@
 
 export type DlpStatus = "upcoming" | "due-soon" | "overdue";
 
+// Manual override an admin/PM can set on tender.dlp_case_status once a DLP
+// case is actively being worked or resolved, so the deadlines page can stop
+// showing "N days overdue" for a case that's no longer actually outstanding.
+// Only meaningful once the date-derived status is "overdue" — a case that's
+// still upcoming/due-soon has nothing to override yet.
+export type DlpCaseStatus = "processing" | "completed";
+export const DLP_CASE_STATUSES: DlpCaseStatus[] = ["processing", "completed"];
+
 export const DLP_DUE_SOON_THRESHOLD_DAYS = 30;
 export const DLP_REMINDER_WINDOW_DAYS = 30;
 

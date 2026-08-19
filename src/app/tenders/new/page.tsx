@@ -108,9 +108,9 @@ export default function CreateProjectPage() {
 
   if (sessionStatus === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-slate-500 font-medium">Loading your session…</p>
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function CreateProjectPage() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => router.push(`/tenders/${createdTender.id}`)}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition shadow-sm"
+                className="px-6 py-2.5 bg-[#15406a] hover:bg-[#0d2d4a] text-white font-medium rounded-lg transition shadow-sm"
               >
                 View Tender
               </button>
@@ -175,13 +175,13 @@ export default function CreateProjectPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50/80 via-white to-slate-100/80 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-8 p-4 sm:p-6 bg-white/60 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg shadow-slate-200/50">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-8 p-4 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
             <div>
               <div className="flex items-center gap-3">
-                <FileCheck className="w-6 h-6 text-indigo-500" />
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">
+                <FileCheck className="w-6 h-6 text-[#15406a]" />
+                <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                   Create New Tender
                 </h1>
               </div>
@@ -220,7 +220,7 @@ export default function CreateProjectPage() {
             </div>
           )}
 
-          <div className="bg-white/70 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/30">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
             <TenderForm
               onSubmit={handleSubmit}
               isSubmitting={isSubmitting}

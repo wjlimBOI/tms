@@ -5,6 +5,7 @@ import {
   CapacityConstraints,
   BrandRules,
   BrandKey,
+  CostTier,
 } from '@/types/capex';
 import { getBrandRules } from './brand-rules';
 
@@ -48,12 +49,14 @@ function getAreaRangeKey(brand: BrandKey, area: number): string {
   }
 }
 
-function getFirstTier(area: number, thresholds: number[]): number {
-  if (area < thresholds[0]) return thresholds[0];
-  for (let i = thresholds.length - 1; i >= 0; i--) {
-    if (area >= thresholds[i]) return thresholds[i];
+// Picks the highest cost tier whose threshold is <= area (areas below the
+// smallest threshold are clamped up to it, matching the reference sheet).
+function getCostTier(area: number, tiers: CostTier[]): CostTier {
+  if (area < tiers[0].threshold) return tiers[0];
+  for (let i = tiers.length - 1; i >= 0; i--) {
+    if (area >= tiers[i].threshold) return tiers[i];
   }
-  return thresholds[0];
+  return tiers[0];
 }
 
 function validateCapacities(
@@ -95,13 +98,15 @@ function validateCapacities(
 export function calculateCapExMetrics(input: CapExInput): CapExResult {
   const rules: BrandRules = getBrandRules(input.brand);
   const { areaSqft } = input;
-  const thresholds = rules.tierThresholds;
   const multiplier = 1.2; // Excel applies a 20% uplift to all costs
 
-  const firstTierArea = getFirstTier(areaSqft, thresholds);
+  const tier = getCostTier(areaSqft, rules.costTiers);
+  const firstTierArea = tier.threshold;
   const nextTierArea = Math.max(0, areaSqft - firstTierArea);
-  const firstTierCost = firstTierArea * rules.baseRenovationCostPerSqft * multiplier;
-  const nextTierCost = nextTierArea * rules.nextTierCostPerSqft * multiplier;
+  // Each tier has its own base and next-tier rate (both decline as area
+  // grows) - never a single flat rate reused across the whole range.
+  const firstTierCost = firstTierArea * tier.ratePerSqft * multiplier;
+  const nextTierCost = nextTierArea * tier.nextRatePerSqft * multiplier;
   const renovationBaseCost = firstTierCost + nextTierCost;
 
   const areaRangeKey = getAreaRangeKey(input.brand, areaSqft);

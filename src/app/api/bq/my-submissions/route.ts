@@ -130,11 +130,19 @@ export async function GET(request: NextRequest) {
      JOIN renovation_type rt ON t.renovation_type_id = rt.type_id
      JOIN tender_status tstat ON tstat.status_id = t.status_id
      WHERE ts.is_deleted = false
-       AND ts.status IN ('Draft', 'Submitted')
   `;
 
   const conditions: string[] = [];
   const params: any[] = [];
+
+  // A contractor's own "My BQs" list only shows work still in progress
+  // (Draft/Submitted). Staff/admin use this same endpoint to populate the
+  // /bq/compare picker, where an already-Awarded or Rejected BQ is still a
+  // real BQ worth comparing — restricting it to Draft/Submitted there made
+  // an awarded submission impossible to select for comparison (2026-08-18).
+  if (!isAdmin) {
+    conditions.push(`ts.status IN ('Draft', 'Submitted')`);
+  }
 
   // Permission filter
   if (isContractor) {

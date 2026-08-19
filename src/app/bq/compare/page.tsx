@@ -2,13 +2,13 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import React from "react";
 import Link from "next/link";
 import { getBrandColor } from "@/lib/brandColors";
 import "./bq-compare.css";
 import { highlightMatches } from "@/lib/search-utils";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useNotify } from "@/components/ui/notification-provider";
 import { isSuperUser, ROLE_IDS } from "@/lib/roles";
 import BqNotesPanel from "@/components/bq/BqNotesPanel";
@@ -75,6 +75,26 @@ interface SearchResultItem {
   }[];
 }
 
+interface BrandStat {
+  brand: string;
+  min: number;
+  max: number;
+  avg: number;
+  count: number;
+}
+
+interface RelatedItemStat {
+  description: string;
+  min: number;
+  max: number;
+  count: number;
+  brands: string[];
+}
+
+type SmartInsight =
+  | { kind: "empty"; message: string }
+  | { kind: "results"; itemLabel: string; brandStats: BrandStat[]; spreadPct: number; otherItems: RelatedItemStat[] };
+
 // ==================== HELPERS ====================
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat("en-US", {
@@ -123,6 +143,26 @@ const getShortBrand = (fullBrand: string): string => {
   return brandShortNameMap[fullBrand] || fullBrand;
 };
 
+// Reverse of brandShortNameMap, title-cased for display — client_name from
+// the API is already the short brand ("New York"), but the comparison table
+// and submission cards read more professionally with the full company name.
+// Falls back to the input unchanged for a client_name_override or any brand
+// not in the known list, so it never hides real data.
+const toTitleCase = (str: string): string =>
+  str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+
+const brandFullNameMap: Record<string, string> = Object.fromEntries(
+  Object.entries(brandShortNameMap).map(([full, short]) => [short, toTitleCase(full)])
+);
+
+const getFullBrand = (shortOrOverride: string): string => {
+  return brandFullNameMap[shortOrOverride] || shortOrOverride;
+};
+
+const formatVersion = (sub: { version_name?: string; round_no: number }): string => {
+  return sub.version_name || `V${sub.round_no}`;
+};
+
 // ==================== MAIN COMPONENT ====================
 export default function CompareBQPage() {
   const { data: session, status } = useSession();
@@ -133,6 +173,12 @@ export default function CompareBQPage() {
     isSuperUser((session?.user as any)?.roleIds || []) ||
     ((session?.user as any)?.roleIds || []).includes(ROLE_IDS.PROJECT_MANAGER) ||
     ((session?.user as any)?.roleIds || []).includes(ROLE_IDS.SENIOR_PROJECT_MANAGER);
+  // Separate from canRequestResubmission above — the backend's finance-summary
+  // gate (canGenerateFinanceSummary, src/lib/permissions.ts) also allows
+  // Finance Manager/GM/Team, who don't get PM/Senior PM's resubmission rights.
+  // Previously this button reused canRequestResubmission, so Finance-role
+  // users could call the API successfully but had no button to trigger it.
+  const [canGenerateFinanceSummary, setCanGenerateFinanceSummary] = useState(false);
   const [resubmitTarget, setResubmitTarget] = useState<Submission | null>(null);
   const [resubmitInstructions, setResubmitInstructions] = useState("");
   const [resubmitDueBy, setResubmitDueBy] = useState("");
@@ -161,6 +207,42 @@ export default function CompareBQPage() {
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
   const [showDetailedResults, setShowDetailedResults] = useState(false);
   const [showFullSummary, setShowFullSummary] = useState(false);
+
+  const closeAISearch = useCallback(() => {
+    setShowAISearch(false);
+    setAiSearchQuery("");
+    setSearchResults([]);
+    setShowDetailedResults(false);
+    setShowFullSummary(false);
+  }, []);
+
+  useEffect(() => {
+    if (!showAISearch) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeAISearch();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showAISearch, closeAISearch]);
+
+  // Escape-to-close for the three hand-built portal modals below (Finance
+  // Summary, Notes, Request Resubmission) — the shared base-ui Dialog used
+  // to provide this for free, but was dropped for all three in favor of the
+  // plain-portal pattern already used elsewhere (confirm-dialog.tsx,
+  // dashboard's Customize Dashboard modal, this page's own AI Search modal)
+  // to avoid the "crosshair" moire compositing artifact over this page's
+  // busy sticky/blurred comparison table.
+  useEffect(() => {
+    if (!financeTarget && !notesTarget && !resubmitTarget) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (financeTarget) setFinanceTarget(null);
+      else if (notesTarget) setNotesTarget(null);
+      else if (resubmitTarget) setResubmitTarget(null);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [financeTarget, notesTarget, resubmitTarget]);
 
   const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedJobSite, setSelectedJobSite] = useState("");
@@ -192,6 +274,10 @@ export default function CompareBQPage() {
           return;
         }
         setHasAccess(true);
+        setCanGenerateFinanceSummary(
+          isSuperUser((session?.user as any)?.roleIds || []) ||
+          data.permissions.includes("generate_finance_summary")
+        );
       } catch (err) {
         console.error(err);
         router.push("/");
@@ -529,14 +615,14 @@ export default function CompareBQPage() {
     }
   }, [showAISearch, aiSearchQuery, searchResults]);
 
-  // ==================== PROFESSIONAL AI SUMMARY (Multi‑Brand Breakdown) ====================
-  const generateSmartSummary = useCallback((query: string, results: SearchResultItem[]): { full: string; truncated: string; hasMore: boolean } => {
+  // ==================== SMART INSIGHT (Multi‑Brand Breakdown) ====================
+  // Returns structured data instead of a preformatted text blob, so the
+  // modal can render it as a real comparison card (ranked brand rows with
+  // proportional bars, badges) rather than a monospace-feeling wall of text.
+  const generateSmartInsight = useCallback((query: string, results: SearchResultItem[]): SmartInsight => {
     if (!results || results.length === 0) {
-      return { full: `No items found for "${query}".`, truncated: `No items found for "${query}".`, hasMore: false };
+      return { kind: "empty", message: `No items found for "${query}".` };
     }
-
-    const isCostQuery = /how much|cost|price|what is|estimate|total|charge|fee|rate|amount/i.test(query);
-    const MAX_ITEMS = 3;
 
     // ---- Extract meaningful keywords ----
     const stopWords = new Set(['how', 'much', 'cost', 'price', 'what', 'is', 'estimate', 'total', 'charge', 'fee', 'rate', 'amount', 'for', 'the', 'of', 'to', 'and', 'with', 'at', 'from', 'by', 'in', 'on', 'a', 'an']);
@@ -575,107 +661,65 @@ export default function CompareBQPage() {
     const filteredItems = filteredScored.map(s => s.item);
 
     if (filteredItems.length === 0) {
-      return { full: `No closely matching items found for "${query}".`, truncated: `No closely matching items found for "${query}".`, hasMore: false };
+      return { kind: "empty", message: `No closely matching items found for "${query}".` };
     }
 
-    // ---- For cost queries: produce a structured multi‑brand breakdown ----
-    if (isCostQuery) {
-      const primary = filteredItems[0];
-      const desc = primary.description;
-      const shortDesc = desc.length > 60 ? desc.substring(0, 60) + '…' : desc;
+    // Always produce a priced breakdown, regardless of how the question was
+    // phrased — a plain item description ("WPC fluted wall paneling") is
+    // just as much a pricing question as "how much is...", and the previous
+    // isCostQuery regex gate meant unmatched phrasings silently got a
+    // price-free summary instead.
+    const primary = filteredItems[0];
 
-      const brandMap = new Map<string, { amounts: number[]; submissions: typeof primary.submissions }>();
-      primary.submissions.forEach(sub => {
-        const brand = getShortBrand(sub.client_name);
-        if (!brandMap.has(brand)) {
-          brandMap.set(brand, { amounts: [], submissions: [] });
-        }
-        brandMap.get(brand)!.amounts.push(sub.amount);
-        brandMap.get(brand)!.submissions.push(sub);
-      });
-
-      const brandStats = Array.from(brandMap.entries()).map(([brand, data]) => {
-        const amounts = data.amounts;
-        const min = Math.min(...amounts);
-        const max = Math.max(...amounts);
-        const avg = amounts.reduce((a, b) => a + b, 0) / amounts.length;
-        return { brand, min, max, avg, count: amounts.length };
-      });
-      brandStats.sort((a, b) => a.avg - b.avg);
-
-      let lines: string[] = [];
-      lines.push(`"${shortDesc}" has been quoted by ${brandStats.length} brand${brandStats.length > 1 ? 's' : ''}:`);
-
-      brandStats.forEach((stat, idx) => {
-        let line = `  - ${stat.brand}: ${formatCurrency(stat.min)} – ${formatCurrency(stat.max)} (avg ${formatCurrency(stat.avg)}, ${stat.count} quote${stat.count > 1 ? 's' : ''})`;
-        if (stat.avg === brandStats[0].avg && brandStats.length > 1) {
-          line += ` (Most cost‑effective)`;
-        } else if (stat.avg === brandStats[brandStats.length - 1].avg && brandStats.length > 1) {
-          line += ` (Most expensive)`;
-        }
-        lines.push(line);
-      });
-
-      if (brandStats.length > 1) {
-        const cheapest = brandStats[0];
-        const mostExpensive = brandStats[brandStats.length - 1];
-        const diffPercent = ((mostExpensive.avg - cheapest.avg) / cheapest.avg * 100);
-        lines.push('');
-        lines.push(`Insight: ${cheapest.brand} is the most cost‑effective (avg ${formatCurrency(cheapest.avg)}), while ${mostExpensive.brand} is ${Math.round(diffPercent)}% higher.`);
-        if (diffPercent > 30) {
-          lines.push(`Advice: Significant price variation – we recommend reviewing scope alignment between brands.`);
-        } else {
-          lines.push(`Pricing is relatively consistent across brands.`);
-        }
-      } else {
-        lines.push('');
-        lines.push(`Only one brand has provided pricing – we recommend getting competitive quotes from at least 2 other brands.`);
-      }
-
-      const otherItemsCount = filteredItems.length - 1;
-      if (otherItemsCount > 0) {
-        lines.push('');
-        lines.push(`We also found ${otherItemsCount} other related item${otherItemsCount > 1 ? 's' : ''} (e.g., "${filteredItems[1].description.substring(0, 40)}…").`);
-      }
-
-      const fullText = lines.join('\n');
-      return { full: fullText, truncated: fullText, hasMore: false };
-    }
-
-    // ---- Non‑cost queries: list items with counts ----
-    const grouped = new Map<string, { brands: Set<string>, count: number }>();
-    filteredItems.forEach(item => {
-      const desc = item.description;
-      if (!grouped.has(desc)) {
-        grouped.set(desc, { brands: new Set(), count: 0 });
-      }
-      const entry = grouped.get(desc)!;
-      item.submissions.forEach(sub => {
-        entry.brands.add(getShortBrand(sub.client_name));
-        entry.count++;
-      });
+    const brandMap = new Map<string, { amounts: number[] }>();
+    primary.submissions.forEach(sub => {
+      const brand = getShortBrand(sub.client_name);
+      if (!brandMap.has(brand)) brandMap.set(brand, { amounts: [] });
+      brandMap.get(brand)!.amounts.push(sub.amount);
     });
 
-    const partsArray: string[] = [];
-    grouped.forEach((value, desc) => {
-      const shortDesc = desc.length > 60 ? desc.substring(0, 60) + '…' : desc;
-      const brandList = Array.from(value.brands).join(', ');
-      partsArray.push(`${shortDesc} (${value.count} quote${value.count > 1 ? 's' : ''} from ${brandList})`);
+    const brandStats: BrandStat[] = Array.from(brandMap.entries()).map(([brand, data]) => {
+      const amounts = data.amounts;
+      const min = Math.min(...amounts);
+      const max = Math.max(...amounts);
+      const avg = amounts.reduce((a, b) => a + b, 0) / amounts.length;
+      return { brand, min, max, avg, count: amounts.length };
+    });
+    brandStats.sort((a, b) => a.avg - b.avg);
+
+    const cheapest = brandStats[0];
+    const mostExpensive = brandStats[brandStats.length - 1];
+    const spreadPct = brandStats.length > 1 ? ((mostExpensive.avg - cheapest.avg) / cheapest.avg) * 100 : 0;
+
+    // Other matched items get their own price-range summary (across all
+    // brands combined, not per-brand) so "show more" reveals what they
+    // actually cost instead of just a bare description string.
+    const otherItems: RelatedItemStat[] = filteredItems.slice(1).map(it => {
+      const amounts = it.submissions.map(s => s.amount).filter(a => a > 0);
+      return {
+        description: it.description,
+        min: amounts.length ? Math.min(...amounts) : 0,
+        max: amounts.length ? Math.max(...amounts) : 0,
+        count: it.submissions.length,
+        brands: Array.from(new Set(it.submissions.map(s => getShortBrand(s.client_name)))),
+      };
     });
 
-    const fullText = partsArray.join('\n');
-    const truncatedParts = partsArray.slice(0, MAX_ITEMS);
-    const truncatedText = truncatedParts.join('\n');
-    const hasMore = partsArray.length > MAX_ITEMS;
-    return { full: fullText, truncated: truncatedText, hasMore };
+    return {
+      kind: "results",
+      itemLabel: primary.description,
+      brandStats,
+      spreadPct,
+      otherItems,
+    };
   }, []);
 
   // --- Loading / permission guards ---
   if (status === "loading" || hasAccess === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-10 h-10 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-gray-500">Loading…</p>
         </div>
       </div>
@@ -685,34 +729,35 @@ export default function CompareBQPage() {
 
   // ==================== RENDER ====================
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gray-50">
+    <div className="min-h-screen bg-white">
 
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[35vw] max-w-[540px] max-h-[280px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
-
-      <div className="relative z-10 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Cost Comparison</h1>
+              <h1 className="font-serif text-2xl font-bold text-gray-900 tracking-tight">Cost Comparison</h1>
               <p className="text-gray-500 text-sm mt-1">Select at least two cost estimates to compare side‑by‑side.</p>
             </div>
             {hasAccess && (
-              <button
-                onClick={() => setShowAISearch(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white rounded-lg shadow-md shadow-cyan-500/30 transition-all duration-200 text-sm font-medium whitespace-nowrap"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Smart Search
-              </button>
+              <div className="relative inline-block z-0">
+                <span className="absolute -top-2.5 -right-2 z-20 pointer-events-none rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gray-600 whitespace-nowrap shadow-sm">
+                  Beta
+                </span>
+                <button
+                  onClick={() => setShowAISearch(true)}
+                  className="relative z-0 flex items-center gap-2 px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-md shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md text-sm font-semibold whitespace-nowrap"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Smart Search
+                </button>
+              </div>
             )}
           </div>
 
           {/* --- Selection Panel --- */}
-          <div className="bg-white backdrop-blur-md rounded-2xl border border-gray-200 p-5 mb-6 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm">
             <h2 className="text-md font-semibold text-gray-800 mb-4">Select Cost Estimates</h2>
             <div className="mb-5">
               <div className="relative">
@@ -722,7 +767,7 @@ export default function CompareBQPage() {
                   placeholder="Search by brand, job site, work type, or BQ name..."
                   value={globalSearch}
                   onChange={(e) => setGlobalSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-600"
+                  className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#15406a]"
                 />
               </div>
             </div>
@@ -732,7 +777,7 @@ export default function CompareBQPage() {
                 <select
                   value={selectedBrand}
                   onChange={(e) => setSelectedBrand(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-600 px-3 py-2 text-sm"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#15406a] px-3 py-2 text-sm"
                 >
                   <option value="">All Brands</option>
                   {brandOptions.map((brand) => (
@@ -745,7 +790,7 @@ export default function CompareBQPage() {
                 <select
                   value={selectedJobSite}
                   onChange={(e) => setSelectedJobSite(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-600 px-3 py-2 text-sm"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#15406a] px-3 py-2 text-sm"
                 >
                   <option value="">All Job Sites</option>
                   {jobSiteOptions.map((site) => (
@@ -758,7 +803,7 @@ export default function CompareBQPage() {
                 <select
                   value={selectedWorkType}
                   onChange={(e) => setSelectedWorkType(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-600 px-3 py-2 text-sm"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#15406a] px-3 py-2 text-sm"
                 >
                   <option value="">All Work Types</option>
                   {workTypeOptions.map((type) => (
@@ -769,7 +814,7 @@ export default function CompareBQPage() {
             </div>
             {(globalSearch || selectedBrand || selectedJobSite || selectedWorkType) && (
               <div className="flex justify-end mb-4">
-                <button onClick={clearFilters} className="text-xs text-cyan-700 hover:text-cyan-800">
+                <button onClick={clearFilters} className="text-xs text-[#15406a] hover:text-[#0d2d4a]">
                   Clear all filters
                 </button>
               </div>
@@ -810,7 +855,7 @@ export default function CompareBQPage() {
                     </p>
                     <Link
                       href="/bq/new"
-                      className="inline-block mt-3 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-lg transition-colors"
+                      className="inline-block mt-3 px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white text-sm font-medium rounded-lg transition-colors"
                     >
                       + Create New Estimate
                     </Link>
@@ -821,7 +866,7 @@ export default function CompareBQPage() {
 
             {loadingAvailable && (
               <div className="mb-4 p-3 text-center text-gray-500">
-                <div className="w-5 h-5 border-2 border-cyan-600 border-t-transparent rounded-full animate-spin inline-block mr-2" />
+                <div className="w-5 h-5 border-2 border-[#15406a] border-t-transparent rounded-full animate-spin inline-block mr-2" />
                 Loading your cost estimates...
               </div>
             )}
@@ -834,9 +879,9 @@ export default function CompareBQPage() {
                     const bq = availableBQs.find((b) => b.submission_id === id);
                     if (!bq) return null;
                     return (
-                      <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-100 text-cyan-800 text-xs rounded-full border border-cyan-300">
+                      <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-[#15406a]/10 text-[#15406a] text-xs rounded-full border border-[#15406a]/30">
                         {bq.client_name.split(" ").slice(0, 2).join(" ")}
-                        <button onClick={() => toggleSelection(id)} className="ml-1 text-cyan-600 hover:text-cyan-800">&times;</button>
+                        <button onClick={() => toggleSelection(id)} className="ml-1 text-[#15406a] hover:text-[#0d2d4a]">&times;</button>
                       </span>
                     );
                   })}
@@ -846,7 +891,7 @@ export default function CompareBQPage() {
             )}
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs text-gray-500">Available estimates ({filteredBQs.length})</span>
-              <button onClick={selectAllFiltered} className="text-xs text-cyan-700 hover:text-cyan-800">
+              <button onClick={selectAllFiltered} className="text-xs text-[#15406a] hover:text-[#0d2d4a]">
                 Select all filtered
               </button>
             </div>
@@ -859,12 +904,12 @@ export default function CompareBQPage() {
                     const brandColor = getBrandColor(bq.client_name);
                     const isSelected = selectedIds.includes(bq.submission_id);
                     return (
-                      <label key={bq.submission_id} className={`flex items-center gap-3 p-3 cursor-pointer transition-all hover:bg-gray-100 ${isSelected ? "bg-cyan-50" : ""}`} style={{ borderLeftColor: brandColor.borderColor, borderLeftWidth: "4px" }}>
-                        <input type="checkbox" checked={isSelected} onChange={() => toggleSelection(bq.submission_id)} className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
+                      <label key={bq.submission_id} className={`flex items-center gap-3 p-3 cursor-pointer transition-all hover:bg-gray-100 ${isSelected ? "bg-[#15406a]/5" : ""}`} style={{ borderLeftColor: brandColor.borderColor, borderLeftWidth: "4px" }}>
+                        <input type="checkbox" checked={isSelected} onChange={() => toggleSelection(bq.submission_id)} className="rounded border-gray-300 text-[#15406a] focus:ring-[#15406a]" />
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">{bq.bq_name || `Estimate #${bq.submission_id}`}</div>
-                          <div className="text-xs text-gray-500 truncate">{bq.client_name} – {bq.job_site}</div>
-                          <div className="text-xs text-gray-400">{bq.version_name || `Round ${bq.round_no}`}</div>
+                          <div className="text-xs text-gray-500 truncate">{getFullBrand(bq.client_name)} – {bq.job_site}</div>
+                          <div className="text-xs text-gray-400">{formatVersion(bq)}</div>
                         </div>
                       </label>
                     );
@@ -882,7 +927,7 @@ export default function CompareBQPage() {
 
           {loading && selectedIds.length >= 2 && (
             <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
-              <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <div className="w-10 h-10 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-gray-500">Loading comparison data…</p>
             </div>
           )}
@@ -912,23 +957,23 @@ export default function CompareBQPage() {
                         placeholder="Item No., description, or brand..."
                         value={itemSearchTerm}
                         onChange={(e) => setItemSearchTerm(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-600 px-3 py-1.5 text-sm"
+                        className="w-full bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#15406a] px-3 py-1.5 text-sm"
                       />
                     </div>
                   </div>
                   <div className="flex items-center gap-4 flex-wrap">
                     <span className="text-sm font-medium text-gray-700">Highlight:</span>
                     <label className="inline-flex items-center gap-1 text-sm text-gray-700">
-                      <input type="radio" name="highlightMetric" value="unit_price" checked={highlightMetric === "unit_price"} onChange={() => setHighlightMetric("unit_price")} className="text-cyan-600" />
+                      <input type="radio" name="highlightMetric" value="unit_price" checked={highlightMetric === "unit_price"} onChange={() => setHighlightMetric("unit_price")} className="text-[#15406a]" />
                       Unit Price
                     </label>
                     <label className="inline-flex items-center gap-1 text-sm text-gray-700">
-                      <input type="radio" name="highlightMetric" value="amount" checked={highlightMetric === "amount"} onChange={() => setHighlightMetric("amount")} className="text-cyan-600" />
+                      <input type="radio" name="highlightMetric" value="amount" checked={highlightMetric === "amount"} onChange={() => setHighlightMetric("amount")} className="text-[#15406a]" />
                       Amount
                     </label>
                     <div className="border-l border-gray-300 pl-4">
                       <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                        <input type="checkbox" checked={maskContractors} onChange={(e) => setMaskContractors(e.target.checked)} className="text-cyan-600" />
+                        <input type="checkbox" checked={maskContractors} onChange={(e) => setMaskContractors(e.target.checked)} className="text-[#15406a]" />
                         Mask Contractors
                       </label>
                     </div>
@@ -942,9 +987,9 @@ export default function CompareBQPage() {
                   const brandColor = getBrandColor(sub.client_name);
                   const displayContractor = getDisplayContractor(sub.contractor_name);
                   return (
-                    <div key={sub.submission_id} className="bg-white rounded-xl border border-gray-200 p-4 transition-all hover:border-cyan-600 shadow-sm" style={{ borderLeftColor: brandColor.borderColor, borderLeftWidth: "4px" }}>
-                      <div className="font-semibold text-gray-900">{sub.client_name}</div>
-                      <div className="text-xs text-gray-500 mt-1">Version: {sub.version_name || `Round ${sub.round_no}`}</div>
+                    <div key={sub.submission_id} className="bg-white rounded-xl border border-gray-200 p-4 transition-all hover:border-[#15406a] shadow-sm" style={{ borderLeftColor: brandColor.borderColor, borderLeftWidth: "4px" }}>
+                      <div className="font-semibold text-gray-900">{getFullBrand(sub.client_name)}</div>
+                      <div className="text-xs text-gray-500 mt-1">Version: {formatVersion(sub)}</div>
                       <div className="text-xs text-gray-500">Project: {sub.tender_name}</div>
                       <div className="text-xs text-gray-500">Contractor: {displayContractor}</div>
                       <div className="text-xs text-gray-500">Status: {sub.status}</div>
@@ -972,10 +1017,10 @@ export default function CompareBQPage() {
                         >
                           Notes
                         </button>
-                        {canRequestResubmission && (
+                        {canGenerateFinanceSummary && (
                           <button
                             onClick={() => setFinanceTarget(sub)}
-                            className="flex-1 text-xs font-medium px-3 py-1.5 rounded-lg border border-cyan-300 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 transition-colors"
+                            className="flex-1 text-xs font-medium px-3 py-1.5 rounded-lg border border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white transition-colors"
                           >
                             Finance Summary
                           </button>
@@ -986,36 +1031,102 @@ export default function CompareBQPage() {
                 })}
               </div>
 
-              {/* Finance Summary modal — per-submission cost analysis (finance_budget_summary) */}
-              <Dialog open={!!financeTarget} onOpenChange={(open) => { if (!open) setFinanceTarget(null); }}>
-                <DialogContent className="max-w-2xl p-6 max-h-[85vh] overflow-y-auto">
-                  <DialogTitle className="text-lg font-bold text-gray-900 mb-1">
-                    Finance Summary — {financeTarget?.contractor_name}
-                  </DialogTitle>
-                  <p className="text-sm text-gray-600 mb-4">{financeTarget?.tender_name}</p>
-                  {financeTarget && <FinanceSummaryPanel submissionId={financeTarget.submission_id} />}
-                </DialogContent>
-              </Dialog>
+              {/* Finance Summary modal — per-submission cost analysis
+                  (finance_budget_summary). Plain hand-built portal, not the
+                  shared base-ui Dialog: over this page's busy sticky/blurred
+                  comparison table the shared Dialog's ring/backdrop
+                  compositing produced visible moire "crosshair" lines behind
+                  the popup cards, the same artifact already fixed the same
+                  way in confirm-dialog.tsx, dashboard's Customize Dashboard
+                  modal, and this page's own AI Search modal above. */}
+              {financeTarget &&
+                createPortal(
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
+                    onMouseDown={(e) => { if (e.target === e.currentTarget) setFinanceTarget(null); }}
+                  >
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="finance-summary-title"
+                      className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-lg border border-gray-200 p-6 modal-scroll"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-1">
+                        <h2 id="finance-summary-title" className="text-lg font-bold text-gray-900">
+                          Finance Summary — {financeTarget.contractor_name}
+                        </h2>
+                        <button onClick={() => setFinanceTarget(null)} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 transition-colors shrink-0 text-gray-400 hover:text-gray-600">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-4">{financeTarget.tender_name}</p>
+                      <FinanceSummaryPanel submissionId={financeTarget.submission_id} />
+                    </div>
+                  </div>,
+                  document.body
+                )}
 
-              {/* Notes modal — staff notes on this specific BQ (review_comment) */}
-              <Dialog open={!!notesTarget} onOpenChange={(open) => { if (!open) setNotesTarget(null); }}>
-                <DialogContent className="max-w-lg p-6 max-h-[85vh] overflow-y-auto">
-                  <DialogTitle className="text-lg font-bold text-gray-900 mb-1">
-                    Notes — {notesTarget?.contractor_name}
-                  </DialogTitle>
-                  <p className="text-sm text-gray-600 mb-4">{notesTarget?.tender_name}</p>
-                  {notesTarget && <BqNotesPanel submissionId={notesTarget.submission_id} canAddNotes={canRequestResubmission} />}
-                </DialogContent>
-              </Dialog>
+              {/* Notes modal — staff notes on this specific BQ
+                  (review_comment). Same hand-built portal pattern as above. */}
+              {notesTarget &&
+                createPortal(
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
+                    onMouseDown={(e) => { if (e.target === e.currentTarget) setNotesTarget(null); }}
+                  >
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="notes-title"
+                      className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-lg border border-gray-200 p-6 modal-scroll"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-1">
+                        <h2 id="notes-title" className="text-lg font-bold text-gray-900">
+                          Notes — {notesTarget.contractor_name}
+                        </h2>
+                        <button onClick={() => setNotesTarget(null)} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 transition-colors shrink-0 text-gray-400 hover:text-gray-600">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-4">{notesTarget.tender_name}</p>
+                      <BqNotesPanel submissionId={notesTarget.submission_id} canAddNotes={canRequestResubmission} />
+                    </div>
+                  </div>,
+                  document.body
+                )}
 
               {/* Request Resubmission modal — always shows real identity/
                   contact info regardless of the Mask Contractors toggle,
-                  since staff need it to negotiate by phone as well as email. */}
-              <Dialog open={!!resubmitTarget} onOpenChange={(open) => { if (!open) setResubmitTarget(null); }}>
-                <DialogContent className="max-w-md p-6">
-                  <DialogTitle className="text-lg font-bold text-gray-900 mb-1">Request Resubmission</DialogTitle>
-                  {resubmitTarget && (
-                    <>
+                  since staff need it to negotiate by phone as well as email.
+                  Same hand-built portal pattern as above. */}
+              {resubmitTarget &&
+                createPortal(
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
+                    onMouseDown={(e) => { if (e.target === e.currentTarget && !submittingResubmit) setResubmitTarget(null); }}
+                  >
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="resubmit-title"
+                      className="w-full max-w-md rounded-xl bg-white shadow-lg border border-gray-200 p-6"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-1">
+                        <h2 id="resubmit-title" className="text-lg font-bold text-gray-900">Request Resubmission</h2>
+                        <button
+                          onClick={() => !submittingResubmit && setResubmitTarget(null)}
+                          aria-label="Close"
+                          className="p-1 rounded-lg hover:bg-gray-100 transition-colors shrink-0 text-gray-400 hover:text-gray-600"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                       <p className="text-sm text-gray-600 mb-4">
                         For <strong>{resubmitTarget.tender_name}</strong>
                       </p>
@@ -1059,10 +1170,10 @@ export default function CompareBQPage() {
                           {submittingResubmit ? "Sending..." : "Send Request"}
                         </button>
                       </div>
-                    </>
-                  )}
-                </DialogContent>
-              </Dialog>
+                    </div>
+                  </div>,
+                  document.body
+                )}
 
               {/* Comparison table */}
               {filteredData && filteredData.categories.length === 0 ? (
@@ -1072,36 +1183,51 @@ export default function CompareBQPage() {
               ) : (
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="w-full table-fixed divide-y divide-gray-200 compare-table">
+                      <colgroup>
+                        <col style={{ width: "64px" }} />
+                        <col style={{ width: "340px" }} />
+                        <col style={{ width: "130px" }} />
+                        <col style={{ width: "80px" }} />
+                        {comparisonData.submissions.map((sub) => (
+                          <React.Fragment key={sub.submission_id}>
+                            <col style={{ width: "85px" }} />
+                            <col style={{ width: "105px" }} />
+                            <col style={{ width: "115px" }} />
+                          </React.Fragment>
+                        ))}
+                      </colgroup>
                       <thead className="sticky-header">
                         <tr>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider sticky-left z-20">Item No.</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider sticky-left z-20 border-r border-gray-200">Item No.</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
                           <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Brand</th>
                           <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Unit</th>
-                          {comparisonData.submissions.map((sub) => {
+                          {comparisonData.submissions.map((sub, subIdx) => {
                             const displayContractor = getDisplayContractor(sub.contractor_name);
                             return (
-                              <th key={sub.submission_id} colSpan={3} className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[180px]">
-                                {sub.client_name}
-                                <br />
-                                <span className="text-xs font-normal text-gray-500">{sub.version_name || `Round ${sub.round_no}`}</span>
-                                <br />
-                                <span className="text-xs font-normal text-gray-400">{displayContractor}</span>
+                              <th
+                                key={sub.submission_id}
+                                colSpan={3}
+                                className={`px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-normal leading-snug ${subIdx > 0 ? "border-l-2 border-gray-200" : ""}`}
+                              >
+                                <span className="block normal-case font-bold text-[#15406a]">{getFullBrand(sub.client_name)}</span>
+                                <span className="block text-xs font-normal text-gray-500 normal-case">{formatVersion(sub)}</span>
+                                <span className="block text-xs font-normal text-gray-400 normal-case truncate">{displayContractor}</span>
                               </th>
                             );
                           })}
                         </tr>
                         <tr className="bg-gray-50">
-                          <th className="px-4 py-2 sticky-left"></th>
+                          <th className="px-4 py-2 sticky-left border-r border-gray-200"></th>
                           <th className="px-4 py-2"></th>
                           <th className="px-4 py-2"></th>
                           <th className="px-4 py-2"></th>
-                          {comparisonData.submissions.map((sub) => (
+                          {comparisonData.submissions.map((sub, subIdx) => (
                             <React.Fragment key={sub.submission_id}>
-                              <th className="px-4 py-2 text-center text-xs font-medium text-gray-600">Quantity</th>
-                              <th className="px-4 py-2 text-center text-xs font-medium text-gray-600">Unit Price</th>
-                              <th className="px-4 py-2 text-center text-xs font-medium text-gray-600">Amount</th>
+                              <th className={`px-3 py-2 text-center text-xs font-medium text-gray-600 ${subIdx > 0 ? "border-l-2 border-gray-200" : ""}`}>Qty</th>
+                              <th className="px-3 py-2 text-center text-xs font-medium text-gray-600">Unit Price</th>
+                              <th className="px-3 py-2 text-center text-xs font-medium text-gray-600">Amount</th>
                             </React.Fragment>
                           ))}
                         </tr>
@@ -1128,12 +1254,12 @@ export default function CompareBQPage() {
                                   const amountMM = getMinMax(item, "amount");
                                   const uniqueKey = `${cat.category_name.replace(/\s/g, '_')}_${item.item_number}`;
                                   return (
-                                    <tr key={idx} data-item-key={uniqueKey} className={`hover:bg-gray-50 transition-colors even:bg-gray-50 ${highlightedItemKey === uniqueKey ? "highlight-row" : ""}`}>
-                                      <td className="px-4 py-2 text-center font-mono text-gray-600 sticky-left pl-8">{item.item_number}</td>
-                                      <td className="px-4 py-2 font-medium text-gray-800">{item.description}</td>
-                                      <td className="px-4 py-2 text-gray-600">{item.brand || "—"}</td>
-                                      <td className="px-4 py-2 text-gray-600">{item.unit}</td>
-                                      {comparisonData.submissions.map((sub) => {
+                                    <tr key={idx} data-item-key={uniqueKey} className={`hover:bg-gray-50 transition-colors even:bg-gray-50 align-top ${highlightedItemKey === uniqueKey ? "highlight-row" : ""}`}>
+                                      <td className="px-4 py-2.5 text-center font-mono text-xs text-gray-600 sticky-left border-r border-gray-200">{item.item_number}</td>
+                                      <td className="px-4 py-2.5 text-sm font-medium text-gray-800 whitespace-normal break-words leading-snug">{item.description}</td>
+                                      <td className="px-4 py-2.5 text-sm text-gray-600 whitespace-normal break-words">{item.brand || "—"}</td>
+                                      <td className="px-4 py-2.5 text-sm text-gray-600 whitespace-normal">{item.unit}</td>
+                                      {comparisonData.submissions.map((sub, subIdx) => {
                                         const data = item.items[sub.submission_id];
                                         const quantity = data ? data.quantity : 0;
                                         const unitPrice = data ? data.unit_price : 0;
@@ -1148,9 +1274,9 @@ export default function CompareBQPage() {
                                             : "text-gray-700";
                                         return (
                                           <React.Fragment key={sub.submission_id}>
-                                            <td className="px-4 py-2 text-right font-mono text-gray-700">{quantity === 0 ? "—" : formatQuantity(quantity)}</td>
-                                            <td className={`px-4 py-2 text-right font-mono ${unitPriceClass}`}>{unitPrice === 0 ? "—" : formatCurrency(unitPrice)}</td>
-                                            <td className={`px-4 py-2 text-right font-mono ${amountClass}`}>{amount === 0 ? "—" : formatCurrency(amount)}</td>
+                                            <td className={`px-3 py-2.5 text-right font-mono text-sm text-gray-700 ${subIdx > 0 ? "border-l-2 border-gray-200" : ""}`}>{quantity === 0 ? "—" : formatQuantity(quantity)}</td>
+                                            <td className={`px-3 py-2.5 text-right font-mono text-sm ${unitPriceClass}`}>{unitPrice === 0 ? "—" : formatCurrency(unitPrice)}</td>
+                                            <td className={`px-3 py-2.5 text-right font-mono text-sm ${amountClass}`}>{amount === 0 ? "—" : formatCurrency(amount)}</td>
                                           </React.Fragment>
                                         );
                                       })}
@@ -1161,19 +1287,19 @@ export default function CompareBQPage() {
                               return (
                                 <React.Fragment key={section.section_name}>
                                   <tr className="bg-gray-50">
-                                    <td colSpan={4 + comparisonData.submissions.length * 3} className="px-4 py-2 pl-6 font-semibold text-cyan-700">{section.section_name}</td>
+                                    <td colSpan={4 + comparisonData.submissions.length * 3} className="px-4 py-2 pl-6 font-semibold text-[#15406a]">{section.section_name}</td>
                                   </tr>
                                   {section.items.map((item, idx) => {
                                     const unitPriceMM = getMinMax(item, "unit_price");
                                     const amountMM = getMinMax(item, "amount");
                                     const uniqueKey = `${cat.category_name.replace(/\s/g, '_')}_${item.item_number}`;
                                     return (
-                                      <tr key={idx} data-item-key={uniqueKey} className={`hover:bg-gray-50 transition-colors even:bg-gray-50 ${highlightedItemKey === uniqueKey ? "highlight-row" : ""}`}>
-                                        <td className="px-4 py-2 text-center font-mono text-gray-600 sticky-left pl-8">{item.item_number}</td>
-                                        <td className="px-4 py-2 font-medium text-gray-800">{item.description}</td>
-                                        <td className="px-4 py-2 text-gray-600">{item.brand || "—"}</td>
-                                        <td className="px-4 py-2 text-gray-600">{item.unit}</td>
-                                        {comparisonData.submissions.map((sub) => {
+                                      <tr key={idx} data-item-key={uniqueKey} className={`hover:bg-gray-50 transition-colors even:bg-gray-50 align-top ${highlightedItemKey === uniqueKey ? "highlight-row" : ""}`}>
+                                        <td className="px-4 py-2.5 text-center font-mono text-xs text-gray-600 sticky-left border-r border-gray-200">{item.item_number}</td>
+                                        <td className="px-4 py-2.5 text-sm font-medium text-gray-800 whitespace-normal break-words leading-snug">{item.description}</td>
+                                        <td className="px-4 py-2.5 text-sm text-gray-600 whitespace-normal break-words">{item.brand || "—"}</td>
+                                        <td className="px-4 py-2.5 text-sm text-gray-600 whitespace-normal">{item.unit}</td>
+                                        {comparisonData.submissions.map((sub, subIdx) => {
                                           const data = item.items[sub.submission_id];
                                           const quantity = data ? data.quantity : 0;
                                           const unitPrice = data ? data.unit_price : 0;
@@ -1188,9 +1314,9 @@ export default function CompareBQPage() {
                                               : "text-gray-700";
                                           return (
                                             <React.Fragment key={sub.submission_id}>
-                                              <td className="px-4 py-2 text-right font-mono text-gray-700">{quantity === 0 ? "—" : formatQuantity(quantity)}</td>
-                                              <td className={`px-4 py-2 text-right font-mono ${unitPriceClass}`}>{unitPrice === 0 ? "—" : formatCurrency(unitPrice)}</td>
-                                              <td className={`px-4 py-2 text-right font-mono ${amountClass}`}>{amount === 0 ? "—" : formatCurrency(amount)}</td>
+                                              <td className={`px-3 py-2.5 text-right font-mono text-sm text-gray-700 ${subIdx > 0 ? "border-l-2 border-gray-200" : ""}`}>{quantity === 0 ? "—" : formatQuantity(quantity)}</td>
+                                              <td className={`px-3 py-2.5 text-right font-mono text-sm ${unitPriceClass}`}>{unitPrice === 0 ? "—" : formatCurrency(unitPrice)}</td>
+                                              <td className={`px-3 py-2.5 text-right font-mono text-sm ${amountClass}`}>{amount === 0 ? "—" : formatCurrency(amount)}</td>
                                             </React.Fragment>
                                           );
                                         })}
@@ -1221,35 +1347,31 @@ export default function CompareBQPage() {
       </div>
 
       {/* ---- AI SEARCH MODAL ---- */}
-      <Dialog
-        open={showAISearch}
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowAISearch(false);
-            setAiSearchQuery("");
-            setSearchResults([]);
-            setShowDetailedResults(false);
-            setShowFullSummary(false);
-          }
-        }}
-      >
-        <DialogContent
-          showCloseButton={false}
-          className="max-w-4xl max-h-[90vh] p-[2px] gap-0 rounded-2xl ring-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 shadow-2xl shadow-cyan-500/30"
-        >
-            <div className="flex flex-col h-full w-full bg-white rounded-2xl overflow-hidden">
+      {/* Plain hand-built portal instead of the shared base-ui Dialog - same
+          fix already applied to confirm-dialog.tsx, AgreementAcknowledgementModal,
+          and the dashboard's Customize Dashboard modal for the "crosshair"
+          rendering artifact (moire lines from the shared Dialog's
+          ring/backdrop compositing over a busy background). */}
+      {showAISearch &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) closeAISearch();
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ai-search-title"
+              className="flex flex-col w-full max-w-4xl max-h-[90vh] rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden"
+            >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-full border border-cyan-400/30">
-                    <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <span className="text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">AI</span>
-                  </div>
-                  <DialogTitle className="text-lg font-semibold text-gray-900">Search Estimates</DialogTitle>
+                  <h2 id="ai-search-title" className="text-lg font-semibold text-gray-900">Search Estimates</h2>
                 </div>
-                <button onClick={() => { setShowAISearch(false); setAiSearchQuery(""); setSearchResults([]); setShowDetailedResults(false); setShowFullSummary(false); }} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 transition-colors shrink-0">
+                <button onClick={closeAISearch} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 transition-colors shrink-0">
                   <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -1260,7 +1382,7 @@ export default function CompareBQPage() {
               <div className="p-4 border-b border-gray-200 shrink-0">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-[#15406a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
@@ -1269,17 +1391,17 @@ export default function CompareBQPage() {
                     placeholder="Search for any item across all your estimates..."
                     value={aiSearchQuery}
                     onChange={(e) => setAiSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-2 border-cyan-400/40 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all duration-200 shadow-inner"
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#15406a] focus:border-transparent transition-all duration-200"
                     autoFocus
                   />
                   {isSearching && (
                     <div className="absolute inset-y-0 right-3 flex items-center">
-                      <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-[#15406a] border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
                 </div>
                 <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
-                  <span className="inline-block w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+                  <span className="inline-block w-1.5 h-1.5 bg-[#15406a] rounded-full animate-pulse"></span>
                   Searching across all your submitted estimates.
                 </p>
               </div>
@@ -1300,7 +1422,7 @@ export default function CompareBQPage() {
                   </div>
                 ) : isSearching ? (
                   <div className="flex justify-center py-8">
-                    <div className="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : searchResults.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 text-gray-500">
@@ -1309,37 +1431,127 @@ export default function CompareBQPage() {
                   </div>
                 ) : (
                   <>
-                    {/* SMART SUMMARY - Multi‑brand breakdown (no emojis) */}
+                    {/* SMART INSIGHT — structured multi-brand comparison card
+                        instead of a preformatted text blob, so pricing reads
+                        as a real ranked comparison (bars + badges) rather
+                        than a monospace-feeling wall of text. */}
                     {(() => {
-                      const summary = generateSmartSummary(aiSearchQuery, searchResults);
-                      const displayText = showFullSummary ? summary.full : summary.truncated;
+                      const insight = generateSmartInsight(aiSearchQuery, searchResults);
                       return (
-                        <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200 shadow-sm">
-                          <div className="flex items-start gap-2">
-                            <span className="mt-0.5 text-blue-500">⚡</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-blue-800">AI Insight</p>
-                              <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
-                                {displayText}
-                              </div>
-                            </div>
+                        <div className="p-4 bg-gradient-to-br from-[#15406a]/[0.06] to-[#15406a]/[0.01] rounded-xl border border-[#15406a]/20">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#15406a] text-white shrink-0">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                            </span>
+                            <p className="text-sm font-semibold text-[#15406a]">Smart Insight</p>
                           </div>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {summary.hasMore && (
-                              <button
-                                onClick={() => setShowFullSummary(!showFullSummary)}
-                                className="text-xs text-cyan-600 hover:underline focus:outline-none"
-                              >
-                                {showFullSummary ? 'Show less' : `Show all (${summary.full.split('\n').length} items)`}
-                              </button>
-                            )}
+
+                          {insight.kind === "empty" && (
+                            <p className="text-sm text-gray-600">{insight.message}</p>
+                          )}
+
+                          {insight.kind === "results" && (
+                            <div>
+                              <p className="text-sm text-gray-800 mb-3 break-words">
+                                <span className="font-medium">"{insight.itemLabel}"</span> has been quoted by{" "}
+                                {insight.brandStats.length} brand{insight.brandStats.length > 1 ? "s" : ""}.
+                              </p>
+                              <div className="space-y-2">
+                                {insight.brandStats.map((stat, idx) => {
+                                  const color = getBrandColor(stat.brand);
+                                  const maxAvg = insight.brandStats[insight.brandStats.length - 1].avg || 1;
+                                  const widthPct = Math.max(10, (stat.avg / maxAvg) * 100);
+                                  const isBest = idx === 0 && insight.brandStats.length > 1;
+                                  const isWorst = idx === insight.brandStats.length - 1 && insight.brandStats.length > 1;
+                                  return (
+                                    <div key={stat.brand} className="flex items-center gap-2 sm:gap-3">
+                                      <span className="w-16 sm:w-20 shrink-0 text-xs font-medium text-gray-700 truncate">{stat.brand}</span>
+                                      <div className="flex-1 h-5 bg-gray-100 rounded-md overflow-hidden">
+                                        <div
+                                          className="h-full rounded-md transition-all duration-500"
+                                          style={{ width: `${widthPct}%`, backgroundColor: color.borderColor }}
+                                        />
+                                      </div>
+                                      <span className="w-24 shrink-0 text-right text-xs font-mono text-gray-700">{formatCurrency(stat.avg)}</span>
+                                      <span className="w-16 shrink-0 text-right text-[10px] text-gray-400">
+                                        {stat.count} quote{stat.count > 1 ? "s" : ""}
+                                      </span>
+                                      {isBest && (
+                                        <span className="shrink-0 hidden sm:inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 whitespace-nowrap">
+                                          Best value
+                                        </span>
+                                      )}
+                                      {isWorst && (
+                                        <span className="shrink-0 hidden sm:inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-700 whitespace-nowrap">
+                                          Highest
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {insight.brandStats.length > 1 ? (
+                                <p className="mt-3 text-xs text-gray-600 leading-relaxed">
+                                  <strong className="text-[#15406a]">{insight.brandStats[0].brand}</strong> is the most cost-effective, averaging{" "}
+                                  {formatCurrency(insight.brandStats[0].avg)} vs {formatCurrency(insight.brandStats[insight.brandStats.length - 1].avg)} for{" "}
+                                  {insight.brandStats[insight.brandStats.length - 1].brand} ({Math.round(insight.spreadPct)}% higher).
+                                  {insight.spreadPct > 30 && " That's a significant gap — worth checking scope alignment between brands."}
+                                </p>
+                              ) : (
+                                <p className="mt-3 text-xs text-gray-600">
+                                  Only one brand has priced this item so far — consider requesting quotes from others for a fair comparison.
+                                </p>
+                              )}
+                              {insight.otherItems.length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                  <p className="text-xs font-medium text-gray-500 mb-2">
+                                    {insight.otherItems.length} other related item{insight.otherItems.length > 1 ? "s" : ""}
+                                  </p>
+                                  <div className="space-y-2">
+                                    {(showFullSummary ? insight.otherItems : insight.otherItems.slice(0, 3)).map((oi, idx) => (
+                                      <div key={idx} className="flex items-start justify-between gap-3 text-xs bg-white/70 rounded-lg px-3 py-2 border border-gray-100">
+                                        <span className="text-gray-700 flex-1 min-w-0 break-words">{oi.description}</span>
+                                        <div className="shrink-0 flex flex-col items-end gap-1">
+                                          <span className="text-gray-700 font-mono whitespace-nowrap">
+                                            {oi.min === oi.max ? formatCurrency(oi.min) : `${formatCurrency(oi.min)} – ${formatCurrency(oi.max)}`}
+                                          </span>
+                                          <div className="flex gap-1">
+                                            {oi.brands.slice(0, 3).map((b) => {
+                                              const color = getBrandColor(b);
+                                              return (
+                                                <span key={b} className="text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: color.badge, color: color.text }}>
+                                                  {b}
+                                                </span>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {insight.otherItems.length > 3 && (
+                                    <button
+                                      onClick={() => setShowFullSummary(!showFullSummary)}
+                                      className="mt-2 text-xs text-[#15406a] hover:underline focus:outline-none"
+                                    >
+                                      {showFullSummary ? "Show less" : `Show all ${insight.otherItems.length} items`}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {insight.kind !== "empty" && (
                             <button
                               onClick={() => setShowDetailedResults(!showDetailedResults)}
-                              className="text-xs text-cyan-600 hover:underline focus:outline-none"
+                              className="mt-3 text-xs text-[#15406a] hover:underline focus:outline-none"
                             >
-                              {showDetailedResults ? 'Hide detailed breakdown' : 'Show detailed breakdown'}
+                              {showDetailedResults ? "Hide detailed breakdown" : "Show detailed breakdown"}
                             </button>
-                          </div>
+                          )}
                         </div>
                       );
                     })()}
@@ -1404,8 +1616,9 @@ export default function CompareBQPage() {
                 )}
               </div>
             </div>
-        </DialogContent>
-      </Dialog>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -2,9 +2,10 @@
 //
 // Local, rule-based tender description generator. Runs without any LLM —
 // parses a short staff note for recognizable signals (project type, phases,
-// closure status, duration, night work) and composes real sentences from
-// them. Used as the primary generator when no ANTHROPIC_API_KEY is
-// configured, and as a fallback if the Anthropic call fails.
+// closure status, duration, night work, and per-work-item durations) and
+// composes real sentences from them. Used as the primary generator when no
+// ANTHROPIC_API_KEY is configured, and as a fallback if the Anthropic call
+// fails.
 
 type Closure = "none" | "full" | "partial" | "unspecified" | null;
 
@@ -16,7 +17,33 @@ interface ClauseInfo {
   nightWorkOnly: boolean;
 }
 
+interface DurationSegment {
+  duration: string;
+  workType: string;
+}
+
 const CLAUSE_SPLIT = /\s*(?:,\s*)?\b(?:but|while|whereas|however)\b\s*|\s*;\s*/gi;
+
+const PROJECT_SIZE_WORDS = ["small", "minor", "major", "large", "substantial", "extensive"];
+const PROJECT_TYPE_WORDS = [
+  "refurbishment",
+  "renovation",
+  "revamp",
+  "upgrade",
+  "fit-out",
+  "fitout",
+  "repair",
+  "maintenance",
+  "construction",
+  "installation",
+  "reinstatement",
+];
+
+// Matches "<n> <unit> for/of <work type words>" so multi-part notes like
+// "15 days for night works and another 6 days for minor work" keep every
+// duration instead of only the first one the old single-duration regex saw.
+const SEGMENT_RE =
+  /(\d+)\s*(day|days|week|weeks|month|months)\s+(?:for|of)\s+([a-z][a-z\s-]*?)(?=\s*(?:,|;|\.|$| and ))/gi;
 
 function splitClauses(input: string): string[] {
   return input
@@ -41,6 +68,24 @@ function extractDuration(clause: string): string | null {
   const n = parseInt(m[1], 10);
   const unit = m[2].toLowerCase().replace(/s$/, "");
   return `${n} ${unit}${n === 1 ? "" : "s"}`;
+}
+
+// Finds every "<n> <unit> for/of <work>" pattern in the full input, not just
+// the first duration mentioned — this is what lets a note describing several
+// work items with different durations (night works vs. minor work, etc.)
+// come through with all of them instead of just one.
+function extractDurationSegments(input: string): DurationSegment[] {
+  const segments: DurationSegment[] = [];
+  const re = new RegExp(SEGMENT_RE);
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(input)) !== null) {
+    const n = parseInt(m[1], 10);
+    const unit = m[2].toLowerCase().replace(/s$/, "");
+    const workType = m[3].trim().replace(/\s+/g, " ");
+    if (!workType) continue;
+    segments.push({ duration: `${n} ${unit}${n === 1 ? "" : "s"}`, workType });
+  }
+  return segments;
 }
 
 function extractClosure(clause: string): Closure {
@@ -68,12 +113,16 @@ function isNightWorkOnly(clause: string): boolean {
   return /\bnight\s*works?\b/i.test(clause) || /\bafter[\s-]?hours\b/i.test(clause);
 }
 
-function isMinorProject(input: string): boolean {
-  return /\bminor\s+(project|works?|renovation)\b/i.test(input);
-}
-
-function isMajorProject(input: string): boolean {
-  return /\bmajor\s+(project|works?|renovation)\b/i.test(input);
+// Restricted to the text before the first digit so a work-item mention like
+// "6 days for minor work" doesn't get mistaken for the overall project being
+// described as "minor" — the project-level size/type descriptor should come
+// from how the note opens, not from a work item buried later in the sentence.
+function extractProjectDescriptor(preamble: string): { size: string | null; type: string | null } {
+  const lower = preamble.toLowerCase();
+  const size = PROJECT_SIZE_WORDS.find((w) => new RegExp(`\\b${w}\\b`).test(lower)) || null;
+  const type =
+    PROJECT_TYPE_WORDS.find((w) => new RegExp(`\\b${w.replace("-", "-?")}\\b`).test(lower)) || null;
+  return { size, type };
 }
 
 function closureFragment(closure: Closure, duration: string | null): string | null {
@@ -106,12 +155,38 @@ function capitalizeSentence(fragment: string): string {
   return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
 }
 
+function joinWithAnd(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
+function buildSubjectSentence(
+  size: string | null,
+  type: string | null,
+  totalPhases: number | null,
+  renovationType: string | undefined
+): string {
+  let base: string;
+  if (size && type) base = `This ${size} ${type} project`;
+  else if (type) base = `This ${type} project`;
+  else if (size) base = `This ${size} project`;
+  else if (renovationType) base = `This ${renovationType.toLowerCase()} project`;
+  else base = "This project";
+
+  if (totalPhases) base += ` will be carried out in ${totalPhases} phases`;
+  return capitalizeSentence(base);
+}
+
 export function generateLocalDescription(
   input: string,
   opts?: { tenderName?: string; renovationType?: string }
 ): string {
   const trimmed = input.trim();
   if (!trimmed) return "";
+
+  const firstDigitIdx = trimmed.search(/\d/);
+  const preamble = firstDigitIdx === -1 ? trimmed : trimmed.slice(0, firstDigitIdx);
 
   const clauses: ClauseInfo[] = splitClauses(trimmed).map((raw) => ({
     raw,
@@ -122,31 +197,33 @@ export function generateLocalDescription(
   }));
 
   const totalPhases = extractPhaseCount(trimmed);
-  const minor = isMinorProject(trimmed);
-  const major = isMajorProject(trimmed);
+  const { size, type } = extractProjectDescriptor(preamble);
+  const segments = extractDurationSegments(trimmed);
 
   const sentences: string[] = [];
 
-  if (minor || major || opts?.renovationType || totalPhases) {
-    const subject = minor
-      ? "This minor renovation project"
-      : major
-      ? "This major renovation project"
-      : opts?.renovationType
-      ? `This ${opts.renovationType.toLowerCase()} project`
-      : "This project";
-    const predicates: string[] = [];
-    if (totalPhases) predicates.push(`will be carried out in ${totalPhases} phases`);
-    sentences.push(predicates.length > 0 ? `${subject} ${predicates.join(", and ")}.` : `${subject}.`);
+  if (size || type || opts?.renovationType || totalPhases) {
+    sentences.push(buildSubjectSentence(size, type, totalPhases, opts?.renovationType));
   }
+
+  if (segments.length > 0) {
+    const parts = segments.map((s) => `${s.workType} (approximately ${s.duration})`);
+    sentences.push(capitalizeSentence(`the works comprise ${joinWithAnd(parts)}`));
+  }
+
+  // Per-work-item night timing is already captured in the segments sentence
+  // above, so the broader "night work only" claim is only added when it
+  // wasn't already accounted for there — otherwise it would incorrectly
+  // extend night-only timing to work items the note never said were night work.
+  const nightCoveredBySegments = segments.some((s) => /night/i.test(s.workType));
 
   for (const c of clauses) {
     const parts: string[] = [];
     const cf = closureFragment(c.closure, c.duration);
     if (cf) parts.push(cf);
-    if (c.nightWorkOnly) parts.push("works will be limited to night hours only");
+    if (c.nightWorkOnly && !nightCoveredBySegments) parts.push("works will be limited to night hours only");
 
-    const body = parts.length > 0 ? parts.join(", and ") : rawFragment(c.raw);
+    const body = parts.length > 0 ? parts.join(", and ") : segments.length === 0 ? rawFragment(c.raw) : null;
     if (!body) continue;
 
     const prefix = c.phaseNumber !== null ? `Phase ${c.phaseNumber}: ` : "";

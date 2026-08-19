@@ -424,7 +424,7 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={openCreateModal}
-                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 transition-all duration-200 hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm text-white bg-[#15406a] hover:bg-[#0d2d4a] transition-all duration-200 hover:-translate-y-0.5"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -490,7 +490,7 @@ export default function AdminUsersPage() {
               <div>
                 <button
                   onClick={clearFilters}
-                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-cyan-600 rounded-lg text-sm font-medium text-cyan-700 bg-transparent hover:bg-cyan-50 transition"
+                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-[#15406a] rounded-lg text-sm font-medium text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white transition"
                 >
                   Clear Filters
                 </button>
@@ -580,11 +580,11 @@ export default function AdminUsersPage() {
                             <button
                               onClick={() => requestSendEmail(user.user_id, user.email)}
                               disabled={sending === user.user_id}
-                              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#15406a] bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {sending === user.user_id ? "Sending…" : "Send Email"}
                             </button>
-                            <button onClick={() => openEditModal(user)} disabled={deletingUserId === user.user_id} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed">Edit</button>
+                            <button onClick={() => openEditModal(user)} disabled={deletingUserId === user.user_id} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#15406a] bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed">Edit</button>
                             <button onClick={() => handleDelete(user.user_id)} disabled={deletingUserId === user.user_id} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-800 border-red-200 hover:bg-red-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                               {deletingUserId === user.user_id ? "Deleting…" : "Delete"}
                             </button>
@@ -826,7 +826,7 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-lg text-sm font-medium text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] rounded-lg text-sm font-medium text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[#15406a] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {formSubmitting ? "Saving…" : editingUser ? "Update User" : "Create User"}
                 </button>

@@ -162,7 +162,7 @@ function BriefingDatesSection({
                 value={briefing.description}
                 onChange={(e) => updateBriefingDate(briefing.id!, "description", e.target.value)}
                 placeholder="e.g., Site walkthrough, Q&A session, etc."
-                className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition"
               />
             </div>
           </div>
@@ -417,6 +417,9 @@ export default function TenderForm({
           renovationType: renovationTypes.find(
             (t) => t.type_id === parseInt(formData.renovation_type_id)
           )?.type_name,
+          renovationTypeId: formData.renovation_type_id
+            ? parseInt(formData.renovation_type_id)
+            : undefined,
         }),
       });
       const data = await res.json();
@@ -566,7 +569,7 @@ export default function TenderForm({
   if (loadingLookups) {
     return (
       <div className="text-center py-8">
-        <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <div className="w-8 h-8 border-3 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
         <p className="text-slate-500">Loading form data…</p>
       </div>
     );
@@ -592,7 +595,7 @@ export default function TenderForm({
             onFocus={() => setShowBranchDropdown(true)}
             placeholder="Search branch…"
             required
-            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition"
           />
           {showBranchDropdown && filteredBranches.length > 0 && (
             <ul
@@ -636,7 +639,7 @@ export default function TenderForm({
             value={formData.renovation_type_id}
             onChange={handleChange}
             required
-            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition"
           >
             <option value="">Select type</option>
             {renovationTypes.map((t) => (
@@ -665,7 +668,7 @@ export default function TenderForm({
             value={formData.tender_name}
             onChange={handleChange}
             required
-            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition"
           />
           <p className="text-xs text-slate-500 mt-1">
             Auto‑generated – you can edit it.
@@ -689,7 +692,7 @@ export default function TenderForm({
                   name="estimated_budget"
                   value={formData.estimated_budget}
                   onChange={handleChange}
-                  className="pl-7 w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                  className="pl-7 w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition"
                   placeholder="0.00"
                 />
               </div>
@@ -756,19 +759,24 @@ export default function TenderForm({
                 }
               }}
               placeholder='e.g. "minor project, no closure, night work only, 2 phases"'
-              className="flex-1 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition text-sm px-3 py-2"
+              className="flex-1 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition text-sm px-3 py-2"
             />
-            <Button
-              type="button"
-              onClick={handleGenerateDescription}
-              disabled={isGeneratingDescription}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1.5 border-indigo-300 text-indigo-600 hover:bg-indigo-50 whitespace-nowrap disabled:opacity-50"
-            >
-              <Sparkles className={`w-4 h-4 ${isGeneratingDescription ? "animate-pulse" : ""}`} />
-              {isGeneratingDescription ? "Generating…" : "Generate with AI"}
-            </Button>
+            <div className="relative inline-block z-0">
+              <span className="absolute -top-2.5 -right-2 z-20 pointer-events-none rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gray-600 whitespace-nowrap shadow-sm">
+                Beta
+              </span>
+              <Button
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={isGeneratingDescription}
+                variant="outline"
+                size="sm"
+                className="relative z-0 flex items-center gap-1.5 border-2 border-[#15406a] text-[#15406a] hover:bg-[#15406a] hover:text-white whitespace-nowrap disabled:opacity-50"
+              >
+                <Sparkles className={`w-4 h-4 ${isGeneratingDescription ? "animate-pulse" : ""}`} />
+                {isGeneratingDescription ? "Generating…" : "Generate"}
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-slate-400 mb-2">
             Type a short note about the project and generate a full description — you can edit it after.
@@ -780,7 +788,7 @@ export default function TenderForm({
             rows={6}
             value={formData.tender_description}
             onChange={handleChange}
-            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-y min-h-[140px]"
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition resize-y min-h-[140px]"
             placeholder="Describe the scope of work, key requirements, site conditions, special instructions, etc."
           />
           <div className="text-right text-xs text-slate-400 mt-1">
@@ -840,7 +848,7 @@ export default function TenderForm({
               name="defect_liability_months"
               value={formData.defect_liability_months}
               onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-[#15406a] outline-none"
             />
           </div>
         </div>
@@ -878,7 +886,7 @@ export default function TenderForm({
               value={formData.project_manager_name}
               onChange={handleChange}
               placeholder="e.g. Mr. Jack Puan"
-              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition"
             />
           </div>
           <div>
@@ -891,7 +899,7 @@ export default function TenderForm({
               value={formData.project_manager_email}
               onChange={handleChange}
               placeholder="e.g. jack@company.com"
-              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition"
             />
           </div>
           <div>
@@ -904,7 +912,7 @@ export default function TenderForm({
               value={formData.project_manager_phone}
               onChange={handleChange}
               placeholder="e.g. 8139 0348"
-              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition"
             />
           </div>
         </div>
@@ -925,7 +933,7 @@ export default function TenderForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          className="px-6 py-2 rounded-lg bg-[#15406a] hover:bg-[#0d2d4a] text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">

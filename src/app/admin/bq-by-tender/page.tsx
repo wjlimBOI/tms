@@ -225,9 +225,9 @@ export default function AdminBQByTenderPage() {
 
   if (sessionStatus === "loading" || loadingTenders) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-10 h-10 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-gray-500">Loading tenders…</p>
         </div>
       </div>
@@ -236,13 +236,13 @@ export default function AdminBQByTenderPage() {
 
   if (tenderError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-white p-4">
         <div className="bg-white rounded-xl border border-red-200 p-6 max-w-md text-center shadow-sm">
           <div className="text-red-600 text-lg font-semibold mb-2">Unable to load tenders</div>
           <p className="text-gray-600 text-sm">{tenderError}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md transition"
+            className="mt-4 px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-md transition"
           >
             Retry
           </button>
@@ -252,12 +252,12 @@ export default function AdminBQByTenderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 py-6 px-4 sm:px-6 lg:px-8 shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
               BQs by Tender
             </h1>
           </div>
@@ -308,7 +308,7 @@ export default function AdminBQByTenderPage() {
                         {filteredBqs.length > 0 && (
                           <>
                             <span className="w-1 h-1 rounded-full bg-gray-400" />
-                            <span className="font-medium text-cyan-600">
+                            <span className="font-medium text-[#15406a]">
                               {filteredBqs.length} BQ{filteredBqs.length !== 1 ? 's' : ''}
                             </span>
                           </>
@@ -339,7 +339,7 @@ export default function AdminBQByTenderPage() {
                           <span className="flex flex-wrap gap-1">
                             {Array.from(contractorLetterMap.values()).map((label, idx) => (
                               <span key={idx} className="inline-flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#15406a]" />
                                 {label}
                               </span>
                             ))}
@@ -347,7 +347,7 @@ export default function AdminBQByTenderPage() {
                         </div>
                         <Link
                           href={`/admin/bqs?tender_id=${tender.tender_id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white transition shadow-sm"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-[#15406a] hover:bg-[#0d2d4a] text-white transition shadow-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -359,7 +359,7 @@ export default function AdminBQByTenderPage() {
 
                       {loadingBQs[tender.tender_id] ? (
                         <div className="flex justify-center py-10">
-                          <div className="w-8 h-8 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-8 h-8 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin" />
                         </div>
                       ) : filteredBqs.length === 0 ? (
                         <div className="text-center py-8 text-gray-500 text-sm">
@@ -402,7 +402,7 @@ export default function AdminBQByTenderPage() {
                                     </td>
                                     <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
                                       <span className="inline-flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                                        <span className="w-2 h-2 rounded-full bg-[#15406a]" />
                                         {maskedContractor}
                                       </span>
                                     </td>
@@ -421,7 +421,7 @@ export default function AdminBQByTenderPage() {
                                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{bq.work_type}</td>
                                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">{formatDate(bq.updated_at)}</td>
                                     <td className="px-4 py-3 text-center whitespace-nowrap">
-                                      <Link href={`/bq/${bq.submission_id}/view`} className="text-cyan-600 hover:text-cyan-700 mr-3 transition text-xs font-medium">
+                                      <Link href={`/bq/${bq.submission_id}/view`} className="text-[#15406a] hover:text-[#0d2d4a] mr-3 transition text-xs font-medium">
                                         View
                                       </Link>
                                       <button

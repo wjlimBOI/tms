@@ -64,13 +64,15 @@ export default function TenderTemplateView() {
           const res = await fetch(`/api/tenders/${id}/acknowledgement-status`);
           const data = await res.json();
           if (!data.acknowledged) {
-            router.push(`/tenders/${id}/document`);
+            // No standalone acknowledgement page — the tender detail page
+            // owns the one-time Agreement & Acknowledgement modal.
+            router.push(`/tenders/${id}`);
             return;
           }
           setCheckingAck(false);
         } catch (err) {
           console.error(err);
-          router.push(`/tenders/${id}/document`);
+          router.push(`/tenders/${id}`);
         }
       };
       checkAcknowledgment();

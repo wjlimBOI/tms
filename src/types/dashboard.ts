@@ -20,4 +20,5 @@ export interface AwardedTenderItem {
   contractor_name: string;
   contract_value: number;
   awarded_date: string;
+  brand_name?: string;
 }

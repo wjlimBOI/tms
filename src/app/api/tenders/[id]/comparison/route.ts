@@ -10,20 +10,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query, getClient } from "@/lib/db";
 import { z } from "zod";
-import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 import { sanitize } from "@/lib/sanitize";
 import { logInsert, logUpdate } from "@/lib/audit";
-
-function canManageComparison(roleIds: number[]): boolean {
-  return (
-    isSuperUser(roleIds) ||
-    roleIds.includes(ROLE_IDS.PROJECT_MANAGER) ||
-    roleIds.includes(ROLE_IDS.SENIOR_PROJECT_MANAGER) ||
-    roleIds.includes(ROLE_IDS.FINANCE_MANAGER) ||
-    roleIds.includes(ROLE_IDS.FINANCE_GENERAL_MANAGER) ||
-    roleIds.includes(ROLE_IDS.FINANCE_TEAM)
-  );
-}
+import { canManageSavedComparison } from "@/lib/permissions";
 
 const saveSchema = z.object({
   title: z.string().max(200).optional().nullable(),
@@ -37,8 +26,9 @@ export async function GET(
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = (session.user as any).id;
   const roleIds = (session.user as any)?.roleIds || [];
-  if (!canManageComparison(roleIds)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await canManageSavedComparison(userId, roleIds))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const tenderId = parseInt(id);
@@ -78,7 +68,7 @@ export async function POST(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as any).id;
   const roleIds = (session.user as any)?.roleIds || [];
-  if (!canManageComparison(roleIds)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await canManageSavedComparison(userId, roleIds))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const tenderId = parseInt(id);

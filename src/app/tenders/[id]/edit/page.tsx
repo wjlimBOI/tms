@@ -826,7 +826,7 @@ export default function TenderEditPage() {
               {scopeClauses.map((clause, i) => (
                 <div key={i} className="mb-3 break-inside-avoid-page">
                   <div className="font-bold text-slate-800">{clause.title}</div>
-                  <div className="ml-4 text-slate-700">{clause.description}</div>
+                  <div className="ml-4 text-slate-700 whitespace-pre-wrap">{clause.description}</div>
                 </div>
               ))}
             </div>
@@ -868,7 +868,7 @@ export default function TenderEditPage() {
                   return (
                     <div key={i} className="mb-2 break-inside-avoid-page">
                       <div className="font-bold text-slate-800">{term.header}</div>
-                      <div className="ml-4 text-slate-700">{term.text}</div>
+                      <div className="ml-4 text-slate-700 whitespace-pre-wrap">{term.text}</div>
                     </div>
                   );
                 })}

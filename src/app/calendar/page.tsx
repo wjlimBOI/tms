@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { format, parseISO } from "date-fns";
 import { useNotify } from "@/components/ui/notification-provider";
@@ -18,9 +20,9 @@ import { isSuperUser } from "@/lib/roles";
 const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
   ssr: false,
   loading: () => (
-    <div className="h-full flex items-center justify-center bg-white/50 backdrop-blur-sm rounded-2xl border border-slate-200">
+    <div className="h-full flex items-center justify-center bg-white rounded-xl border border-slate-200">
       <div className="text-center">
-        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <div className="w-8 h-8 border-2 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
         <p className="text-sm text-slate-500">Loading calendar…</p>
       </div>
     </div>
@@ -35,6 +37,120 @@ import multimonthPlugin from "@fullcalendar/multimonth";
 // ============================================================
 // 1. Reusable Modal Components
 // ============================================================
+
+// The shared Dialog (`src/components/ui/dialog.tsx`, built on
+// @base-ui/react's Dialog + FloatingFocusManager) has a focus-management
+// race specific to these two event forms: clicking a plain field (the
+// title input, a Brand/Branch/Tender select) after the dialog opens
+// unreliably fails to focus it, sometimes ejecting focus to the dialog
+// shell or auto-scrolling the panel instead. Confirmed via extensive live
+// testing to be absent from every other Dialog in the app and unaffected
+// by removing FullCalendar, DateTimePicker, or React Strict Mode - so it's
+// a library-level interaction with this particular form, not something in
+// our code driving it. None of Base UI's own focus props (`initialFocus`
+// variants) resolved it. This lightweight modal sidesteps the whole
+// FloatingFocusManager machinery: plain portal + backdrop, Escape to
+// close, click-outside to close, and a minimal manual Tab-cycle so
+// keyboard users still can't tab out of it - no document-level blur/focus
+// interception to race with a click.
+function SimpleModal({
+  open,
+  onClose,
+  titleId,
+  className,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  titleId: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Callers pass an inline `onClose` (e.g. `() => setShowAddModal(false)`),
+  // a fresh function reference on every parent render - including every
+  // keystroke, since typing updates form state. Reading it through a ref
+  // instead of putting it in the effect's own deps keeps the focus-setup
+  // effect below from re-running (and re-grabbing focus) on every keystroke.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // Runs once per open/close transition, not on every render: grabs focus
+  // into the panel and locks the initial-focus/scroll-lock/restore-focus
+  // lifecycle to the modal actually opening or closing, not to unrelated
+  // re-renders (which would otherwise yank focus out of whatever field the
+  // user is actively typing in every time `onClose`'s identity changes).
+  useEffect(() => {
+    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusables = panelRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
+  if (!open || typeof window === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 bg-black/20"
+        aria-hidden="true"
+        onClick={onClose}
+      />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        // `relative` is load-bearing, not decorative: the backdrop above is
+        // `position: fixed`, so per CSS stacking rules a `position: static`
+        // sibling (the default) paints *behind* it regardless of DOM order
+        // - the panel would be visually on top (seen through the dim
+        // overlay) while the backdrop silently ate every click and
+        // keystroke meant for the fields inside. This is what the whole
+        // "date/time picker is broken" investigation traced back to.
+        className={`relative ${className || ""}`}
+        onClick={e => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 // ---------- Edit Event Modal ----------
 interface EditEventModalProps {
@@ -77,6 +193,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     branch_id: "",
     tender_id: "",
   });
+  const titleId = useId();
 
   useEffect(() => {
     if (isOpen && eventData) {
@@ -107,16 +224,15 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const availableBranches = branchMap.get(brandKey) || [];
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent showCloseButton={false} className="max-w-lg max-h-[90vh] overflow-y-auto p-0 gap-0">
+    <SimpleModal open onClose={onClose} titleId={titleId} className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl outline-none">
         <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-full bg-[#15406a]/10 flex items-center justify-center">
+              <svg className="w-5 h-5 text-[#15406a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </div>
-            <DialogTitle className="text-xl font-bold text-slate-900">Edit Event</DialogTitle>
+            <h2 id={titleId} className="text-xl font-bold text-slate-900">Edit Event</h2>
           </div>
         </div>
         <div className="p-6 space-y-4">
@@ -126,7 +242,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               type="text"
               value={formData.title}
               onChange={e => setFormData({ ...formData, title: e.target.value })}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -146,7 +262,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               type="checkbox"
               checked={formData.all_day}
               onChange={e => setFormData({ ...formData, all_day: e.target.checked })}
-              className="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+              className="rounded border-slate-300 text-[#15406a] focus:ring-[#15406a]"
             />
             <span className="text-sm">All day event</span>
           </label>
@@ -158,7 +274,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                 const newBrandId = e.target.value;
                 setFormData({ ...formData, brand_id: newBrandId, branch_id: "" });
               }}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none"
             >
               <option value="">Select brand (optional)</option>
               {brands.map(b => <option key={b.brand_id} value={b.brand_id}>{b.displayName}</option>)}
@@ -169,7 +285,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             <select
               value={formData.branch_id}
               onChange={e => setFormData({ ...formData, branch_id: e.target.value })}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none"
               disabled={!formData.brand_id}
             >
               <option value="">Select branch</option>
@@ -182,7 +298,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             <select
               value={formData.tender_id}
               onChange={e => setFormData({ ...formData, tender_id: e.target.value })}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none"
             >
               <option value="">Select tender (optional)</option>
               {tenders.map(t => <option key={t.tender_id} value={t.tender_id}>{t.tender_name}</option>)}
@@ -194,7 +310,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               rows={2}
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none resize-none"
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none resize-none"
             />
           </div>
         </div>
@@ -208,13 +324,12 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           <button
             onClick={() => onSave(formData)}
             disabled={isSaving || !formData.title.trim() || !formData.start_date}
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-medium text-sm shadow-sm disabled:opacity-50 transition"
+            className="px-4 py-2 rounded-lg bg-[#15406a] hover:bg-[#0d2d4a] text-white font-medium text-sm shadow-sm disabled:opacity-50 transition"
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </SimpleModal>
   );
 };
 
@@ -230,6 +345,7 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<EventInput | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const addModalTitleId = useId();
   const [brands, setBrands] = useState<{ brand_id: number; brand_name: string; displayName: string }[]>([]);
   const [branchMap, setBranchMap] = useState<Map<string, { branch_id: number; branch_name: string }[]>>(new Map());
   const [tenders, setTenders] = useState<{ tender_id: number; tender_name: string }[]>([]);
@@ -629,9 +745,9 @@ export default function CalendarPage() {
   // ---------- Render ----------
   if (status === "loading" || loading || hasAccess === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-slate-600">Loading your calendar...</p>
         </div>
       </div>
@@ -641,31 +757,39 @@ export default function CalendarPage() {
   if (hasAccess === false) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <div className="flex-1 flex flex-col max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8 flex-shrink-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
+            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
               Project Calendar
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               Industrial‑grade timeline for all renovation projects
             </p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-lg shadow-cyan-500/20 transition-all duration-200 transform hover:scale-[1.02] active:scale-95 flex-shrink-0"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Add New Event
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link
+              href="/calendar/upcoming"
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-md border border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white transition-colors"
+            >
+              List View
+            </Link>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white px-5 py-2.5 rounded-md text-sm font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add New Event
+            </button>
+          </div>
         </div>
 
         {/* Calendar container – fills remaining height */}
-        <div className="flex-1 min-h-[500px] bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/50 overflow-hidden">
+        <div className="flex-1 min-h-[500px] bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="h-full p-4 sm:p-5 lg:p-6">
             <FullCalendar
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, multimonthPlugin]}
@@ -719,7 +843,7 @@ export default function CalendarPage() {
                   <ul className="divide-y divide-slate-200">
                     {selectedEvent.extendedProps.children.map((child: any, idx: number) => (
                       <li key={child.event_id || idx} className="py-2 flex items-start gap-2">
-                        <span className="w-2 h-2 rounded-full bg-cyan-500 mt-1.5 flex-shrink-0" />
+                        <span className="w-2 h-2 rounded-full bg-[#15406a] mt-1.5 flex-shrink-0" />
                         <div>
                           <p className="text-sm font-medium text-slate-800">{child.title}</p>
                           <p className="text-xs text-slate-500">
@@ -777,7 +901,7 @@ export default function CalendarPage() {
                   </div>
                   {canEditEvent(selectedEvent) && !selectedEvent.extendedProps?.children && (
                     <div className="flex gap-3 mt-6">
-                      <button onClick={openEditModal} disabled={isDeletingEvent} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition text-sm font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button onClick={openEditModal} disabled={isDeletingEvent} className="flex-1 px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg transition text-sm font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
                         Edit
                       </button>
                       <button onClick={openDeleteConfirm} disabled={isDeletingEvent} className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition text-sm font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
@@ -807,10 +931,14 @@ export default function CalendarPage() {
         />
 
         {/* Add Event Modal */}
-        <Dialog open={showAddModal} onOpenChange={(open) => { if (!open) setShowAddModal(false); }}>
-          <DialogContent showCloseButton={false} className="max-w-lg max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <SimpleModal
+          open={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          titleId={addModalTitleId}
+          className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl outline-none"
+        >
               <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4">
-                <DialogTitle className="text-xl font-bold text-slate-900">Create New Event</DialogTitle>
+                <h2 id={addModalTitleId} className="text-xl font-bold text-slate-900">Create New Event</h2>
               </div>
               <div className="p-6 space-y-4">
                 <input
@@ -818,7 +946,7 @@ export default function CalendarPage() {
                   placeholder="Event title *"
                   value={newEvent.title}
                   onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
-                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none transition"
+                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none transition"
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <DateTimePicker
@@ -835,7 +963,7 @@ export default function CalendarPage() {
                     type="checkbox"
                     checked={newEvent.all_day}
                     onChange={e => setNewEvent({ ...newEvent, all_day: e.target.checked })}
-                    className="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                    className="rounded border-slate-300 text-[#15406a] focus:ring-[#15406a]"
                   />
                   <span className="text-sm">All day event</span>
                 </label>
@@ -847,7 +975,7 @@ export default function CalendarPage() {
                       const brandId = e.target.value;
                       setNewEvent({ ...newEvent, brand_id: brandId, branch_id: "" });
                     }}
-                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none"
                   >
                     <option value="">Select brand (optional)</option>
                     {brands.map(b => <option key={b.brand_id} value={b.brand_id}>{b.displayName}</option>)}
@@ -858,7 +986,7 @@ export default function CalendarPage() {
                   <select
                     value={newEvent.branch_id}
                     onChange={e => setNewEvent({ ...newEvent, branch_id: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none"
                     disabled={!newEvent.brand_id}
                   >
                     <option value="">Select branch</option>
@@ -871,7 +999,7 @@ export default function CalendarPage() {
                   <select
                     value={newEvent.tender_id}
                     onChange={e => setNewEvent({ ...newEvent, tender_id: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none"
                   >
                     <option value="">Select tender (optional)</option>
                     {tenders.map(t => <option key={t.tender_id} value={t.tender_id}>{t.tender_name}</option>)}
@@ -882,15 +1010,14 @@ export default function CalendarPage() {
                   rows={3}
                   value={newEvent.description}
                   onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
-                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none resize-none"
+                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-[#15406a] focus:outline-none resize-none"
                 />
               </div>
               <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
                 <button onClick={() => setShowAddModal(false)} className="px-5 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-50 transition font-medium">Cancel</button>
-                <button onClick={handleAddEvent} disabled={isAddingEvent} className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl font-medium shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed">{isAddingEvent ? "Creating…" : "Create Event"}</button>
+                <button onClick={handleAddEvent} disabled={isAddingEvent} className="px-5 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-xl font-medium shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed">{isAddingEvent ? "Creating…" : "Create Event"}</button>
               </div>
-          </DialogContent>
-        </Dialog>
+        </SimpleModal>
       </div>
 
       {/* ---------- Global CSS Overrides ---------- */}

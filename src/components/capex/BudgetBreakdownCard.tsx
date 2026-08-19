@@ -67,7 +67,7 @@ export function BudgetBreakdownCard({
           variant="outline"
           size="sm"
           onClick={() => setIsEditing(!isEditing)}
-          className="gap-1"
+          className="gap-1 border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white"
         >
           {isEditing ? (
             <>
@@ -87,7 +87,7 @@ export function BudgetBreakdownCard({
             <div
               key={item.key}
               className={`flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 border-b border-slate-100 pb-2 last:border-0 ${
-                isSelected ? 'bg-cyan-50 -mx-2 px-2 rounded' : ''
+                isSelected ? 'bg-[#15406a]/5 -mx-2 px-2 rounded' : ''
               }`}
             >
               <span className="text-sm font-medium text-slate-700">{item.label}</span>

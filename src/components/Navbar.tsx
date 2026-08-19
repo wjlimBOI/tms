@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ROLE_IDS, isSuperUser } from "@/lib/roles";
+import { getBrandColorSlug, getBrandWebsite } from "@/lib/brandColors";
+import { relativeTime } from "@/lib/relativeTime";
+
+// Fixed display order for the brand strip at the foot of the navbar -
+// matches how the business refers to these brands, not alphabetical.
+const BRAND_STRIP = ["Yun Nam", "London", "New York", "Dorra", "Shakura", "Jonsson", "Victoria"];
 
 interface SearchResult {
   id: number;
@@ -29,19 +35,6 @@ function notificationIcon(title: string): string {
   if (t.includes("approved")) return "✅";
   if (t.includes("rejected")) return "⚠️";
   return "🔔";
-}
-
-function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins} min ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} hr ago`;
-  const days = Math.floor(hrs / 24);
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  return new Date(iso).toLocaleDateString();
 }
 
 interface RecentMessage {
@@ -295,6 +288,7 @@ export default function Navbar() {
     eye:       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0Z" /></svg>,
     profile:   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0ZM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>,
     signout:   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" /></svg>,
+    inbox:     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" /></svg>,
   };
 
   // Loading state
@@ -507,6 +501,13 @@ export default function Navbar() {
                         ))
                       )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => { setIsInboxOpen(false); router.push("/messages"); }}
+                      className="w-full px-4 py-2.5 text-center text-xs font-semibold text-[#15406a] border-t border-gray-100 hover:bg-slate-50 transition-colors"
+                    >
+                      See all messages
+                    </button>
                   </div>
                 )}
               </div>
@@ -592,12 +593,49 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Brand strip - the seven brands this system runs tenders for, each
+          keyed to the same color used for that brand everywhere else in the
+          app (dashboard, tender list accents). The segmented rule is solid
+          color per brand, not a gradient, and the glow is a static ring
+          shadow rather than an animation - a quiet "systems" accent that
+          stays inside the light/minimal design language. Colors come from
+          static CSS classes (globals.css), not inline style - this strip is
+          static SSR content, and this app's CSP drops inline style
+          attributes on server-rendered markup (see globals.css and
+          src/lib/brandColors.ts for the same constraint elsewhere). */}
+      <div className="hidden sm:flex items-stretch" aria-hidden="true">
+        {BRAND_STRIP.map((brand) => (
+          <div
+            key={brand}
+            className={`navbar-brand-color-${getBrandColorSlug(brand)} navbar-brand-segment h-[3px] flex-1`}
+          />
+        ))}
+      </div>
+      <div className="hidden sm:flex items-center justify-center flex-wrap gap-x-5 gap-y-1 px-4 py-1.5 bg-slate-50/60 border-t border-slate-100/80">
+        {BRAND_STRIP.map((brand) => {
+          const website = getBrandWebsite(brand);
+          return (
+            <a
+              key={brand}
+              href={website ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Visit the ${brand} website`}
+              className={`navbar-brand-color-${getBrandColorSlug(brand)} navbar-brand-label text-[10px] font-semibold uppercase tracking-wider transition-opacity hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50 rounded-sm`}
+            >
+              {brand}
+            </a>
+          );
+        })}
+      </div>
+
       {/* Hamburger Dropdown */}
       {isMenuOpen && (
         <div id="navbar-menu-panel" ref={menuRef} className="absolute left-0 top-full z-40 bg-white border-r border-b border-gray-100 rounded-br-2xl shadow-2xl py-2 min-w-[200px]" style={{ width: "max-content" }}>
           <SectionLabel>Workspace</SectionLabel>
           <NavLink href="/tenders" icon={icons.tender}>Tenders</NavLink>
           {!isAdmin && <NavLink href="/bq/my" icon={icons.building}>Bill of Quantities</NavLink>}
+          <NavLink href="/messages" icon={icons.inbox}>Messages</NavLink>
 
           {isContractor && (
             <>

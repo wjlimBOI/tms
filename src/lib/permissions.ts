@@ -269,6 +269,20 @@ export async function canAccessTenderMessages(
   return { allowed: false, isStaff: false };
 }
 
+// ========== TEAM MESSAGING (conversation / conversation_participant / message) ==========
+// Fully independent of tender messaging above — a plain participant-row
+// existence check, deliberately with NO Admin/Developer bypass. DMs and
+// group chats are private between their participants; unlike tender
+// messages, staff have no oversight-access requirement here (2026-08-19
+// decision).
+export async function canAccessConversation(conversationId: number, userId: number): Promise<boolean> {
+  const result = await pool.query(
+    `SELECT 1 FROM conversation_participant WHERE conversation_id = $1 AND user_id = $2`,
+    [conversationId, userId]
+  );
+  return result.rows.length > 0;
+}
+
 // ========== TENDER DOCUMENTS (tender_document / tenders/documents/[filename]) ==========
 // Any staff (non-Contractor) role can view any tender's documents, matching
 // canViewTender's existing convention. A Contractor needs real participation
@@ -409,4 +423,40 @@ export async function canViewDraftTender(userId: number, roleIds: number | numbe
   const roles = normalizeRoleIds(roleIds);
   if (isSuperViewer(roles)) return true;
   return hasPermission(userId, roles, "Tender Management", "view_draft_tenders");
+}
+
+// ========== FINANCE SUMMARY / RESUBMISSION / DOCUMENT UPLOAD / SAVED COMPARISON ==========
+// Permission-table-backed as of 2026-08-14 (previously hardcoded ROLE_IDS
+// checks duplicated across each route's own file — see docs/rbac.md "Still
+// open"). Role mappings seeded to match what each check already allowed, so
+// this is a mechanism change, not a behavior change.
+export async function canGenerateFinanceSummary(userId: number, roleIds: number | number[]): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (isSuperUser(roles)) return true;
+  return hasPermission(userId, roles, "BQ", "generate_finance_summary");
+}
+
+export async function canRequestResubmission(userId: number, roleIds: number | number[]): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (isSuperUser(roles)) return true;
+  return hasPermission(userId, roles, "Tender Management", "request_resubmission");
+}
+
+// Still Admin/Developer-only in practice today (no role has been granted
+// this permission — see docs/pending-migrations.md/rbac notes on why:
+// no per-tender authorization model exists yet for uploads). Wired through
+// hasPermission() anyway so it's manageable via Role Permissions once that
+// model exists, without another code change.
+export async function canUploadTenderDocument(userId: number, roleIds: number | number[]): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (isSuperUser(roles)) return true;
+  return hasPermission(userId, roles, "Tender Management", "upload_tender_document");
+}
+
+// De-duplicated from two near-identical copies previously in
+// tenders/[id]/comparison/route.ts and .../comparison/items/[itemId]/route.ts.
+export async function canManageSavedComparison(userId: number, roleIds: number | number[]): Promise<boolean> {
+  const roles = normalizeRoleIds(roleIds);
+  if (isSuperUser(roles)) return true;
+  return hasPermission(userId, roles, "BQ", "manage_saved_comparison");
 }

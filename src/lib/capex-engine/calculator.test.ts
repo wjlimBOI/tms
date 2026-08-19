@@ -48,11 +48,12 @@ describe("calculateCapExMetrics - area tiering (getFirstTier)", () => {
 });
 
 describe("calculateCapExMetrics - renovation cost formula", () => {
-  it("applies the 20% multiplier to both the first-tier and next-tier cost per sqft", () => {
-    // Yun Nam: baseRenovationCostPerSqft = 147, nextTierCostPerSqft = 114
+  it("applies the 20% multiplier using the cost tier matching the snapped-down area, not a flat rate reused across all tiers", () => {
+    // Yun Nam's 1600 tier: ratePerSqft = 139, nextRatePerSqft = 102
+    // (each tier has its own declining rates - see costTiers in brand-rules.ts)
     const result = calculateCapExMetrics({ brand: "Yun Nam", areaSqft: 1650 });
-    const expectedFirstTierCost = 1600 * 147 * 1.2;
-    const expectedNextTierCost = 50 * 114 * 1.2;
+    const expectedFirstTierCost = 1600 * 139 * 1.2;
+    const expectedNextTierCost = 50 * 102 * 1.2;
     expect(result.areaBreakdown.firstTierCost).toBeCloseTo(expectedFirstTierCost, 6);
     expect(result.areaBreakdown.nextTierCost).toBeCloseTo(expectedNextTierCost, 6);
     expect(result.renovationBaseCost).toBeCloseTo(expectedFirstTierCost + expectedNextTierCost, 6);

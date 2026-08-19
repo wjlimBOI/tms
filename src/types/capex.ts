@@ -7,11 +7,24 @@ export type BrandKey =
   | 'Jonsson'
   | 'Victoria';
 
+export interface CostTier {
+  // Area (sqft) anchor this tier starts at, e.g. 1200, 1400, ... 3000.
+  threshold: number;
+  // $/sqft (before the 20% uplift) charged for the area up to and
+  // including this threshold - NOT a flat rate reused across tiers, the
+  // real cost sheet has the rate decline at every threshold.
+  ratePerSqft: number;
+  // $/sqft (before the 20% uplift) charged for the area beyond this
+  // threshold, up to the next one. Also declines per band - never assume
+  // it equals another tier's nextRatePerSqft.
+  nextRatePerSqft: number;
+}
+
 export interface BrandRules {
   brand: BrandKey;
-  baseRenovationCostPerSqft: number;
-  nextTierCostPerSqft: number;
-  tierThresholds: number[];
+  // Ordered ascending by threshold; calculator picks the highest
+  // threshold <= the requested area.
+  costTiers: CostTier[];
   budgetAllocation: BudgetAllocation;
   hasBlueSpirit: boolean;
   hasMaleBed: boolean;

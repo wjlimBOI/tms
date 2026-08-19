@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import DateRangePicker from "@/components/ui/DateRangePicker";
-import "./bq-my.css";
 import { getBQStatusBadgeStyle, getBQStatusLabel } from "@/lib/statusColors";
 import { getBrandColor } from "@/lib/brandColors";
 import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
@@ -236,30 +235,30 @@ export default function BQWorkspacePage() {
 
   if (sessionStatus === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="w-10 h-10 border-3 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-10 h-10 border-2 border-slate-300 border-t-[#15406a] rounded-full animate-spin" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="bg-rose-50/80 backdrop-blur-sm border border-rose-200 rounded-xl p-8 text-center shadow-sm">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-white">
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-8 text-center">
           <p className="text-rose-800">{error}</p>
-          <Button onClick={fetchSubmissions} variant="default" className="mt-4 bg-rose-600 hover:bg-rose-700 text-white">Retry</Button>
+          <Button onClick={fetchSubmissions} variant="default" className="mt-4 bg-[#15406a] hover:bg-[#0d2d4a] text-white">Retry</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-white p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-wrap justify-between items-start gap-4 border-b border-slate-200/50 pb-4">
-          <div className="animate-fade-in-up">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent tracking-tight">
+        <div className="flex flex-wrap justify-between items-start gap-4 border-b border-slate-200 pb-4">
+          <div>
+            <h1 className="font-serif text-3xl font-bold text-slate-900 tracking-tight">
               Bill of Quantities
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -268,13 +267,13 @@ export default function BQWorkspacePage() {
                 : 'Select a BQ submission to view line items'}
             </p>
           </div>
-          <div className="flex gap-2 animate-fade-in">
+          <div className="flex gap-2">
             {selectedDetail && (
               <>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1 text-slate-700 border-slate-300 hover:bg-slate-100"
+                  className="gap-1 border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white"
                   onClick={() => window.open(`/api/bq/export?submissionId=${selectedSubmissionId}`, "_blank")}
                 >
                   <Download className="h-4 w-4" /> Export
@@ -282,14 +281,14 @@ export default function BQWorkspacePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1 text-slate-700 border-slate-300 hover:bg-slate-100"
+                  className="gap-1 border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white"
                   onClick={() => window.open(`/bq/${selectedSubmissionId}/view?print=1`, "_blank")}
                 >
                   <Printer className="h-4 w-4" /> Print
                 </Button>
                 {selectedDetail.canEdit && (
                   <Link href={`/bq/${selectedSubmissionId}/edit`}>
-                    <Button variant="default" size="sm" className="gap-1 bg-slate-800 hover:bg-slate-700 text-white shadow-sm transition-all hover:-translate-y-0.5">
+                    <Button variant="default" size="sm" className="gap-1 bg-[#15406a] hover:bg-[#0d2d4a] text-white">
                       <Pencil className="h-4 w-4" /> Edit BQ
                     </Button>
                   </Link>
@@ -301,7 +300,7 @@ export default function BQWorkspacePage() {
                 a submission, making it look like "New BQ" didn't exist. */}
             {canCreate && (
               <Link href="/bq/new" className="inline-block">
-                <Button variant="default" className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all hover:-translate-y-0.5">
+                <Button variant="default" className="gap-1 bg-[#15406a] hover:bg-[#0d2d4a] text-white">
                   <Plus className="h-4 w-4" /> New BQ
                 </Button>
               </Link>
@@ -310,7 +309,7 @@ export default function BQWorkspacePage() {
         </div>
 
         {/* Filter Section (unchanged) */}
-        <div className="bg-white/50 backdrop-blur-md rounded-xl border border-slate-200/50 shadow-sm transition-all duration-300">
+        <div className="bg-white rounded-xl border border-slate-200">
           <button
             onClick={() => setIsFiltersOpen(!isFiltersOpen)}
             className="w-full flex justify-between items-center p-4 text-left"
@@ -319,7 +318,7 @@ export default function BQWorkspacePage() {
             <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isFiltersOpen ? 'rotate-180' : ''}`} />
           </button>
           <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isFiltersOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="p-4 pt-0 border-t border-slate-200/50">
+            <div className="p-4 pt-0 border-t border-slate-200">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Client</label>
@@ -328,7 +327,7 @@ export default function BQWorkspacePage() {
                     placeholder="Search by client"
                     defaultValue={clientFilter}
                     onChange={(e) => handleDebouncedSearch(setClientFilter)(e.target.value)}
-                    className="w-full bg-white/50 border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#15406a] focus:border-transparent transition-all"
                   />
                 </div>
                 <div>
@@ -338,7 +337,7 @@ export default function BQWorkspacePage() {
                     placeholder="Search by branch"
                     defaultValue={jobSiteFilter}
                     onChange={(e) => handleDebouncedSearch(setJobSiteFilter)(e.target.value)}
-                    className="w-full bg-white/50 border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#15406a]"
                   />
                 </div>
                 <div>
@@ -348,7 +347,7 @@ export default function BQWorkspacePage() {
                     placeholder="e.g., Renovation"
                     defaultValue={workTypeFilter}
                     onChange={(e) => handleDebouncedSearch(setWorkTypeFilter)(e.target.value)}
-                    className="w-full bg-white/50 border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#15406a]"
                   />
                 </div>
                 <div>
@@ -356,7 +355,7 @@ export default function BQWorkspacePage() {
                   <select
                     value={statusFilter}
                     onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full bg-white/50 border border-slate-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#15406a]"
                   >
                     <option value="">All Statuses</option>
                     <option value="Draft">Draft</option>
@@ -376,14 +375,14 @@ export default function BQWorkspacePage() {
                 />
               </div>
               <div className="flex justify-end gap-3 mt-6">
-                <Button 
-                  onClick={() => { setCurrentPage(1); fetchSubmissions(); }} 
-                  variant="default" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all hover:-translate-y-0.5"
+                <Button
+                  onClick={() => { setCurrentPage(1); fetchSubmissions(); }}
+                  variant="default"
+                  className="bg-[#15406a] hover:bg-[#0d2d4a] text-white"
                 >
                   Apply Filters
                 </Button>
-                <Button variant="outline" onClick={clearFilters} className="text-slate-700 border-slate-300 hover:bg-slate-100">Clear</Button>
+                <Button variant="outline" onClick={clearFilters} className="border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white">Clear</Button>
               </div>
             </div>
           </div>
@@ -396,11 +395,11 @@ export default function BQWorkspacePage() {
             {loading ? (
               <div className="animate-pulse space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-32 bg-slate-200/50 rounded-xl backdrop-blur-sm" />
+                  <div key={i} className="h-32 bg-slate-100 rounded-xl" />
                 ))}
               </div>
             ) : submissions.length === 0 ? (
-              <div className="bg-white/50 backdrop-blur-sm rounded-xl border border-slate-200/50 p-8 text-center">
+              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
                 <p className="text-slate-500">No submissions found</p>
                 {canCreate && (
                   <p className="mt-2 text-xs text-slate-400">Use &ldquo;New BQ&rdquo; above to create your first one.</p>
@@ -417,16 +416,16 @@ export default function BQWorkspacePage() {
                   <div
                     key={sub.submission_id}
                     onClick={() => setSelectedSubmissionId(isSelected ? null : sub.submission_id)}
-                    className={`group relative cursor-pointer rounded-xl border transition-all duration-300 transform ${
+                    className={`group relative cursor-pointer rounded-xl border transition-all duration-200 ${
                       isSelected
-                        ? 'border-cyan-500 bg-cyan-50/50 shadow-md scale-[1.02]'
-                        : 'border-slate-200/50 bg-white/60 backdrop-blur-sm hover:shadow-md hover:-translate-y-1'
+                        ? 'border-[#15406a] bg-[#15406a]/5'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
                     }`}
                     style={{ borderLeftWidth: '4px', borderLeftColor: brandColor.borderColor }}
                   >
                     <div className="p-4">
                       <div className="flex justify-between items-start">
-                        <h3 className="font-semibold text-slate-900 group-hover:text-cyan-700 transition-colors">
+                        <h3 className="font-semibold text-slate-900 group-hover:text-[#15406a] transition-colors">
                           {sub.bq_name}
                         </h3>
                         <Badge variant="secondary" className={statusBadgeClass}>{statusLabel}</Badge>
@@ -443,11 +442,11 @@ export default function BQWorkspacePage() {
                         </div>
                       )}
                       <div className="flex gap-3 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <Link href={`/bq/${sub.submission_id}/view`} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                        <Link href={`/bq/${sub.submission_id}/view`} className="text-xs text-[#15406a] hover:underline flex items-center gap-1">
                           <Eye className="h-3 w-3" /> View
                         </Link>
                         {sub.can_edit && (
-                          <Link href={`/bq/${sub.submission_id}/edit`} className="text-xs text-amber-600 hover:underline flex items-center gap-1">
+                          <Link href={`/bq/${sub.submission_id}/edit`} className="text-xs text-[#15406a] hover:underline flex items-center gap-1">
                             <Pencil className="h-3 w-3" /> Edit
                           </Link>
                         )}
@@ -462,7 +461,7 @@ export default function BQWorkspacePage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border border-slate-300 rounded-md disabled:opacity-40 hover:bg-slate-100 transition"
+                  className="px-3 py-1 text-sm border border-slate-300 rounded-md disabled:opacity-40 hover:bg-slate-50 transition"
                 >
                   Prev
                 </button>
@@ -472,7 +471,7 @@ export default function BQWorkspacePage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border border-slate-300 rounded-md disabled:opacity-40 hover:bg-slate-100 transition"
+                  className="px-3 py-1 text-sm border border-slate-300 rounded-md disabled:opacity-40 hover:bg-slate-50 transition"
                 >
                   Next
                 </button>
@@ -483,8 +482,8 @@ export default function BQWorkspacePage() {
           {/* Right: Detailed BQ Table */}
           <div className="lg:col-span-2">
             {selectedDetail ? (
-              <div className="bg-white/60 backdrop-blur-md rounded-xl border border-slate-200/50 shadow-sm overflow-hidden transition-all duration-500 animate-fade-in">
-                <div className="p-4 border-b border-slate-200/50 flex flex-wrap justify-between items-center gap-3">
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3">
                   <div>
                     <h2 className="text-lg font-semibold text-slate-800">Line Items</h2>
                     <p className="text-xs text-slate-500">Detailed breakdown</p>
@@ -494,7 +493,7 @@ export default function BQWorkspacePage() {
                     <Input
                       type="text"
                       placeholder="Search items..."
-                      className="pl-8 bg-white/50 border-slate-300 focus:ring-2 focus:ring-cyan-500 transition"
+                      className="pl-8 bg-white border-slate-300 focus:ring-2 focus:ring-[#15406a] transition"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -510,13 +509,13 @@ export default function BQWorkspacePage() {
                 </div>
                 {detailLoading ? (
                   <div className="p-8 text-center">
-                    <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin mx-auto mb-2" />
+                    <div className="w-8 h-8 border-2 border-slate-300 border-t-[#15406a] rounded-full animate-spin mx-auto mb-2" />
                     <p className="text-slate-500">Loading items...</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-100/80 backdrop-blur-sm sticky top-0">
+                      <thead className="bg-slate-50 sticky top-0">
                         <tr className="border-b border-slate-200">
                           <th className="px-4 py-3 text-left font-semibold text-slate-600">Item No.</th>
                           <th className="px-4 py-3 text-left font-semibold text-slate-600">Description</th>
@@ -535,8 +534,7 @@ export default function BQWorkspacePage() {
                           safeItems.map((item, idx) => (
                             <tr
                               key={item.line_item_id}
-                              className="border-b border-slate-100 hover:bg-slate-50/50 transition-all duration-200"
-                              style={{ animationDelay: `${idx * 30}ms` }}
+                              className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                             >
                               <td className="px-4 py-3 font-mono text-xs text-slate-600">{item.item_no}</td>
                               <td className="px-4 py-3 text-slate-800">{item.description}</td>
@@ -548,7 +546,7 @@ export default function BQWorkspacePage() {
                           ))
                         )}
                       </tbody>
-                      <tfoot className="bg-slate-100/80 backdrop-blur-sm border-t-2 border-slate-300">
+                      <tfoot className="bg-slate-50 border-t-2 border-slate-300">
                         <tr>
                           <td colSpan={5} className="px-4 py-3 text-right font-bold text-slate-700">Total Estimated Cost</td>
                           <td className="px-4 py-3 text-right font-bold text-slate-900 text-lg">{formatCurrency(totalCost)}</td>
@@ -559,7 +557,7 @@ export default function BQWorkspacePage() {
                 )}
               </div>
             ) : (
-              <div className="bg-white/60 backdrop-blur-md rounded-xl border border-slate-200/50 p-12 text-center transition-all duration-300">
+              <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                 <div className="space-y-3">
                   <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
                     <Eye className="h-8 w-8 text-slate-400" />

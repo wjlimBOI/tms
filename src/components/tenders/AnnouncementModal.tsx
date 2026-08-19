@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { X, Megaphone } from "lucide-react";
 import { useNotify } from "@/components/ui/notification-provider";
-import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface Props {
@@ -81,18 +80,28 @@ export default function AnnouncementModal({ tenderId, tenderName, onClose, onSen
               rows={5}
               maxLength={4000}
               placeholder="e.g. Site access hours have changed for next week..."
-              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition px-3 py-2 text-sm resize-none"
+              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition px-3 py-2 text-sm resize-none"
             />
           </div>
         </div>
 
         <div className="flex justify-end gap-3 p-5 border-t border-slate-200">
-          <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="rounded-md border-2 border-[#15406a] bg-white px-4 py-2 text-sm font-semibold text-[#15406a] transition hover:bg-[#15406a] hover:text-white disabled:pointer-events-none disabled:opacity-50"
+          >
             Cancel
-          </Button>
-          <Button type="button" onClick={handleSubmit} disabled={submitting || !body.trim()}>
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting || !body.trim()}
+            className="rounded-md bg-[#15406a] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0d2d4a] disabled:pointer-events-none disabled:opacity-50"
+          >
             {submitting ? "Sending…" : "Send Announcement"}
-          </Button>
+          </button>
         </div>
       </DialogContent>
     </Dialog>

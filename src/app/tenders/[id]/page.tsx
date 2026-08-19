@@ -37,6 +37,7 @@ import { getDlpStatusBadgeStyle, getDlpStatusLabel, getTenderStatusLabel, getTen
 import { SignaturePad } from "@/components/tenders/SignaturePad";
 import { CompanyStampUpload } from "@/components/tenders/CompanyStampUpload";
 import TenderMessagesPanel from "@/components/tenders/TenderMessagesPanel";
+import AgreementAcknowledgementModal from "@/components/tenders/AgreementAcknowledgementModal";
 import TenderDocumentsPanel from "@/components/tenders/TenderDocumentsPanel";
 import TenderBqsPanel from "@/components/tenders/TenderBqsPanel";
 import SavedComparisonPanel from "@/components/tenders/SavedComparisonPanel";
@@ -98,6 +99,7 @@ interface TenderData {
   defect_liability_months?: number | null;
   handover_by_name?: string | null;
   handover_notes?: string | null;
+  dlp_case_status?: "processing" | "completed" | null;
   clauses?: {
     critical: { title: string; description: string }[];
     scope: { title: string; description: string }[];
@@ -261,6 +263,11 @@ export default function TenderDocumentPage() {
   // ---- Stage update state ----
   const [updatingStage, setUpdatingStage] = useState(false);
 
+  // ---- Agreement acknowledgement (one-time gate in front of the BQ —
+  // replaces having to fill/sign the full Form of Tender every visit) ----
+  const [acknowledged, setAcknowledged] = useState<boolean | null>(null);
+  const [showAcknowledgeModal, setShowAcknowledgeModal] = useState(false);
+
   // ---- Contract-received toggle (staff record-keeping only — the signed
   // contract itself is exchanged over email, not through the app) ----
   const handleToggleContractReceived = async (received: boolean) => {
@@ -307,7 +314,10 @@ export default function TenderDocumentPage() {
       setTender(data);
       if (data.tender_id) {
         fetchExtensionStatus(data.tender_id);
-        if (isContractor) fetchMySubmission(data.tender_id);
+        if (isContractor) {
+          fetchMySubmission(data.tender_id);
+          fetchAcknowledgementStatus(data.tender_id);
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -330,6 +340,28 @@ export default function TenderDocumentPage() {
     }
     if (id) fetchTender();
   }, [id, sessionStatus, router]);
+
+  // ---- fetch acknowledgement status (contractor only) ----
+  const fetchAcknowledgementStatus = async (tenderId: number) => {
+    try {
+      const res = await fetch(`/api/tenders/${tenderId}/acknowledgement-status`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setAcknowledged(!!data.acknowledged);
+    } catch {
+      // Best-effort — the "Get BQ" button falls back to showing the
+      // acknowledgement modal if this hasn't resolved yet.
+    }
+  };
+
+  const handleGetBqClick = () => {
+    if (!tender) return;
+    if (acknowledged) {
+      router.push(`/bq/new?tenderId=${tender.tender_id}`);
+    } else {
+      setShowAcknowledgeModal(true);
+    }
+  };
 
   // ---- fetch extension status ----
   const fetchExtensionStatus = async (tenderId: number) => {
@@ -725,6 +757,18 @@ export default function TenderDocumentPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900 print:bg-white">
       <AlertModal alert={alert} onClose={() => setAlert(null)} />
+      {showAcknowledgeModal && tender && (
+        <AgreementAcknowledgementModal
+          tenderId={tender.tender_id}
+          tenderName={tender.tender_name}
+          onClose={() => setShowAcknowledgeModal(false)}
+          onAcknowledged={() => {
+            setAcknowledged(true);
+            setShowAcknowledgeModal(false);
+            router.push(`/bq/new?tenderId=${tender.tender_id}`);
+          }}
+        />
+      )}
       <PrintDateCleanup />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 print:py-0">
         {/* COVER PAGE (print only) */}
@@ -765,7 +809,7 @@ export default function TenderDocumentPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#15406a] border-2 border-[#15406a] rounded-md bg-white hover:bg-[#15406a] hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#15406a] border border-[#15406a] rounded-md bg-white hover:bg-[#15406a] hover:text-white transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="uppercase tracking-wide">Back</span>
@@ -774,7 +818,7 @@ export default function TenderDocumentPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-slate-300 rounded hover:bg-slate-100 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-[#15406a] rounded-md bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-colors"
             >
               <Printer className="w-4 h-4" />
               Print
@@ -782,7 +826,7 @@ export default function TenderDocumentPage() {
             {isAdmin && (
               <Link
                 href={`/admin/tenders/${id}`}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-[#15406a] rounded hover:bg-[#15406a]/5 text-[#15406a] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-[#15406a] rounded-md bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-colors"
               >
                 <Pencil className="w-4 h-4" />
                 Edit Tender
@@ -790,18 +834,18 @@ export default function TenderDocumentPage() {
             )}
             {isContractor && tender.status_label?.toLowerCase() === "open" ? (
               <>
-                <Link
-                  href={`/tenders/${id}/edit`}
-                  className="flex items-center gap-2 px-5 py-2 text-sm font-bold uppercase tracking-wide bg-slate-900 hover:bg-slate-800 text-white rounded transition-colors shadow-sm"
+                <button
+                  onClick={handleGetBqClick}
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-bold uppercase tracking-wide bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-md transition-colors shadow-sm"
                 >
                   <FileSignature className="w-4 h-4" />
-                  Fill in Tender
-                </Link>
+                  Get BQ
+                </button>
                 {/* --- Request Extension Button --- */}
                 {canRequestExtension() && (
                   <button
                     onClick={() => setShowExtensionModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-[#15406a] rounded hover:bg-[#15406a]/5 text-[#15406a] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-[#15406a] rounded-md bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-colors"
                   >
                     <Clock className="w-4 h-4" />
                     Request Extension
@@ -966,12 +1010,20 @@ export default function TenderDocumentPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">Status:</span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getDlpStatusBadgeStyle(status)}`}>
-                        {getDlpStatusLabel(status)}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {status === "overdue" ? `${daysOverdue} days overdue` : `${daysLeft} days left`}
-                      </span>
+                      {tender.dlp_case_status ? (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getDlpStatusBadgeStyle(tender.dlp_case_status)}`}>
+                          {getDlpStatusLabel(tender.dlp_case_status)}
+                        </span>
+                      ) : (
+                        <>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getDlpStatusBadgeStyle(status)}`}>
+                            {getDlpStatusLabel(status)}
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            {status === "overdue" ? `${daysOverdue} days overdue` : `${daysLeft} days left`}
+                          </span>
+                        </>
+                      )}
                     </div>
                     {tender.handover_by_name && (
                       <div className="sm:col-span-2">
@@ -998,7 +1050,12 @@ export default function TenderDocumentPage() {
         )}
 
         {/* ===== SAVED COMPARISON (persisted rank/total/notes snapshot) ===== */}
-        {tender && canViewBqs && (
+        {/* Gated on canManageComparison, not canViewBqs — GET /comparison
+            requires the same permission as managing it (no separate
+            view-only allowance exists for this feature), so Executive
+            Director (isSuperViewer but not in canManageComparison's role
+            set) would otherwise see a panel whose own data fetch 403s. */}
+        {tender && canManageComparison && (
           <div className="mt-6">
             <SavedComparisonPanel tenderId={tender.tender_id} canManage={canManageComparison} />
           </div>
@@ -1261,7 +1318,7 @@ export default function TenderDocumentPage() {
               {scopeClauses.map((clause, i) => (
                 <div key={i} className="mb-3 break-inside-avoid-page">
                   <div className="font-bold text-slate-800">{clause.title}</div>
-                  <div className="ml-4 text-slate-700">{clause.description}</div>
+                  <div className="ml-4 text-slate-700 whitespace-pre-wrap">{clause.description}</div>
                 </div>
               ))}
             </div>
@@ -1303,7 +1360,7 @@ export default function TenderDocumentPage() {
                   return (
                     <div key={i} className="mb-2 break-inside-avoid-page">
                       <div className="font-bold text-slate-800">{term.header}</div>
-                      <div className="ml-4 text-slate-700">{term.text}</div>
+                      <div className="ml-4 text-slate-700 whitespace-pre-wrap">{term.text}</div>
                     </div>
                   );
                 })}

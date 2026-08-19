@@ -188,6 +188,24 @@ export const STATUS_CONFIG: Record<StatusDomain, StatusConfigMap> = {
         dot: 'bg-rose-500',
       },
     },
+    processing: {
+      label: 'Processing',
+      style: {
+        bg: 'bg-amber-50',
+        text: 'text-amber-700',
+        border: 'border-amber-200',
+        dot: 'bg-amber-500',
+      },
+    },
+    completed: {
+      label: 'Completed',
+      style: {
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-700',
+        border: 'border-emerald-200',
+        dot: 'bg-emerald-500',
+      },
+    },
   },
 };
 

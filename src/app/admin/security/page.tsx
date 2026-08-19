@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -26,6 +26,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 import { isSuperUser, ROLE_IDS } from "@/lib/roles";
+import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from "@/lib/legal";
 
 // ============================================================
 // Types & Shared Helpers
@@ -377,158 +378,14 @@ function TenderTimings({ userPermissions, isAdmin }: { userPermissions: string[]
 }
 
 // ============================================================
-// CC Recipients Settings
-// ============================================================
-function CCSettings() {
-  const toast = useNotify();
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [ccRoleIds, setCcRoleIds] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const rolesRes = await fetch("/api/admin/roles");
-      if (!rolesRes.ok) throw new Error("Failed to fetch roles");
-      const rolesData = await rolesRes.json();
-      setRoles(sortRoles(rolesData));
-
-      const ccRes = await fetch("/api/admin/cc-settings");
-      if (!ccRes.ok) throw new Error("Failed to fetch CC settings");
-      const ccData = await ccRes.json();
-      setCcRoleIds(ccData.role_ids || []);
-    } catch (err: any) {
-      setError(err.message);
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const toggleRole = (roleId: number) => {
-    setCcRoleIds((prev) =>
-      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
-    );
-  };
-
-  const saveSettings = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/cc-settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role_ids: ccRoleIds }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to save CC settings");
-      }
-      toast.success("CC recipients updated successfully");
-    } catch (err: any) {
-      setError(err.message);
-      toast.error(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="text-center py-8">
-        <div className="w-8 h-8 border-3 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-slate-500">Loading CC settings...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600 mb-4">{error}</p>
-        <button
-          onClick={fetchData}
-          className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">CC Recipients</h2>
-        <button
-          onClick={fetchData}
-          className="text-sm text-[#15406a] hover:underline flex items-center gap-1"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh
-        </button>
-      </div>
-
-      <p className="text-sm text-gray-500 mb-6">
-        Select which roles should receive <strong>CC notifications</strong> for tender events (e.g., new tender creation, extension requests, approvals, etc.).
-      </p>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead>
-            <tr className="border-b border-slate-200">
-              <th className="py-2 px-3 font-semibold text-slate-600">Role</th>
-              <th className="py-2 px-3 font-semibold text-slate-600 text-center">Receive CC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {roles.map((role) => (
-              <tr key={role.role_id} className="border-b border-slate-100">
-                <td className="py-2 px-3 font-medium text-slate-800">
-                  {getRoleDisplayName(role.role_name)}
-                </td>
-                <td className="py-2 px-3 text-center">
-                  <input
-                    type="checkbox"
-                    checked={ccRoleIds.includes(role.role_id)}
-                    onChange={() => toggleRole(role.role_id)}
-                    className="w-4 h-4 rounded border-slate-300 text-[#15406a] focus:ring-[#15406a]"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={saveSettings}
-          disabled={saving}
-          className="px-5 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Save CC Settings"}
-        </button>
-      </div>
-
-      <p className="mt-6 text-xs text-slate-400">
-        CC recipients will receive a copy of all relevant tender notifications. This is separate from the approver list for extensions.
-      </p>
-    </div>
-  );
-}
-
-// ============================================================
-// Notification Email Settings
+// Email & CC Settings — per-event email on/off (notification_event_settings)
+// merged with per-event CC role lists (tender_cc_recipients) in one table,
+// since they're both "who hears about this event and how" for the same
+// event_type vocabulary. Previously two separate sub-tabs presenting
+// overlapping event-type lists, which read as related but weren't wired
+// together at all — the CC list wasn't read by any sender until this
+// change. Events without a CC concept (login_alert, password_reset — single
+// -recipient security emails) simply have no CC row and show "—".
 // ============================================================
 const RECOMMENDED_ALWAYS_ON = new Set(["password_reset", "login_alert"]);
 
@@ -538,21 +395,41 @@ interface NotificationEventSetting {
   email_enabled: boolean;
 }
 
+interface CcSetting {
+  event_type: string;
+  role_ids: number[];
+}
+
 function NotificationEmailSettings() {
   const toast = useNotify();
   const [settings, setSettings] = useState<NotificationEventSetting[]>([]);
+  const [ccSettings, setCcSettings] = useState<CcSetting[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingType, setSavingType] = useState<string | null>(null);
+  const [editingCcFor, setEditingCcFor] = useState<string | null>(null);
+  const [ccDraft, setCcDraft] = useState<number[]>([]);
+  const [savingCc, setSavingCc] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/notification-settings");
-      if (!res.ok) throw new Error("Failed to fetch notification settings");
-      const data = await res.json();
-      setSettings(data.settings || []);
+      const [notifRes, ccRes, rolesRes] = await Promise.all([
+        fetch("/api/admin/notification-settings"),
+        fetch("/api/admin/cc-settings"),
+        fetch("/api/admin/roles"),
+      ]);
+      if (!notifRes.ok) throw new Error("Failed to fetch notification settings");
+      if (!ccRes.ok) throw new Error("Failed to fetch CC settings");
+      if (!rolesRes.ok) throw new Error("Failed to fetch roles");
+      const notifData = await notifRes.json();
+      const ccData = await ccRes.json();
+      const rolesData = await rolesRes.json();
+      setSettings(notifData.settings || []);
+      setCcSettings(ccData.settings || []);
+      setRoles(sortRoles(rolesData));
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);
@@ -590,11 +467,44 @@ function NotificationEmailSettings() {
     }
   };
 
+  const startEditingCc = (eventType: string, currentRoleIds: number[]) => {
+    setEditingCcFor(eventType);
+    setCcDraft(currentRoleIds);
+  };
+
+  const toggleCcRole = (roleId: number) => {
+    setCcDraft((prev) => (prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]));
+  };
+
+  const saveCc = async (eventType: string) => {
+    setSavingCc(true);
+    try {
+      const res = await fetch("/api/admin/cc-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_type: eventType, role_ids: ccDraft }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update CC settings");
+      }
+      setCcSettings((prev) =>
+        prev.map((c) => (c.event_type === eventType ? { ...c, role_ids: ccDraft } : c))
+      );
+      toast.success("CC recipients updated");
+      setEditingCcFor(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSavingCc(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-8">
         <div className="w-8 h-8 border-3 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-slate-500">Loading notification settings...</p>
+        <p className="text-slate-500">Loading email & CC settings...</p>
       </div>
     );
   }
@@ -616,7 +526,7 @@ function NotificationEmailSettings() {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">Email Notifications</h2>
+        <h2 className="text-xl font-semibold text-gray-800">Email & CC Settings</h2>
         <button
           onClick={fetchData}
           className="text-sm text-[#15406a] hover:underline flex items-center gap-1"
@@ -629,8 +539,9 @@ function NotificationEmailSettings() {
       </div>
 
       <p className="text-sm text-gray-500 mb-6">
-        Turn individual event emails on or off. The in-app notification bell always stays on for every event —
-        this only controls whether an email is also sent. Changes take effect immediately.
+        Turn individual event emails on or off, and choose which roles get CC&apos;d on each event — CC is
+        specific per event, not one list applied to everything. The in-app notification bell always stays on
+        regardless of these settings.
       </p>
 
       <div className="overflow-x-auto">
@@ -639,37 +550,106 @@ function NotificationEmailSettings() {
             <tr className="border-b border-slate-200">
               <th className="py-2 px-3 font-semibold text-slate-600">Event</th>
               <th className="py-2 px-3 font-semibold text-slate-600 text-center">Send Email</th>
+              <th className="py-2 px-3 font-semibold text-slate-600">CC Roles</th>
             </tr>
           </thead>
           <tbody>
-            {settings.map((s) => (
-              <tr key={s.event_type} className="border-b border-slate-100">
-                <td className="py-2 px-3 font-medium text-slate-800">
-                  {s.label}
-                  {RECOMMENDED_ALWAYS_ON.has(s.event_type) && (
-                    <span className="ml-2 text-xs font-normal text-amber-600">(recommended: keep enabled)</span>
+            {settings.map((s) => {
+              const cc = ccSettings.find((c) => c.event_type === s.event_type);
+              const ccRoleNames = cc
+                ? cc.role_ids
+                    .map((id) => roles.find((r) => r.role_id === id))
+                    .filter((r): r is Role => !!r)
+                    .map((r) => getRoleDisplayName(r.role_name))
+                : [];
+              return (
+                <Fragment key={s.event_type}>
+                  <tr className="border-b border-slate-100">
+                    <td className="py-2 px-3 font-medium text-slate-800 align-top">
+                      {s.label}
+                      {RECOMMENDED_ALWAYS_ON.has(s.event_type) && (
+                        <span className="ml-2 text-xs font-normal text-amber-600">(recommended: keep enabled)</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-center align-top">
+                      <label className="inline-flex items-center justify-center w-11 h-11 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={s.email_enabled}
+                          disabled={savingType === s.event_type}
+                          onChange={() => toggle(s.event_type, !s.email_enabled)}
+                          className="w-4 h-4 rounded border-slate-300 text-[#15406a] focus:ring-[#15406a] disabled:opacity-50"
+                          aria-label={`Toggle email for ${s.label}`}
+                        />
+                      </label>
+                    </td>
+                    <td className="py-2 px-3 align-top">
+                      {!cc ? (
+                        <span className="text-xs text-slate-400">Not applicable</span>
+                      ) : editingCcFor === s.event_type ? null : (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-slate-600">
+                            {ccRoleNames.length > 0 ? ccRoleNames.join(", ") : "None configured"}
+                          </span>
+                          <button
+                            onClick={() => startEditingCc(s.event_type, cc.role_ids)}
+                            className="text-xs font-medium text-[#15406a] hover:underline shrink-0"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                  {cc && editingCcFor === s.event_type && (
+                    <tr className="border-b border-slate-100 bg-slate-50">
+                      <td colSpan={3} className="py-3 px-3">
+                        <p className="text-xs text-slate-500 mb-2">
+                          Roles to CC when &quot;{s.label}&quot; sends:
+                        </p>
+                        <div className="flex flex-wrap gap-x-4 gap-y-2 mb-3">
+                          {roles.map((role) => (
+                            <label key={role.role_id} className="inline-flex items-center gap-1.5 text-sm text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={ccDraft.includes(role.role_id)}
+                                onChange={() => toggleCcRole(role.role_id)}
+                                className="w-4 h-4 rounded border-slate-300 text-[#15406a] focus:ring-[#15406a]"
+                              />
+                              {getRoleDisplayName(role.role_name)}
+                            </label>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => saveCc(s.event_type)}
+                            disabled={savingCc}
+                            className="px-3 py-1.5 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-xs font-medium disabled:opacity-50"
+                          >
+                            {savingCc ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            onClick={() => setEditingCcFor(null)}
+                            disabled={savingCc}
+                            className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-medium disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                </td>
-                <td className="py-2 px-3 text-center">
-                  <label className="inline-flex items-center justify-center w-11 h-11 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={s.email_enabled}
-                      disabled={savingType === s.event_type}
-                      onChange={() => toggle(s.event_type, !s.email_enabled)}
-                      className="w-4 h-4 rounded border-slate-300 text-[#15406a] focus:ring-[#15406a] disabled:opacity-50"
-                      aria-label={`Toggle email for ${s.label}`}
-                    />
-                  </label>
-                </td>
-              </tr>
-            ))}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <p className="mt-6 text-xs text-slate-400">
         Disabling an event here only stops the email — recipients still see the in-app notification bell alert.
+        CC&apos;d roles receive a copy only when that specific event&apos;s email actually sends. Extension
+        request approvals have their own separate approver/CC list under Role Permissions.
       </p>
     </div>
   );
@@ -682,9 +662,10 @@ export default function SecurityDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
-    "notifications" | "config" | "permissions" | "timelock" | "audit" | "tender-settings" | "data-requests" | "compliance"
+    "notifications" | "config" | "permissions" | "timelock" | "audit-compliance" | "tender-settings"
   >("notifications");
-  const [activeSubTab, setActiveSubTab] = useState<"timings" | "cc" | "email">("timings");
+  const [activeSubTab, setActiveSubTab] = useState<"timings" | "email">("timings");
+  const [activeAuditSubTab, setActiveAuditSubTab] = useState<"audit" | "data-requests" | "compliance">("audit");
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -698,8 +679,11 @@ export default function SecurityDashboard() {
       return;
     }
     const roleIds = (session.user as any)?.roleIds || [];
-    if (isSuperUser(roleIds)) setIsAdmin(true);
-    if (isSuperUser(roleIds) || roleIds.includes(ROLE_IDS.LEGAL_TEAM)) setCanAccessCompliance(true);
+    const admin = isSuperUser(roleIds);
+    const compliance = admin || roleIds.includes(ROLE_IDS.LEGAL_TEAM);
+    if (admin) setIsAdmin(true);
+    if (compliance) setCanAccessCompliance(true);
+    if (!admin && compliance) setActiveAuditSubTab("data-requests");
 
     const fetchPermissions = async () => {
       try {
@@ -735,7 +719,7 @@ export default function SecurityDashboard() {
 
   if (loading || status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee]">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 border-4 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-500 font-medium">Loading security portal…</p>
@@ -745,7 +729,7 @@ export default function SecurityDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f4ee] py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <h1 className="text-3xl font-bold text-slate-900">
@@ -764,15 +748,11 @@ export default function SecurityDashboard() {
                 <TabButton active={activeTab === "config"} onClick={() => setActiveTab("config")} label="Workflow Config" />
                 <TabButton active={activeTab === "permissions"} onClick={() => setActiveTab("permissions")} label="Role Permissions" />
                 <TabButton active={activeTab === "timelock"} onClick={() => setActiveTab("timelock")} label="Time-Locked Access" />
-                <TabButton active={activeTab === "audit"} onClick={() => setActiveTab("audit")} label="Audit Logs" />
                 <TabButton active={activeTab === "tender-settings"} onClick={() => setActiveTab("tender-settings")} label="Tender Settings" />
               </>
             )}
-            {canAccessCompliance && (
-              <>
-                <TabButton active={activeTab === "data-requests"} onClick={() => setActiveTab("data-requests")} label="Data Requests" />
-                <TabButton active={activeTab === "compliance"} onClick={() => setActiveTab("compliance")} label="Compliance" />
-              </>
+            {(isAdmin || canAccessCompliance) && (
+              <TabButton active={activeTab === "audit-compliance"} onClick={() => setActiveTab("audit-compliance")} label="Audit & Compliance" />
             )}
           </nav>
         </div>
@@ -782,9 +762,37 @@ export default function SecurityDashboard() {
           {activeTab === "config" && isAdmin && <WorkflowConfig roles={roles} />}
           {activeTab === "permissions" && isAdmin && <RolePermissions roles={roles} userPermissions={userPermissions} onRolesChanged={fetchRoles} />}
           {activeTab === "timelock" && isAdmin && <TimeLockedAccess roles={roles} />}
-          {activeTab === "audit" && isAdmin && <AuditLogs />}
-          {activeTab === "data-requests" && canAccessCompliance && <DataSubjectRequests />}
-          {activeTab === "compliance" && canAccessCompliance && <ComplianceRegister />}
+          {activeTab === "audit-compliance" && (isAdmin || canAccessCompliance) && (
+            <>
+              <div className="flex space-x-8 border-b border-gray-200 mb-6">
+                {isAdmin && (
+                  <SubTabButton
+                    active={activeAuditSubTab === "audit"}
+                    onClick={() => setActiveAuditSubTab("audit")}
+                    label="Audit Logs"
+                  />
+                )}
+                {canAccessCompliance && (
+                  <>
+                    <SubTabButton
+                      active={activeAuditSubTab === "data-requests"}
+                      onClick={() => setActiveAuditSubTab("data-requests")}
+                      label="Data Requests"
+                    />
+                    <SubTabButton
+                      active={activeAuditSubTab === "compliance"}
+                      onClick={() => setActiveAuditSubTab("compliance")}
+                      label="Compliance"
+                    />
+                  </>
+                )}
+              </div>
+
+              {activeAuditSubTab === "audit" && isAdmin && <AuditLogs />}
+              {activeAuditSubTab === "data-requests" && canAccessCompliance && <DataSubjectRequests />}
+              {activeAuditSubTab === "compliance" && canAccessCompliance && <ComplianceRegister />}
+            </>
+          )}
           {activeTab === "tender-settings" && isAdmin && (
             <>
               <div className="flex space-x-8 border-b border-gray-200 mb-6">
@@ -796,19 +804,13 @@ export default function SecurityDashboard() {
                   />
                 )}
                 <SubTabButton
-                  active={activeSubTab === "cc"}
-                  onClick={() => setActiveSubTab("cc")}
-                  label="CC Recipients"
-                />
-                <SubTabButton
                   active={activeSubTab === "email"}
                   onClick={() => setActiveSubTab("email")}
-                  label="Email Notifications"
+                  label="Email & CC Settings"
                 />
               </div>
 
               {activeSubTab === "timings" && canViewTimings && <TenderTimings userPermissions={userPermissions} isAdmin={isAdmin} />}
-              {activeSubTab === "cc" && <CCSettings />}
               {activeSubTab === "email" && <NotificationEmailSettings />}
             </>
           )}
@@ -1467,6 +1469,7 @@ function RolePermissions({ roles, userPermissions, onRolesChanged }: { roles: Ro
 
   const modules = [
     "Tender Management",
+    "BQ",
     "Finance",
     "Admin",
     "Analytics",
@@ -1802,7 +1805,7 @@ function RolePermissions({ roles, userPermissions, onRolesChanged }: { roles: Ro
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition"
+              className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm font-medium transition"
             >
               + Add Permission
             </button>
@@ -1832,7 +1835,7 @@ function RolePermissions({ roles, userPermissions, onRolesChanged }: { roles: Ro
                         <button
                           onClick={() => handleSaveRole(role.role_id)}
                           disabled={savingRoleId === role.role_id}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition disabled:opacity-50"
+                          className="px-3 py-1.5 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-xs font-medium transition disabled:opacity-50"
                         >
                           {savingRoleId === role.role_id ? "Saving..." : "Save"}
                         </button>
@@ -1898,7 +1901,7 @@ function RolePermissions({ roles, userPermissions, onRolesChanged }: { roles: Ro
               <button
                 onClick={handleAddRole}
                 disabled={addingRole}
-                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 whitespace-nowrap"
+                className="px-4 py-1.5 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm font-medium transition disabled:opacity-50 whitespace-nowrap"
               >
                 {addingRole ? "Adding..." : "+ Add Role"}
               </button>
@@ -2277,7 +2280,7 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
               </button>
             ) : (
               <div className="flex gap-3">
-                <button onClick={saveWindows} disabled={saving} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm">
+                <button onClick={saveWindows} disabled={saving} className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm">
                   {saving ? "Saving..." : "Save"}
                 </button>
                 <button onClick={cancelEdit} className="px-4 py-2 bg-gray-300 rounded-lg text-sm">Cancel</button>
@@ -2285,66 +2288,85 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
             )}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Access Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">View From</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">View Until</th>
-                  {editing && <th className="px-4 py-3 text-center text-xs font-medium text-gray-500">Actions</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {tempWindows.map((win, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      {editing ? (
-                        <select value={win.role_id} onChange={(e) => updateWindow(idx, "role_id", e.target.value)} className="border rounded-md px-2 py-1 text-sm bg-white">
-                          {roles.map((role) => (
-                            <option key={role.role_id} value={role.role_id}>{getRoleDisplayName(role.role_name)}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-sm">{getRoleDisplayName(roles.find((r) => r.role_id === win.role_id)?.role_name || "Unknown")}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editing ? (
-                        <select value={win.resource_type} onChange={(e) => updateWindow(idx, "resource_type", e.target.value)} className="border rounded-md px-2 py-1 text-sm bg-white">
-                          {resourceTypes.map((rt) => (
-                            <option key={rt.value} value={rt.value}>{rt.label}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-sm">{getResourceLabel(win.resource_type)}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editing ? (
-                        <DateTimePicker value={win.can_view_from?.slice(0, 16) || ""} onChange={(e) => updateWindow(idx, "can_view_from", e.target.value)} className="w-44 text-sm" />
-                      ) : (
-                        <span className="text-sm">{win.can_view_from ? format(new Date(win.can_view_from), "dd/MM/yyyy HH:mm") : "—"}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editing ? (
-                        <DateTimePicker value={win.can_view_until?.slice(0, 16) || ""} onChange={(e) => updateWindow(idx, "can_view_until", e.target.value)} className="w-44 text-sm" />
-                      ) : (
-                        <span className="text-sm">{win.can_view_until ? format(new Date(win.can_view_until), "dd/MM/yyyy HH:mm") : "—"}</span>
-                      )}
-                    </td>
-                    {editing && (
-                      <td className="px-4 py-3 text-center">
-                        <button onClick={() => removeWindow(idx)} className="text-red-500 hover:text-red-700">Remove</button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {tempWindows.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-8 border border-dashed border-slate-200 rounded-xl">
+              No access windows configured yet.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {tempWindows.map((win, idx) => (
+                <div key={idx} className="rounded-xl border border-slate-200 p-4 hover:border-slate-300 transition-colors">
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                    <div>
+                      <dt className="text-xs text-gray-400 uppercase tracking-wide">Role</dt>
+                      <dd className="mt-1">
+                        {editing ? (
+                          <select
+                            value={win.role_id}
+                            onChange={(e) => updateWindow(idx, "role_id", e.target.value)}
+                            className="w-full border rounded-md px-2 py-1.5 text-sm bg-white text-gray-800"
+                          >
+                            {roles.map((role) => (
+                              <option key={role.role_id} value={role.role_id}>{getRoleDisplayName(role.role_name)}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-sm text-gray-800">
+                            {getRoleDisplayName(roles.find((r) => r.role_id === win.role_id)?.role_name || "Unknown")}
+                          </span>
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-gray-400 uppercase tracking-wide">Access Type</dt>
+                      <dd className="mt-1">
+                        {editing ? (
+                          <select
+                            value={win.resource_type}
+                            onChange={(e) => updateWindow(idx, "resource_type", e.target.value)}
+                            className="w-full border rounded-md px-2 py-1.5 text-sm bg-white text-gray-800"
+                          >
+                            {resourceTypes.map((rt) => (
+                              <option key={rt.value} value={rt.value}>{rt.label}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-sm text-gray-800">{getResourceLabel(win.resource_type)}</span>
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-gray-400 uppercase tracking-wide">View From</dt>
+                      <dd className="mt-1">
+                        {editing ? (
+                          <DateTimePicker value={win.can_view_from?.slice(0, 16) || ""} onChange={(e) => updateWindow(idx, "can_view_from", e.target.value)} className="w-full text-sm" />
+                        ) : (
+                          <span className="text-sm text-gray-800">{win.can_view_from ? format(new Date(win.can_view_from), "dd/MM/yyyy HH:mm") : "—"}</span>
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-gray-400 uppercase tracking-wide">View Until</dt>
+                      <dd className="mt-1">
+                        {editing ? (
+                          <DateTimePicker value={win.can_view_until?.slice(0, 16) || ""} onChange={(e) => updateWindow(idx, "can_view_until", e.target.value)} className="w-full text-sm" />
+                        ) : (
+                          <span className="text-sm text-gray-800">{win.can_view_until ? format(new Date(win.can_view_until), "dd/MM/yyyy HH:mm") : "—"}</span>
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
+                  {editing && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 flex justify-end">
+                      <button onClick={() => removeWindow(idx)} className="text-xs font-medium text-red-500 hover:text-red-700">
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           {editing && (
             <div className="mt-4">
               <button onClick={addWindow} className="text-[#15406a] text-sm hover:underline">+ Add Access Window</button>
@@ -2608,6 +2630,10 @@ function DataSubjectRequests() {
   const [bundle, setBundle] = useState<DsrBundle | null>(null);
   const [loadingBundle, setLoadingBundle] = useState(false);
   const [loadingMoreSection, setLoadingMoreSection] = useState<DsrSectionName | null>(null);
+  const [summaryText, setSummaryText] = useState("");
+  const [detailLevel, setDetailLevel] = useState<"summary" | "detailed">("summary");
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [sendingSummary, setSendingSummary] = useState(false);
 
   const runSearch = async (term: string, page: number) => {
     if (!term.trim()) return;
@@ -2634,6 +2660,7 @@ function DataSubjectRequests() {
     setSelected(match);
     setLoadingBundle(true);
     setBundle(null);
+    setSummaryText("");
     try {
       const res = await fetch(`/api/admin/data-subject-request?user_id=${match.user_id}`);
       if (!res.ok) throw new Error();
@@ -2666,6 +2693,43 @@ function DataSubjectRequests() {
     }
   };
 
+  const generateSummary = async () => {
+    if (!selected) return;
+    setGeneratingSummary(true);
+    try {
+      const res = await fetch("/api/admin/data-subject-request/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: selected.user_id, detail_level: detailLevel }),
+      });
+      if (!res.ok) throw new Error();
+      const data: { summary: string } = await res.json();
+      setSummaryText(data.summary);
+    } catch {
+      toast.error("Failed to generate a summary. Please try again.");
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
+  const sendSummary = async () => {
+    if (!selected || !summaryText.trim()) return;
+    setSendingSummary(true);
+    try {
+      const res = await fetch("/api/admin/data-subject-request/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: selected.user_id, summary_text: summaryText.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(`Summary sent to ${bundle?.profile.email}.`);
+    } catch {
+      toast.error("Failed to send the summary. Please try again.");
+    } finally {
+      setSendingSummary(false);
+    }
+  };
+
   const fmt = (d: string | null | undefined, withTime = false) =>
     d ? format(new Date(d), withTime ? "dd/MM/yyyy HH:mm" : "dd/MM/yyyy") : "—";
 
@@ -2677,7 +2741,7 @@ function DataSubjectRequests() {
         </h2>
         <p className="text-sm text-gray-600 mt-1 mb-4">
           Search for a user, then retrieve everything the system holds about them — for fulfilling a &quot;right of
-          access&quot; request under Section 5 of the Privacy Policy. Each retrieval is written to the audit trail.
+          access&quot; request under Section 4 of the Privacy Policy. Each retrieval is written to the audit trail.
         </p>
         <form onSubmit={(e) => { e.preventDefault(); runSearch(search, 1); }} className="flex gap-2">
           <input
@@ -2776,6 +2840,75 @@ function DataSubjectRequests() {
             </dl>
           </div>
 
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-1">Response Summary</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Generate a summary of what TMS holds about this person, review or edit it, then send it to
+              their registered email as part of fulfilling this access request.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="radio"
+                  name="dsr-detail-level"
+                  value="summary"
+                  checked={detailLevel === "summary"}
+                  onChange={() => setDetailLevel("summary")}
+                  className="text-[#15406a] focus:ring-[#15406a]"
+                />
+                Summary
+                <span className="text-xs text-gray-400">— short, per-category counts only</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="radio"
+                  name="dsr-detail-level"
+                  value="detailed"
+                  checked={detailLevel === "detailed"}
+                  onChange={() => setDetailLevel("detailed")}
+                  className="text-[#15406a] focus:ring-[#15406a]"
+                />
+                Detailed Summary
+                <span className="text-xs text-gray-400">— lists individual records per category (up to 10 most recent each)</span>
+              </label>
+            </div>
+
+            <button
+              onClick={generateSummary}
+              disabled={generatingSummary}
+              className="px-4 py-2 bg-[#15406a] text-white rounded-lg text-sm hover:bg-[#0d2d4a] disabled:opacity-50"
+            >
+              {generatingSummary ? "Generating…" : summaryText ? "Regenerate Summary" : "Generate Summary"}
+            </button>
+
+            {summaryText && (
+              <div className="mt-4 space-y-3">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Summary (editable before sending)
+                </label>
+                <textarea
+                  value={summaryText}
+                  onChange={(e) => setSummaryText(e.target.value)}
+                  rows={detailLevel === "detailed" ? 24 : 12}
+                  className="w-full px-3 py-2 border rounded-lg text-sm font-mono bg-white text-gray-800"
+                />
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <p className="text-xs text-gray-500">
+                    Will be sent to <span className="font-medium text-gray-700">{bundle.profile.email}</span>
+                  </p>
+                  <button
+                    onClick={sendSummary}
+                    disabled={sendingSummary || !summaryText.trim()}
+                    className="px-4 py-2 bg-[#15406a] text-white rounded-lg text-sm hover:bg-[#0d2d4a] disabled:opacity-50"
+                  >
+                    {sendingSummary ? "Sending…" : `Send Summary to ${bundle.profile.email}`}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {DSR_SECTION_NAMES.map((name) => {
             const cfg = DSR_SECTION_CONFIG[name];
             const sectionData = bundle[name];
@@ -2794,8 +2927,8 @@ function DataSubjectRequests() {
           })}
 
           <p className="text-xs text-slate-400">
-            This retrieval has been recorded in the audit trail. Compile the sections above into your response to the
-            data subject — nothing is sent automatically.
+            This retrieval has been recorded in the audit trail. Use the sections above to compile a manual response,
+            or the Response Summary card above to generate and send one — nothing is sent unless you click Send.
           </p>
         </div>
       )}
@@ -2809,38 +2942,38 @@ function DataSubjectRequests() {
 const ROPA_ENTRIES = [
   {
     activity: "Tender & Bill of Quantities (BQ) management",
-    purpose: "Contract performance — evaluate and administer tender submissions",
-    categories: "Commercial & Pricing Data, Personnel & Contact Data",
+    purpose: "Facilitate tender submission and evaluation (Privacy §1.1, §2.1)",
+    categories: "Account & profile data, pricing/BQ submissions, documents",
     basis: "Contractual necessity",
-    retention: "7 years (pricing data) / duration of tender + 3 years (active records)",
+    retention: "See Privacy §10 — 7 years (pricing) / duration of tender + 3 years (active records)",
   },
   {
     activity: "Contractor onboarding & account management",
-    purpose: "Corporate verification, RBAC-based platform access",
-    categories: "Corporate & Compliance Data, Personnel & Contact Data",
+    purpose: "Account creation, authentication, RBAC-based platform access (Privacy §1.1, §2.1)",
+    categories: "Account & profile data, technical/usage data",
     basis: "Contractual necessity, legitimate interest (security)",
-    retention: "5 years (bidder portfolios)",
+    retention: "See Privacy §10 — 5 years (contractor/bidder profiles)",
   },
   {
     activity: "Financial & compliance documentation",
-    purpose: "Tax, statutory audit, and regulatory reporting",
-    categories: "Corporate & Compliance Data",
+    purpose: "Tax, statutory audit, and regulatory reporting (Privacy §2.2)",
+    categories: "Account & profile data, submitted documents",
     basis: "Legal obligation",
-    retention: "7 years from end of financial year",
+    retention: "See Privacy §10 — 7 years from end of financial year",
   },
   {
     activity: "Audit logging & security monitoring",
-    purpose: "Fraud prevention, incident investigation",
-    categories: "Technical Logs & System Telemetry",
+    purpose: "Fraud prevention, incident investigation, security (Privacy §2.2)",
+    categories: "Technical & usage data (IP, device, login activity, audit trail)",
     basis: "Legitimate interest (platform security)",
-    retention: "2 years",
+    retention: "See Privacy §10 — 2 years (access & technical logs)",
   },
   {
     activity: "Messaging & notifications",
-    purpose: "Contract performance — communicate tender/BQ status to participants",
-    categories: "Personnel & Contact Data",
+    purpose: "Communicate tender/BQ status and updates to participants (Privacy §1.1, §2.1)",
+    categories: "Account & profile data, communications",
     basis: "Contractual necessity",
-    retention: "Duration of tender + 3 years",
+    retention: "See Privacy §10 — duration of tender + 3 years",
   },
 ];
 
@@ -2848,16 +2981,33 @@ function ComplianceRegister() {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-[#15406a]" /> Record of Processing Activities (ROPA)
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-[#15406a]" /> Record of Processing Activities (ROPA)
+          </h2>
+          <p className="text-xs text-slate-400">
+            Reviewed against{" "}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#15406a] hover:underline">
+              Privacy Policy v{CURRENT_PRIVACY_VERSION}
+            </a>{" "}
+            ·{" "}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#15406a] hover:underline">
+              Terms of Use v{CURRENT_TERMS_VERSION}
+            </a>
+          </p>
+        </div>
         <p className="text-sm text-gray-600 mt-1 mb-4">
-          A summary of what the TMS actually processes today, matching Section 1–3 of the public{" "}
+          A summary of what the TMS actually processes today, matching Sections 1, 2 and 10 of the public{" "}
           <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#15406a] hover:underline">
             Privacy Policy
           </a>
+          . The categories of User Content referenced below (documents, pricing, BQs, messages) are defined in{" "}
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#15406a] hover:underline">
+            Terms of Use §5
+          </a>
           . This is a reference view, not an editable log — update the Privacy Policy first if a processing
-          activity changes, then reflect it here.
+          activity changes (and bump <code className="text-xs">CURRENT_PRIVACY_VERSION</code> in{" "}
+          <code className="text-xs">src/lib/legal.ts</code>), then reflect it here.
         </p>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -2888,9 +3038,13 @@ function ComplianceRegister() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <h2 className="text-xl font-semibold text-gray-800">Data Protection Impact Assessments (DPIA)</h2>
         <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-          Per Section 11 of the Privacy Policy, a DPIA is conducted for any new processing activity that presents a
+          As internal governance practice, a DPIA is conducted for any new processing activity that presents a
           high risk to data subjects&apos; rights and freedoms — e.g. a new integration that shares commercial
-          pricing outside the current siloed access model.
+          pricing outside the current siloed access model. This is not currently documented in the public{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#15406a] hover:underline">
+            Privacy Policy
+          </a>
+          , which is scoped to what TMS does and why, not internal assessment process.
         </p>
         <p className="mt-4 text-xs text-slate-400">
           No DPIA has been required since the current feature set was reviewed — there is no formal DPIA log wired
@@ -2965,7 +3119,7 @@ function AuditLogs() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Immutable Audit Trail</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Audit Trail</h2>
             <input
               type="text"
               placeholder="Filter by user, action, resource..."

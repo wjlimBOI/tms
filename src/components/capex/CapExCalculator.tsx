@@ -207,7 +207,7 @@ export function CapExCalculator({
                   setIsEditingConstraints(true);
                 }
               }}
-              className="gap-1 text-slate-600 border-slate-300"
+              className="gap-1 border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white"
             >
               {isEditingConstraints ? (
                 <>
@@ -618,7 +618,7 @@ export function CapExCalculator({
             <div className="flex justify-end pt-4 border-t border-slate-200">
               <Button
                 onClick={handleApply}
-                className="bg-slate-900 hover:bg-slate-800 text-white"
+                className="bg-[#15406a] hover:bg-[#0d2d4a] text-white"
               >
                 Apply to Tender
               </Button>

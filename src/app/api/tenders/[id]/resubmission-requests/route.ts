@@ -12,25 +12,18 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { z } from "zod";
-import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 import { createNotification, notifyUsers, sendTrackedEmail } from "@/lib/notifications";
 import { sendResubmissionRequestEmail } from "@/lib/email";
 import { sanitize } from "@/lib/sanitize";
 import { logInsert } from "@/lib/audit";
+import { canRequestResubmission } from "@/lib/permissions";
+import { ROLE_IDS } from "@/lib/roles";
 
 const createSchema = z.object({
   submission_id: z.number().int().positive(),
   instructions: z.string().max(2000).optional().nullable(),
   due_by: z.string().datetime({ offset: true }).optional().nullable(),
 });
-
-function canRequestResubmission(roleIds: number[]): boolean {
-  return (
-    isSuperUser(roleIds) ||
-    roleIds.includes(ROLE_IDS.PROJECT_MANAGER) ||
-    roleIds.includes(ROLE_IDS.SENIOR_PROJECT_MANAGER)
-  );
-}
 
 // ---------- GET — list resubmission requests for a tender (staff-only) ----------
 export async function GET(
@@ -41,8 +34,9 @@ export async function GET(
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = (session.user as any).id;
   const roleIds = (session.user as any)?.roleIds || [];
-  if (!canRequestResubmission(roleIds)) {
+  if (!(await canRequestResubmission(userId, roleIds))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -84,10 +78,10 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const roleIds = (session.user as any)?.roleIds || [];
-  if (!canRequestResubmission(roleIds)) {
+  const requesterId = (session.user as any).id;
+  if (!(await canRequestResubmission(requesterId, roleIds))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const requesterId = (session.user as any).id;
 
   const { id } = await params;
   const tenderId = parseInt(id);
@@ -212,7 +206,7 @@ export async function POST(
         "resubmission_request",
         { userId: sub.contractor_id, email: sub.contractor_email },
         tenderId,
-        () =>
+        (ccEmails) =>
           sendResubmissionRequestEmail({
             to: sub.contractor_email,
             recipientName: sub.contractor_username,
@@ -221,6 +215,7 @@ export async function POST(
             standing,
             instructions,
             dueBy: due_by ? new Date(due_by).toLocaleDateString() : null,
+            cc: ccEmails,
           }),
         "alerts"
       );

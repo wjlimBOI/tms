@@ -256,7 +256,7 @@ function SortableItemRow({
             disabled={marketCheck.status === "loading" || !item.description.trim()}
             title="Compare against rates used elsewhere in the app"
             aria-label="Compare rate against market data"
-            className="px-2.5 py-2 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2.5 py-2 rounded-lg text-xs font-medium border-2 border-[#15406a] bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {marketCheck.status === "loading" ? "…" : "📊"}
           </button>
@@ -265,7 +265,7 @@ function SortableItemRow({
           {level === 0 && (
             <button
               onClick={() => onAddSub(item.item_id)}
-              className="px-3 py-1.5 rounded-md text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded-md text-xs font-medium border-2 border-[#15406a] bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-colors flex items-center gap-1"
             >
               ➕ Sub
             </button>
@@ -957,7 +957,7 @@ export default function BQTemplateEditPage() {
               </p>
             </div>
             <div className="flex gap-2 sm:gap-3">
-              <label className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-colors">
+              <label className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-[#15406a] hover:bg-[#0d2d4a] text-white cursor-pointer transition-colors">
                 {uploading ? "Uploading..." : "📤 Upload Excel"}
                 <input
                   type="file"
@@ -969,7 +969,7 @@ export default function BQTemplateEditPage() {
               </label>
               <button
                 onClick={exportToExcel}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-[#15406a] hover:bg-[#0d2d4a] text-white transition-colors"
               >
                 📥 Export Excel
               </button>
@@ -978,7 +978,7 @@ export default function BQTemplateEditPage() {
                   setTempSelectedCategories([...enabledCategoryIds]);
                   setShowCategoryModal(true);
                 }}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg border-2 border-[#15406a] bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-colors"
               >
                 Manage Categories
               </button>
@@ -1046,7 +1046,7 @@ export default function BQTemplateEditPage() {
                     <button
                       onClick={() => handleAddFromSearch(r)}
                       disabled={addingResultKey === key}
-                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50 whitespace-nowrap"
+                      className="px-3 py-1.5 rounded-md text-xs font-medium border-2 border-[#15406a] bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-colors disabled:opacity-50 whitespace-nowrap"
                     >
                       {addingResultKey === key ? "Adding…" : "+ Add"}
                     </button>
@@ -1147,7 +1147,7 @@ export default function BQTemplateEditPage() {
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={handleSaveCategories}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
+                  className="flex-1 bg-[#15406a] hover:bg-[#0d2d4a] text-white py-2 rounded-lg transition-colors"
                 >
                   Save
                 </button>
@@ -1233,7 +1233,7 @@ export default function BQTemplateEditPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={handleAddItem}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                          className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           Save
                         </button>
@@ -1297,7 +1297,7 @@ export default function BQTemplateEditPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={handleAddItem}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                          className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm font-medium transition-colors"
                         >
                           Save
                         </button>

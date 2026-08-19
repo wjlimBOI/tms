@@ -33,11 +33,12 @@ export async function GET(request: NextRequest) {
   const isAdmin = isSuperViewer(roleIds);
 
   const selectBase = `
-    SELECT tm.tender_id, t.tender_name, tm.sender_id, su.username AS sender_name,
+    SELECT tm.tender_id, t.tender_name, tm.sender_id, COALESCE(sup.full_name, su.display_name, su.username) AS sender_name,
            tm.is_announcement, LEFT(tm.body, 160) AS preview, tm.created_at
     FROM tender_message tm
     JOIN tender t ON t.tender_id = tm.tender_id
     JOIN users su ON su.user_id = tm.sender_id
+    LEFT JOIN user_profile sup ON sup.user_id = su.user_id
   `;
 
   let result;

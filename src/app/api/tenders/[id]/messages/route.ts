@@ -60,12 +60,13 @@ export async function GET(
   const baseFrom = `
     FROM tender_message tm
     JOIN users u ON u.user_id = tm.sender_id
+    LEFT JOIN user_profile up ON up.user_id = u.user_id
     WHERE tm.tender_id = $1 AND tm.contractor_id = $2
   `;
 
   if (!pagination) {
     const result = await query(
-      `SELECT tm.message_id, tm.tender_id, tm.contractor_id, tm.sender_id, u.username AS sender_name,
+      `SELECT tm.message_id, tm.tender_id, tm.contractor_id, tm.sender_id, COALESCE(up.full_name, u.display_name, u.username) AS sender_name,
               tm.is_announcement, tm.body, tm.created_at
        ${baseFrom}
        ORDER BY tm.created_at ASC`,
@@ -78,7 +79,7 @@ export async function GET(
   const total = parseInt(countRes.rows[0].total, 10);
 
   const result = await query(
-    `SELECT tm.message_id, tm.tender_id, tm.contractor_id, tm.sender_id, u.username AS sender_name,
+    `SELECT tm.message_id, tm.tender_id, tm.contractor_id, tm.sender_id, COALESCE(up.full_name, u.display_name, u.username) AS sender_name,
             tm.is_announcement, tm.body, tm.created_at
      ${baseFrom}
      ORDER BY tm.created_at ASC
@@ -162,14 +163,15 @@ export async function POST(
 
   if (rest.is_announcement === true) {
     const contractorsRes = await query(
-      `SELECT DISTINCT ac.contractor_id, u.email, u.username
+      `SELECT DISTINCT ac.contractor_id, u.email, COALESCE(up.full_name, u.display_name, u.username) AS username
        FROM (
          SELECT contractor_id FROM tender_submission WHERE tender_id = $1 AND is_deleted = false
          UNION SELECT contractor_id FROM tender_interest WHERE tender_id = $1
          UNION SELECT contractor_id FROM tender_contractor WHERE tender_id = $1
          UNION SELECT winning_contractor_id AS contractor_id FROM tender_award WHERE tender_id = $1
        ) AS ac
-       JOIN users u ON u.user_id = ac.contractor_id`,
+       JOIN users u ON u.user_id = ac.contractor_id
+       LEFT JOIN user_profile up ON up.user_id = u.user_id`,
       [tenderId]
     );
     const contractorIds: number[] = contractorsRes.rows.map((r: { contractor_id: number }) => r.contractor_id);
@@ -206,7 +208,7 @@ export async function POST(
             "announcement",
             { userId: c.contractor_id, email: c.email },
             tenderId,
-            () => sendAnnouncementEmail({ to: c.email, recipientName: c.username, tenderName: tender.tender_name, tenderId, body }),
+            (ccEmails) => sendAnnouncementEmail({ to: c.email, recipientName: c.username, tenderName: tender.tender_name, tenderId, body, cc: ccEmails }),
             "announcements"
           );
         }

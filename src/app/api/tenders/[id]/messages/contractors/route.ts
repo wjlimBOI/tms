@@ -43,10 +43,11 @@ export async function GET(
   }
 
   const result = await query(
-    `SELECT u.user_id AS contractor_id, u.username AS contractor_name,
+    `SELECT u.user_id AS contractor_id, COALESCE(up.full_name, u.display_name, u.username) AS contractor_name,
             (SELECT COUNT(*) FROM tender_message tm WHERE tm.tender_id = $1 AND tm.contractor_id = u.user_id) AS message_count,
             (SELECT MAX(tm.created_at) FROM tender_message tm WHERE tm.tender_id = $1 AND tm.contractor_id = u.user_id) AS last_message_at
      FROM users u
+     LEFT JOIN user_profile up ON up.user_id = u.user_id
      WHERE u.user_id IN (
        SELECT contractor_id FROM tender_submission WHERE tender_id = $1 AND is_deleted = false
        UNION SELECT contractor_id FROM tender_interest WHERE tender_id = $1

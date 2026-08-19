@@ -8,6 +8,7 @@ import {
   SectionHeader,
   Clause,
 } from '@/components/privacy';
+import { CURRENT_PRIVACY_VERSION } from '@/lib/legal';
 
 export default function PrivacyPage() {
   const tocItems = [
@@ -57,7 +58,7 @@ export default function PrivacyPage() {
           <DocumentHeader
             title="Privacy Policy"
             effectiveDate="19 June 2026"
-            version="2.1"
+            version={CURRENT_PRIVACY_VERSION}
             lastUpdated="14 August 2026"
           />
         </div>
@@ -209,7 +210,7 @@ export default function PrivacyPage() {
                 <strong>Beauty One International Pte Ltd.</strong><br />
                 Attn: Data Protection Officer<br />
                 2 Venture Drive, #21‑01, VISION EXCHANGE, Singapore 608526<br />
-                Email: dpo@beautyone.com.sg<br />
+                Email: wslim@beautyone.com.sg<br />
                 Data subject requests: tender_enquiries@beautyone.com.sg
               </Clause>
               <Clause number="9.2">

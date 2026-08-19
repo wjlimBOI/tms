@@ -19,6 +19,10 @@ import {
   canViewBranches,
   canManageBranches,
   canManageProjectManagers,
+  canGenerateFinanceSummary,
+  canRequestResubmission,
+  canUploadTenderDocument,
+  canManageSavedComparison,
 } from "./permissions";
 import { ROLE_IDS } from "./roles";
 
@@ -228,6 +232,58 @@ describe("branch/project-manager reference-data management", () => {
     await expect(canManageProjectManagers(999, ROLE_IDS.ADMIN)).resolves.toBe(true);
     await expect(canManageProjectManagers(999, ROLE_IDS.DEVELOPER)).resolves.toBe(true);
     expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("finance summary / resubmission / document upload / saved comparison (permission-table-backed, 2026-08-14)", () => {
+  it("canGenerateFinanceSummary: admin and developer pass without a DB lookup", async () => {
+    await expect(canGenerateFinanceSummary(999, ROLE_IDS.ADMIN)).resolves.toBe(true);
+    await expect(canGenerateFinanceSummary(999, ROLE_IDS.DEVELOPER)).resolves.toBe(true);
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("canGenerateFinanceSummary: a role granted the permission via the matrix passes", async () => {
+    poolQueryMock.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+    await expect(canGenerateFinanceSummary(999, ROLE_IDS.FINANCE_MANAGER)).resolves.toBe(true);
+  });
+
+  it("canGenerateFinanceSummary: a role with no matching row is denied", async () => {
+    poolQueryMock.mockResolvedValueOnce({ rows: [] });
+    await expect(canGenerateFinanceSummary(999, ROLE_IDS.CONTRACTOR)).resolves.toBe(false);
+  });
+
+  it("canRequestResubmission: admin and developer pass without a DB lookup", async () => {
+    await expect(canRequestResubmission(999, ROLE_IDS.ADMIN)).resolves.toBe(true);
+    await expect(canRequestResubmission(999, ROLE_IDS.DEVELOPER)).resolves.toBe(true);
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("canRequestResubmission: a role with no matching row is denied", async () => {
+    poolQueryMock.mockResolvedValueOnce({ rows: [] });
+    await expect(canRequestResubmission(999, ROLE_IDS.FINANCE_TEAM)).resolves.toBe(false);
+  });
+
+  it("canUploadTenderDocument: admin and developer pass without a DB lookup", async () => {
+    await expect(canUploadTenderDocument(999, ROLE_IDS.ADMIN)).resolves.toBe(true);
+    await expect(canUploadTenderDocument(999, ROLE_IDS.DEVELOPER)).resolves.toBe(true);
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("canUploadTenderDocument: no role is granted this permission yet, so any other role is denied", async () => {
+    poolQueryMock.mockResolvedValueOnce({ rows: [] });
+    await expect(canUploadTenderDocument(999, ROLE_IDS.PROJECT_MANAGER)).resolves.toBe(false);
+  });
+
+  it("canManageSavedComparison: admin and developer pass without a DB lookup; executive director needs the permission matrix", async () => {
+    await expect(canManageSavedComparison(999, ROLE_IDS.ADMIN)).resolves.toBe(true);
+    await expect(canManageSavedComparison(999, ROLE_IDS.DEVELOPER)).resolves.toBe(true);
+    poolQueryMock.mockResolvedValueOnce({ rows: [] });
+    await expect(canManageSavedComparison(999, ROLE_IDS.EXECUTIVE_DIRECTOR)).resolves.toBe(false);
+  });
+
+  it("canManageSavedComparison: a role granted the permission via the matrix passes", async () => {
+    poolQueryMock.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+    await expect(canManageSavedComparison(999, ROLE_IDS.SENIOR_PROJECT_MANAGER)).resolves.toBe(true);
   });
 });
 

@@ -31,6 +31,51 @@ body {
   background: #64748b;
 }
 
+/* ===== Navbar brand strip (Navbar.tsx) =====
+   Same CSP constraint documented in src/app/homepage.css: this app's CSP
+   (src/proxy.ts) has no 'unsafe-inline' for style-src, so an inline
+   `style="--brand-color: ..."` on a server-rendered element is silently
+   dropped. The navbar strip is static (same 7 brands every render, not
+   fetched data), so it renders as part of the initial SSR HTML and hits
+   that exact case - hence a class here instead of inline style, same as
+   the outlet-map brand colors. Values match src/lib/brandColors.ts /
+   getBrandColorSlug(); keep them in sync if either changes. */
+.navbar-brand-color-yun-nam {
+  --navbar-brand-color: #f97316;
+}
+.navbar-brand-color-london {
+  --navbar-brand-color: #ef4444;
+}
+.navbar-brand-color-new-york {
+  --navbar-brand-color: #3b82f6;
+}
+.navbar-brand-color-dorra {
+  --navbar-brand-color: #a855f7;
+}
+.navbar-brand-color-shakura {
+  --navbar-brand-color: #ec4899;
+}
+.navbar-brand-color-jonsson {
+  --navbar-brand-color: #eab308;
+}
+.navbar-brand-color-victoria {
+  --navbar-brand-color: #0abab5;
+}
+
+.navbar-brand-segment {
+  background: var(--navbar-brand-color, #9ca3af);
+}
+/* Label color only - the segmented bar above is the one "icon", so the
+   legend text below just ties back to it by color instead of repeating
+   a dot/swatch next to every name. */
+.navbar-brand-label {
+  color: color-mix(in srgb, var(--navbar-brand-color, #64748b) 78%, #1e293b);
+  opacity: 0.85;
+}
+.navbar-brand-label:hover {
+  opacity: 1;
+}
+
 /* ===== React Day Picker custom styles ===== */
 .rdp {
   --rdp-cell-size: 40px;
@@ -128,55 +173,6 @@ body {
   --white: #f7fafd;
   --muted: #6b8aaa;
   --text: #1a3450;
-}
-
-/* Hero rings */
-.hero-rings {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-.ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 1px solid rgba(75, 120, 165, 0.1);
-}
-.ring-1 {
-  width: 500px;
-  height: 500px;
-}
-.ring-2 {
-  width: 700px;
-  height: 700px;
-  border-color: rgba(75, 120, 165, 0.06);
-}
-.ring-3 {
-  width: 900px;
-  height: 900px;
-  border-color: rgba(75, 120, 165, 0.04);
-}
-.ring-1::before,
-.ring-1::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  background: rgba(75, 120, 165, 0.08);
-}
-.ring-1::before {
-  width: 1px;
-  height: 100%;
-  transform: translate(-50%, -50%);
-}
-.ring-1::after {
-  width: 100%;
-  height: 1px;
-  transform: translate(-50%, -50%);
 }
 
 /* Hero divider */

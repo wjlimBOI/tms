@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { format, isAfter, parseISO, differenceInDays } from "date-fns";
 import { getBrandColor } from "@/lib/brandColors";
 import { getTenderStatusLabel, getTenderStatusStyles } from "@/lib/statusColors";
-import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
 import { MoreVertical, Edit, FileText, Eye, CheckCircle, LayoutDashboard, Users, UserPlus } from "lucide-react";
 import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 import { useNotify } from "@/components/ui/notification-provider";
@@ -17,6 +15,7 @@ import TenderInterestModal from "@/components/tenders/TenderInterestModal";
 import AwardTenderModal from "@/components/tenders/AwardTenderModal";
 import HandoverModal from "@/components/tenders/HandoverModal";
 import DatePicker from "@/components/ui/DatePicker";
+import { DropdownActions } from "@/components/ui/DropdownActions";
 
 // ---------- Interfaces ----------
 interface Tender {
@@ -85,102 +84,6 @@ const getStagePillStyle = (stage: string): string => {
       return "bg-slate-100 text-slate-700";
   }
 };
-
-// ---------- Dropdown Component (with portal and responsive positioning) ----------
-function DropdownActions({
-  children,
-  trigger,
-}: {
-  // Render-prop so each action inside can call `close()` itself as part of
-  // its own click handler (a normal setState call within a normal React
-  // click handler - the same mechanism every other bit of state in this
-  // menu already uses successfully), instead of guessing at a generic
-  // "close on any click" rule from outside that can race with the action's
-  // own handler.
-  children: (close: () => void) => React.ReactNode;
-  trigger: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLDivElement>(null);
-  // The dropdown content is rendered via a portal straight onto
-  // document.body, outside triggerRef's own DOM subtree - so a click on any
-  // item *inside* the menu was being treated as an "outside" click, closing
-  // the menu on mousedown and unmounting the very button/link being clicked
-  // before its click handler (which fires after mousedown) ever ran. Every
-  // action in this menu - View Details, Register Interest, Edit Dates, etc -
-  // silently did nothing because of this. Tracking the portaled menu's own
-  // ref too fixes it.
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const [dropdownWidth, setDropdownWidth] = useState(224);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        triggerRef.current && !triggerRef.current.contains(target) &&
-        menuRef.current && !menuRef.current.contains(target)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      
-      // Responsive dropdown width
-      let width = 224;
-      if (viewportWidth < 640) width = 200;
-      if (viewportWidth < 400) width = 180;
-      setDropdownWidth(width);
-      
-      // Calculate position to keep dropdown in viewport
-      let left = rect.right - width;
-      if (left < 10) left = 10;
-      if (left + width > viewportWidth - 10) left = viewportWidth - width - 10;
-      
-      let top = rect.bottom + window.scrollY;
-      // If dropdown would go below viewport, position it above
-      if (top + 200 > window.innerHeight + window.scrollY) {
-        top = rect.top + window.scrollY - 200;
-      }
-      
-      setPosition({
-        top: top,
-        left: left,
-      });
-    }
-  }, [open]);
-
-  return (
-    <div className="relative" ref={triggerRef}>
-      <div onClick={() => setOpen(!open)} className="cursor-pointer">
-        {trigger}
-      </div>
-      {open &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className="fixed z-[999] bg-white rounded-lg shadow-lg border border-slate-200 py-1 max-h-[300px] overflow-y-auto"
-            style={{ 
-              top: position.top, 
-              left: position.left, 
-              width: dropdownWidth,
-              maxWidth: 'calc(100vw - 20px)'
-            }}
-          >
-            {children(() => setOpen(false))}
-          </div>,
-          document.body
-        )}
-    </div>
-  );
-}
 
 // ---------- Main Component ----------
 export default function TendersListPage() {
@@ -315,16 +218,20 @@ export default function TendersListPage() {
         const priorityA = statusPriority[a.status_label] ?? 99;
         const priorityB = statusPriority[b.status_label] ?? 99;
         if (priorityA !== priorityB) return priorityA - priorityB;
-        if (a.closing_date && b.closing_date) {
-          return new Date(a.closing_date).getTime() - new Date(b.closing_date).getTime();
+        if (a.renovation_start_date && b.renovation_start_date) {
+          return new Date(b.renovation_start_date).getTime() - new Date(a.renovation_start_date).getTime();
         }
+        if (a.renovation_start_date) return -1;
+        if (b.renovation_start_date) return 1;
         return 0;
       });
     } else {
       result.sort((a, b) => {
-        if (a.closing_date && b.closing_date) {
-          return new Date(a.closing_date).getTime() - new Date(b.closing_date).getTime();
+        if (a.renovation_start_date && b.renovation_start_date) {
+          return new Date(b.renovation_start_date).getTime() - new Date(a.renovation_start_date).getTime();
         }
+        if (a.renovation_start_date) return -1;
+        if (b.renovation_start_date) return 1;
         return 0;
       });
     }
@@ -500,7 +407,7 @@ export default function TendersListPage() {
   // ---------- Loading & Error States ----------
   if (sessionStatus === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-[#f7f4ee] py-8 px-4 sm:px-6">
+      <div className="min-h-screen bg-white py-8 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto animate-pulse">
           <div className="h-8 bg-slate-200 rounded w-48 mb-6" />
           <div className="space-y-3">
@@ -520,7 +427,7 @@ export default function TendersListPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[#f7f4ee]">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-white">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center max-w-md">
           <p className="text-red-800">{error}</p>
           <button onClick={fetchTenders} className="mt-4 px-4 py-2 bg-[#15406a] text-white rounded-md font-semibold shadow-md hover:-translate-y-0.5 hover:bg-[#0d2d4a] hover:shadow-lg transition-all">
@@ -536,7 +443,7 @@ export default function TendersListPage() {
 
   // ---------- Main Render ----------
   return (
-    <div className="min-h-screen bg-[#f7f4ee] font-sans text-slate-900">
+    <div className="min-h-screen bg-white font-sans text-slate-900">
       <div className="max-w-7xl mx-auto py-4 px-3 sm:py-6 sm:px-4 lg:px-6">
         {/* ===== TOP SECTION ===== */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
@@ -674,14 +581,18 @@ export default function TendersListPage() {
                 each row below, so labels stay aligned with their content
                 without needing literal <table> markup (which is what forced
                 a horizontal scrollbar and squeezed text on narrow screens). */}
-            <div className={`hidden md:grid ${gridColsClass} md:gap-3 px-4 py-2.5 bg-slate-50 border-b border-slate-200 text-[10px] font-semibold text-slate-500 uppercase tracking-wider`}>
-              <div className="text-center">Tender</div>
-              {!isContractor && <div className="text-center">Branch</div>}
-              <div className="text-center">Building</div>
-              <div className="text-center">Status</div>
-              <div className="text-center">Deadline</div>
-              <div className="text-center">Renovation Period</div>
-              <div className="text-center">Actions</div>
+            <div className="hidden md:flex bg-slate-50 border-b border-slate-200">
+              <div className="w-1 flex-shrink-0" aria-hidden="true" />
+              {isAdmin && <div className="w-9 flex-shrink-0" aria-hidden="true" />}
+              <div className={`flex-1 grid ${gridColsClass} gap-3 px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider`}>
+                <div className="text-center">Tender</div>
+                {!isContractor && <div className="text-center">Branch</div>}
+                <div className="text-center">Building</div>
+                <div className="text-center">Status</div>
+                <div className="text-center">Deadline</div>
+                <div className="text-center">Renovation Period</div>
+                <div className="text-center">Actions</div>
+              </div>
             </div>
 
             <div className="divide-y divide-slate-100">
@@ -694,8 +605,6 @@ export default function TendersListPage() {
                 const isEditing = editingId === item.tender_id;
 
                 const brandColor = getBrandColor(item.brand_name);
-                const companyDetails = getCompanyDetailsByBrand(item.brand_name);
-                const fullCompanyName = companyDetails?.companyName || item.brand_name;
 
                 const extension = extensionStatuses[item.tender_id];
                 const hasPendingExtension = extension && extension.status === "Pending";
@@ -713,11 +622,42 @@ export default function TendersListPage() {
                 return (
                   <div
                     key={item.tender_id}
-                    className={`flex flex-col gap-3 p-4 md:grid ${gridColsClass} md:items-center md:gap-3 hover:bg-slate-50 transition ${
-                      isEditing ? "bg-[#15406a]/5" : ""
+                    className={`flex items-stretch transition ${
+                      isEditing ? "bg-[#15406a]/5" : "hover:bg-slate-50"
                     }`}
                   >
-                    {/* Tender name + brand + badges */}
+                    {/* Brand accent bar - the "file label" for this row's brand,
+                        keyed to the legend above the list. */}
+                    <div
+                      className="w-1 flex-shrink-0"
+                      style={{ backgroundColor: brandColor.borderColor }}
+                      aria-hidden="true"
+                    />
+
+                    {/* Interest tab - admin only, sits at the far left like a
+                        file-folder tab rather than buried under the title. */}
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInterestModalTender(item);
+                        }}
+                        title={item.interest_count ? `${item.interest_count} contractor(s) interested` : "No interest yet"}
+                        className={`flex flex-col items-center justify-center gap-0.5 w-9 flex-shrink-0 border-r transition ${
+                          item.interest_count
+                            ? "bg-[#15406a]/5 border-[#15406a]/10 text-[#15406a] hover:bg-[#15406a]/10"
+                            : "bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100"
+                        }`}
+                      >
+                        <Users className="w-3 h-3" />
+                        <span className="text-[10px] font-semibold tabular-nums">{item.interest_count || 0}</span>
+                      </button>
+                    )}
+
+                    <div
+                      className={`flex-1 min-w-0 flex flex-col gap-2 p-2.5 md:grid ${gridColsClass} md:items-center md:gap-3`}
+                    >
+                    {/* Tender name + badges */}
                     <div className="flex flex-col items-start text-left md:items-center md:text-center min-w-0">
                       <Link
                         href={targetUrl}
@@ -725,36 +665,14 @@ export default function TendersListPage() {
                       >
                         {item.tender_name}
                       </Link>
-                      <span
-                        className="text-xs font-medium mt-0.5"
-                        style={{ color: brandColor.borderColor }}
-                      >
-                        {fullCompanyName}
-                      </span>
-                      {isAdmin && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setInterestModalTender(item);
-                          }}
-                          className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium transition ${
-                            item.interest_count
-                              ? "bg-[#15406a]/10 text-[#15406a] hover:bg-[#15406a]/20"
-                              : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                          }`}
-                        >
-                          <Users className="w-2.5 h-2.5" />
-                          {item.interest_count ? `${item.interest_count} interested` : "No interest yet"}
-                        </button>
-                      )}
                       {isContractor && item.status_label !== "Open" && item.has_participated && (
-                        <span className="mt-1.5 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                        <span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
                           Closed · record of your participation
                         </span>
                       )}
                     </div>
 
-                    {/* Branch */}
+                    {/* Branch - internal team only */}
                     {!isContractor && (
                       <div className="text-xs text-slate-700 md:text-center">
                         <span className="text-slate-400 md:hidden">Branch: </span>
@@ -1045,6 +963,7 @@ export default function TendersListPage() {
                               )}
                           </DropdownActions>
                       )}
+                    </div>
                     </div>
                   </div>
                 );

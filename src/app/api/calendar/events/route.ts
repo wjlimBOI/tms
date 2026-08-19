@@ -84,6 +84,23 @@ export async function GET(request: NextRequest) {
       orderBy: { start_date: 'asc' },
     });
 
+    // calendar_events.branch_id has no Prisma relation defined on this
+    // model (unlike brand/tender/users), so branch names are looked up
+    // separately and used as a fallback when the event's own `location`
+    // text field wasn't set - this is how tender-synced events
+    // (src/lib/syncTenderToCalendar.ts) get a location at all, since sync
+    // only ever writes branch_id, never the free-text `location` column.
+    const branchIds = Array.from(
+      new Set(events.map((e) => e.branch_id).filter((id): id is number => id != null))
+    );
+    const branches = branchIds.length
+      ? await prisma.branch.findMany({
+          where: { branch_id: { in: branchIds } },
+          select: { branch_id: true, branch_name: true },
+        })
+      : [];
+    const branchNameById = new Map(branches.map((b) => [b.branch_id, b.branch_name]));
+
     // Format the response to match frontend expectations
     const formattedEvents = events.map((e) => ({
       event_id: e.event_id,
@@ -93,7 +110,7 @@ export async function GET(request: NextRequest) {
       end_date: e.end_date?.toISOString() || null,
       all_day: e.all_day,
       event_type: e.event_type,
-      location: e.location,
+      location: e.location || (e.branch_id ? branchNameById.get(e.branch_id) || null : null),
       color: e.color,
       brand_id: e.brand_id,
       brand_name: e.brand?.brand_name || null,

@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
     sql += ` AND (t.tender_name ILIKE $${idx++} OR t.tender_description ILIKE $${idx++})`;
     params.push(`%${search}%`, `%${search}%`);
   }
-  sql += ` ORDER BY t.tender_id DESC LIMIT $${idx++} OFFSET $${idx++}`;
+  sql += ` ORDER BY t.renovation_start_date DESC NULLS LAST, t.tender_id DESC LIMIT $${idx++} OFFSET $${idx++}`;
   params.push(limit, offset);
 
   const result = await query(sql, params);

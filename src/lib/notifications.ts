@@ -56,17 +56,42 @@ export async function logEmailNotification(params: {
 // admin-triggered password resets always send regardless of user preference.
 export type NotificationPreferenceKey = "newTenders" | "statusChanges" | "announcements" | "alerts";
 
+// Resolves an event type's configured CC role list (admin/security's Tender
+// Settings -> Email & CC tab, tender_cc_recipients) into actual active
+// users' email addresses. Returns [] on any lookup failure or if no row/
+// roles are configured for this event type — CC is additive, so failing
+// open here would mean unintentionally CC'ing everyone with that role;
+// fail closed (no CC) instead, same as a missing row meaning "not
+// configured yet."
+async function resolveCcEmails(eventType: string): Promise<string[]> {
+  const ccRes = await query(
+    `SELECT role_ids FROM tender_cc_recipients WHERE event_type = $1`,
+    [eventType]
+  ).catch(() => null);
+  const roleIds: number[] = ccRes?.rows?.[0]?.role_ids ?? [];
+  if (roleIds.length === 0) return [];
+
+  const usersRes = await query(
+    `SELECT DISTINCT u.email FROM users u
+     JOIN user_roles ur ON ur.user_id = u.user_id
+     WHERE ur.role_id = ANY($1) AND u.is_active = true AND u.is_deleted = false`,
+    [roleIds]
+  ).catch(() => null);
+  return usersRes?.rows?.map((r) => r.email) ?? [];
+}
+
 // Single choke point for every email this app sends for a tracked event:
 // checks the admin-configurable per-event toggle (notification_event_settings),
 // then (if preferenceKey is given and the recipient is a known user) the
-// recipient's own per-user preference, sends, then records delivery
-// success/failure. Never throws — the underlying action (award, approval,
-// login, ...) must always succeed independent of email delivery or settings.
+// recipient's own per-user preference, resolves this event's configured CC
+// list, sends, then records delivery success/failure. Never throws — the
+// underlying action (award, approval, login, ...) must always succeed
+// independent of email delivery or settings.
 export async function sendTrackedEmail(
   eventType: string,
   recipient: { userId?: number | null; email: string },
   tenderId: number | null,
-  sendFn: () => Promise<void>,
+  sendFn: (ccEmails: string[]) => Promise<void>,
   preferenceKey?: NotificationPreferenceKey
 ): Promise<void> {
   const settingRes = await query(
@@ -92,8 +117,10 @@ export async function sendTrackedEmail(
     }
   }
 
+  const ccEmails = (await resolveCcEmails(eventType)).filter((e) => e !== recipient.email);
+
   try {
-    await sendFn();
+    await sendFn(ccEmails);
     await logEmailNotification({ eventType, recipientUserId: recipient.userId, recipientEmail: recipient.email, tenderId, isDelivered: true });
   } catch (err) {
     console.error(`Email send failed (${eventType} -> ${recipient.email}):`, err);

@@ -1,35 +1,35 @@
 // app/api/admin/cc-settings/route.ts
+//
+// Per-event-type CC recipients — which roles get CC'd on which tender/
+// business notification, not one blanket list applied to everything.
+// event_type values match notification_event_settings' vocabulary (only
+// the tender/business events; login_alert/password_reset intentionally
+// have no CC row, since those are single-recipient security emails).
+// Resolved into actual recipient emails by src/lib/notifications.ts's
+// sendTrackedEmail at send time.
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { isSuperUser } from "@/lib/roles";
 
-// GET: fetch the list of role IDs that are CC recipients
+// GET: fetch every event type's CC role list
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Only admins can manage CC settings
   const userRoleIds = (session.user as any)?.roleIds || [];
   if (!isSuperUser(userRoleIds)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
-    // We store a single row with an array of role IDs (PostgreSQL array)
     const result = await query(
-      `SELECT role_ids FROM tender_cc_recipients LIMIT 1`
+      `SELECT event_type, role_ids FROM tender_cc_recipients ORDER BY event_type`
     );
-
-    if (result.rows.length === 0) {
-      // If no row exists, return an empty array
-      return NextResponse.json({ role_ids: [] });
-    }
-
-    return NextResponse.json({ role_ids: result.rows[0].role_ids || [] });
+    return NextResponse.json({ settings: result.rows });
   } catch (error) {
     console.error("GET /api/admin/cc-settings error:", error);
     return NextResponse.json(
@@ -39,7 +39,7 @@ export async function GET() {
   }
 }
 
-// PUT: update the list of role IDs
+// PUT: update one event type's CC role list
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -53,32 +53,22 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { role_ids } = body;
+    const { event_type, role_ids } = body;
 
-    if (!Array.isArray(role_ids)) {
+    if (typeof event_type !== "string" || !Array.isArray(role_ids)) {
       return NextResponse.json(
-        { error: "Invalid input: role_ids must be an array" },
+        { error: "Invalid input: event_type (string) and role_ids (array) are required" },
         { status: 400 }
       );
     }
 
-    // Check if a row exists; if not, insert one
-    const exists = await query(
-      `SELECT 1 FROM tender_cc_recipients LIMIT 1`
+    const result = await query(
+      `UPDATE tender_cc_recipients SET role_ids = $1, updated_at = NOW() WHERE event_type = $2 RETURNING event_type`,
+      [role_ids, event_type]
     );
 
-    if (exists.rows.length === 0) {
-      // Insert new row with the provided array
-      await query(
-        `INSERT INTO tender_cc_recipients (role_ids) VALUES ($1)`,
-        [role_ids]
-      );
-    } else {
-      // Update existing row
-      await query(
-        `UPDATE tender_cc_recipients SET role_ids = $1, updated_at = NOW()`,
-        [role_ids]
-      );
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: "Unknown event type" }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });

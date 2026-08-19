@@ -124,9 +124,11 @@ export async function GET(request: NextRequest) {
     const awardedRes = await query(
       `SELECT ta.tender_id, t.tender_name,
               COALESCE(up.company_name, u.username) AS contractor_name,
-              ta.contract_value, ta.awarded_date
+              ta.contract_value, ta.awarded_date, br.brand_name
        FROM tender_award ta
        JOIN tender t ON ta.tender_id = t.tender_id
+       JOIN branch b ON t.branch_id = b.branch_id
+       JOIN brand br ON b.brand_id = br.brand_id
        JOIN users u ON ta.winning_contractor_id = u.user_id
        LEFT JOIN user_profile up ON up.user_id = u.user_id
        WHERE t.is_deleted = false
@@ -139,6 +141,7 @@ export async function GET(request: NextRequest) {
       contractor_name: r.contractor_name,
       contract_value: r.contract_value ? parseFloat(r.contract_value) : 0,
       awarded_date: r.awarded_date,
+      brand_name: r.brand_name,
     }));
 
     const countRes = await query(
@@ -212,19 +215,33 @@ export async function GET(request: NextRequest) {
   } = { activeCases: 0, overdueCases: 0, nextDueDate: null, upcomingList: [], overdueList: [] };
   try {
     const dlpRes = await query(
-      `SELECT t.tender_id, b.branch_name AS outlet,
+      `SELECT t.tender_id, b.branch_name AS outlet, br.brand_name, t.dlp_case_status,
               (t.handover_date + (COALESCE(t.defect_liability_months, 12) || ' months')::interval)::date AS due_date
        FROM tender t
        JOIN branch b ON t.branch_id = b.branch_id
+       JOIN brand br ON b.brand_id = br.brand_id
        WHERE t.is_deleted = false AND t.stage = 3 AND t.handover_date IS NOT NULL`
     );
     const allDlpItems = dlpRes.rows.map((r) => {
       const { status, daysLeft, daysOverdue } = getDlpStatus(new Date(r.due_date));
-      return { outlet: r.outlet, dueDate: r.due_date, status, daysLeft, daysOverdue };
+      return {
+        tenderId: r.tender_id,
+        outlet: r.outlet,
+        brandName: r.brand_name,
+        dueDate: r.due_date,
+        status,
+        daysLeft,
+        daysOverdue,
+        caseStatus: r.dlp_case_status,
+      };
     });
+    // Ascending (least-overdue/most-recent first) so the DLP deadlines page
+    // can lay this out as one continuous timeline - upcoming dates first,
+    // then crossing into the past and going further back the further down
+    // the list you scroll.
     const overdueList = allDlpItems
       .filter((i) => i.status === "overdue")
-      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+      .sort((a, b) => a.daysOverdue - b.daysOverdue);
     const upcomingList = allDlpItems
       .filter((i) => i.status !== "overdue")
       .sort((a, b) => a.daysLeft - b.daysLeft)

@@ -11,21 +11,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { classifyDeviation, DEVIATION_THRESHOLD_PCT } from "@/lib/bqRateSummary";
 import { logInsert } from "@/lib/audit";
-
-function canGenerate(roleIds: number[]): boolean {
-  return (
-    isSuperUser(roleIds) ||
-    roleIds.includes(ROLE_IDS.PROJECT_MANAGER) ||
-    roleIds.includes(ROLE_IDS.SENIOR_PROJECT_MANAGER) ||
-    roleIds.includes(ROLE_IDS.FINANCE_MANAGER) ||
-    roleIds.includes(ROLE_IDS.FINANCE_GENERAL_MANAGER) ||
-    roleIds.includes(ROLE_IDS.FINANCE_TEAM)
-  );
-}
+import { canGenerateFinanceSummary } from "@/lib/permissions";
 
 interface CategoryRow {
   category_id: number;
@@ -165,8 +154,9 @@ export async function GET(
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = (session.user as any).id;
   const roleIds = (session.user as any)?.roleIds || [];
-  if (!canGenerate(roleIds)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await canGenerateFinanceSummary(userId, roleIds))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { submissionId } = await params;
   const subId = parseInt(submissionId);
@@ -193,7 +183,7 @@ export async function POST(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as any).id;
   const roleIds = (session.user as any)?.roleIds || [];
-  if (!canGenerate(roleIds)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await canGenerateFinanceSummary(userId, roleIds))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { submissionId } = await params;
   const subId = parseInt(submissionId);

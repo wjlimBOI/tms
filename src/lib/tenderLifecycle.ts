@@ -165,8 +165,8 @@ export async function sendDueDlpReminders(): Promise<void> {
     ).catch((err) => console.error(`DLP reminder notify failed for tender ${t.tender_id}:`, err));
 
     for (const admin of adminRes.rows) {
-      await sendTrackedEmail("dlp_reminder", { userId: admin.user_id, email: admin.email }, t.tender_id, () =>
-        sendDlpReminderEmail({ to: admin.email, recipientName: admin.name, tenderName: t.tender_name, tenderId: t.tender_id, dueDate: dueDateStr })
+      await sendTrackedEmail("dlp_reminder", { userId: admin.user_id, email: admin.email }, t.tender_id, (ccEmails) =>
+        sendDlpReminderEmail({ to: admin.email, recipientName: admin.name, tenderName: t.tender_name, tenderId: t.tender_id, dueDate: dueDateStr, cc: ccEmails })
       );
     }
 
@@ -223,8 +223,8 @@ export async function sendUpcomingSubmissionDeadlineReminders(): Promise<void> {
       "submission_deadline_reminder",
       { userId: c.contractor_id, email: c.email },
       c.tender_id,
-      () =>
-        sendSubmissionDeadlineReminderEmail({ to: c.email, recipientName: c.username, tenderName: c.tender_name, tenderId: c.tender_id, closingDate: closingDateStr }),
+      (ccEmails) =>
+        sendSubmissionDeadlineReminderEmail({ to: c.email, recipientName: c.username, tenderName: c.tender_name, tenderId: c.tender_id, closingDate: closingDateStr, cc: ccEmails }),
       "alerts"
     );
   }

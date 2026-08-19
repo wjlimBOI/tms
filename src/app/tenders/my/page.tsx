@@ -114,7 +114,7 @@ export default function MyTendersListPage() {
   // Loading skeleton
   if (sessionStatus === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-[#f7f4ee] py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse">
             <div className="h-12 bg-slate-200 rounded-lg w-64 mb-4" />
@@ -140,7 +140,7 @@ export default function MyTendersListPage() {
   // If error and no tenders, show a fallback (but modal is also shown)
   if (error && tenders.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-[#f7f4ee]">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-white">
         <AlertModal alert={alert} onClose={() => setAlert(null)} />
         <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center max-w-md">
           <p className="text-red-800">{error}</p>
@@ -159,7 +159,7 @@ export default function MyTendersListPage() {
   const activeTendersCount = filteredTenders.filter(t => t.display_status !== 'Closed').length;
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#f7f4ee] font-sans text-slate-900">
+    <div className="min-h-screen relative overflow-hidden bg-white font-sans text-slate-900">
       <AlertModal alert={alert} onClose={() => setAlert(null)} />
 
       <div className="relative z-10 py-8 px-4 sm:px-6 lg:px-8">
@@ -179,7 +179,7 @@ export default function MyTendersListPage() {
                 <button
                   onClick={fetchMyTenders}
                   disabled={loading}
-                  className="px-4 py-2 text-sm font-medium rounded-md border-2 border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white transition outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-medium rounded-md border border-[#15406a] text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white transition outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
                 >
                   <svg className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

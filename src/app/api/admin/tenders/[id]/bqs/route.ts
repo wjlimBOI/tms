@@ -77,7 +77,7 @@ export async function GET(
         ts.contractor_id,
         u.username AS contractor_username,
         COALESCE((
-          SELECT COUNT(*) FROM bq_line_item WHERE submission_id = ts.submission_id
+          SELECT COUNT(*)::int FROM bq_line_item WHERE submission_id = ts.submission_id
         ), 0) AS line_item_count,
         COALESCE((
           SELECT SUM(total_price) FROM bq_line_item WHERE submission_id = ts.submission_id

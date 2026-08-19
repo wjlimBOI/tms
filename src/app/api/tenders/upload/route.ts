@@ -4,10 +4,10 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { isSuperUser } from "@/lib/roles";
 import { matchesFileSignature } from "@/lib/fileValidation";
 import { query } from "@/lib/db";
 import { sanitize } from "@/lib/sanitize";
+import { canUploadTenderDocument } from "@/lib/permissions";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
 
@@ -31,8 +31,13 @@ export async function POST(req: Request) {
   // per-tender entitlement can't be enforced here. Restricting to Admin
   // closes the immediate gap - previously ANY authenticated user, including
   // Contractor, could write arbitrary allowed-type files to shared disk.
+  // Backed by the real `upload_tender_document` permission as of 2026-08-14
+  // (currently unmapped to any role beyond the Admin/Developer bypass, so
+  // behavior is unchanged — just now manageable via Role Permissions once a
+  // per-tender authorization model exists to grant it more broadly).
+  const userId = (session.user as any).id;
   const roleIds = (session.user as any).roleIds || [];
-  if (!isSuperUser(roleIds)) {
+  if (!(await canUploadTenderDocument(userId, roleIds))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

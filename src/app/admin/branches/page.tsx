@@ -374,7 +374,7 @@ export default function AdminBranchesPage() {
               </button>
               <button
                 onClick={openCreateModal}
-                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 transition-all duration-200 hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl shadow-sm text-white bg-[#15406a] hover:bg-[#0d2d4a] transition-all duration-200 hover:-translate-y-0.5"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -460,13 +460,13 @@ export default function AdminBranchesPage() {
               <div className="flex gap-3">
                 <button
                   onClick={applyFilter}
-                  className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
+                  className="px-5 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white text-sm font-medium rounded-lg shadow-sm transition"
                 >
                   Apply Filter
                 </button>
                 <button
                   onClick={clearFilters}
-                  className="px-4 py-2 border border-cyan-600 rounded-lg text-sm font-medium text-cyan-700 bg-transparent hover:bg-cyan-50 transition"
+                  className="px-4 py-2 border border-[#15406a] rounded-lg text-sm font-medium text-[#15406a] bg-white hover:bg-[#15406a] hover:text-white transition"
                 >
                   Clear All
                 </button>
@@ -525,7 +525,7 @@ export default function AdminBranchesPage() {
                             <div className="flex justify-center gap-2">
                               <button
                                 onClick={() => openEditModal(branch)}
-                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 transition-all"
+                                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#15406a] bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-all"
                               >
                                 Edit
                               </button>
@@ -703,7 +703,7 @@ export default function AdminBranchesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-lg text-sm font-medium text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+                  className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] rounded-lg text-sm font-medium text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[#15406a] focus:ring-offset-2"
                 >
                   {editingBranch ? "Update Branch" : "Create Branch"}
                 </button>

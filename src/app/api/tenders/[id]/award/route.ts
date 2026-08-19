@@ -212,7 +212,7 @@ export async function POST(
             "award_result",
             { userId: p.contractor_id, email: p.email },
             tenderId,
-            () =>
+            (ccEmails) =>
               sendAwardResultEmail({
                 to: p.email,
                 recipientName: p.username,
@@ -220,6 +220,7 @@ export async function POST(
                 tenderId,
                 won,
                 contractValue: won ? contractValue : undefined,
+                cc: ccEmails,
               }),
             "statusChanges"
           );

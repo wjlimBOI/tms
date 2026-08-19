@@ -330,7 +330,7 @@ export default function BQTemplateViewPage() {
               </p>
             </div>
             <div className="flex gap-2 sm:gap-3 flex-wrap">
-              <label className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 cursor-pointer transition-colors">
+              <label className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-[#15406a] text-white hover:bg-[#0d2d4a] cursor-pointer transition-colors">
                 {uploading ? "Uploading..." : "📤 Upload Excel"}
                 <input
                   type="file"
@@ -349,7 +349,7 @@ export default function BQTemplateViewPage() {
               </button>
               <button
                 onClick={() => router.push(`/admin/tenders/${tenderId}/bq-template/edit`)}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg border-2 border-[#15406a] bg-white text-[#15406a] hover:bg-[#15406a] hover:text-white transition-colors"
               >
                 ✏️ Edit Template
               </button>
