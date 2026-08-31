@@ -13,6 +13,7 @@ import {
   canEditTender,
   canDeleteTender,
   canViewTenderWithParticipation,
+  hasContractorParticipated,
   canViewDraftTender,
   canAccessTenderMessages,
   canAccessTenderDocuments,
@@ -360,5 +361,17 @@ describe("canViewTenderWithParticipation (DB-dependent branches, mocked pool)", 
     await expect(
       canViewTenderWithParticipation(1, 999, ROLE_IDS.CONTRACTOR)
     ).resolves.toBe(true);
+  });
+});
+
+describe("hasContractorParticipated", () => {
+  it("returns true when the contractor has any participation record", async () => {
+    poolQueryMock.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    await expect(hasContractorParticipated(1, 999)).resolves.toBe(true);
+  });
+
+  it("returns false when the contractor has no participation record", async () => {
+    poolQueryMock.mockResolvedValueOnce({ rows: [] });
+    await expect(hasContractorParticipated(1, 999)).resolves.toBe(false);
   });
 });

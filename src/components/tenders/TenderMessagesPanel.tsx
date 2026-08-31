@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
-import { MessageSquare, Send, Megaphone, FileText, HelpCircle } from "lucide-react";
+import { MessageSquare, Send, UserPlus, FileText, HelpCircle } from "lucide-react";
 import { ROLE_IDS } from "@/lib/roles";
 import { useNotify } from "@/components/ui/notification-provider";
-import AnnouncementModal from "@/components/tenders/AnnouncementModal";
+import InviteContractorsModal from "@/components/tenders/InviteContractorsModal";
 
 interface Message {
   message_id: number;
@@ -41,7 +41,7 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [requestingType, setRequestingType] = useState<"drawings" | "information" | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -193,13 +193,13 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
           <MessageSquare className="w-4 h-4 text-slate-400" />
           Messages
         </h3>
-        {isStaff && contractors.length > 0 && (
+        {isStaff && (
           <button
             type="button"
-            onClick={() => setShowAnnouncementModal(true)}
+            onClick={() => setShowInviteModal(true)}
             className="flex items-center gap-1.5 rounded-md border-2 border-[#15406a] bg-white px-3 py-1.5 text-xs font-semibold text-[#15406a] transition-colors hover:bg-[#15406a] hover:text-white"
           >
-            <Megaphone className="w-3.5 h-3.5" /> Send Announcement
+            <UserPlus className="w-3.5 h-3.5" /> Send Invitation
           </button>
         )}
       </div>
@@ -304,11 +304,11 @@ export default function TenderMessagesPanel({ tenderId, tenderName }: { tenderId
         </>
       )}
 
-      {showAnnouncementModal && (
-        <AnnouncementModal
+      {showInviteModal && (
+        <InviteContractorsModal
           tenderId={tenderId}
           tenderName={tenderName}
-          onClose={() => setShowAnnouncementModal(false)}
+          onClose={() => setShowInviteModal(false)}
           onSent={() => fetchThread(isContractor ? null : selectedContractorId)}
         />
       )}

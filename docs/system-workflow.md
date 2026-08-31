@@ -41,9 +41,9 @@ Plus a separate **Cancelled (-1)** state a tender can be placed into instead of 
 
 ## 3. The Contractor Journey
 
-**1. Discover a tender.** The tender list shows every *Open* tender to every contractor. If a contractor hasn't registered interest yet, they see only a masked "simple view" (name, branch, building — no description, no PM contact, no handover details). Closed or Awarded tenders are invisible to a contractor unless they actually participated in that tender.
+**1. Get invited.** Interest is invitation-only — staff select specific registered contractors from a tender's Messages panel ("Send Invitation") and each gets a one-time-token email link plus an in-app notification. The tender list shows every *Open* tender to every contractor, but a contractor who hasn't been invited yet sees only a masked "simple view" (name, branch, building — no description, no PM contact, no handover details). Closed or Awarded tenders are invisible to a contractor unless they actually participated in that tender.
 
-**2. Register interest.** A one-click action from the tender list or detail page. This unlocks the full tender details (description, PM contact, handover info) and tender documents for that contractor. Interest can also be **withdrawn** later while the tender is still Open, which reverts them back to the masked view.
+**2. Accept or decline.** The invitation email lets a contractor accept or decline directly via the token link, without logging in — the full invitation message is visible right there in the email/landing page. Accepting unlocks the full tender details (description, PM contact, handover info) and tender documents for that contractor; declining just records the decision. Interest can also be **withdrawn** later while the tender is still Open, which reverts them back to the masked view.
 
 **3. Acknowledge the Form of Tender.** Before a BQ can move from Draft to Submitted, the contractor must have acknowledged the tender's terms (`tender_acknowledgment`). Trying to submit without this is blocked with a clear "Form of Tender required" message and a direct link to go complete it.
 
@@ -67,7 +67,7 @@ Plus a separate **Cancelled (-1)** state a tender can be placed into instead of 
 
 **2. Build the BQ template.** Admin defines the reference bill-of-quantities template contractors' categories/line items are modeled on, including reference market rates used later for deviation flagging.
 
-**3. Tender opens automatically** on its scheduled date; staff can track interest registrations from the tender list (a live "N interested" count, with a full contractor-detail modal).
+**3. Tender opens automatically** on its scheduled date; staff invite specific contractors from the tender's Messages panel and track invitation/response status (Invited / Accepted / Declined / Pending) from a contractor-detail modal.
 
 **4. Tender closes automatically** on its scheduled date (or on an approved extension's new date). From here staff move into evaluation.
 

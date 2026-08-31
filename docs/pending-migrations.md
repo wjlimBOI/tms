@@ -224,3 +224,58 @@ CREATE INDEX idx_message_thread ON message(conversation_id, created_at);
 
 Remove this note once the SQL has been run against the live database and
 `prisma db pull` confirms the schema matches with no drift.
+
+## APPLIED — invitation-based tender interest: `tender_interest` invite
+## columns + `tender_invitation_template` (applied 2026-08-21)
+
+Restructures tender interest from contractor self-service to admin
+invitation. Admins now select specific registered contractors to invite from
+the tender messaging area ("Send Invitation", replacing free-text "Send
+Announcement"); invited contractors get a one-time-token email link to
+accept/decline without logging in. Extended `tender_interest` in place
+rather than a new model — it already models one row per (tender,
+contractor), and `submitted_at` already means "responded":
+
+```sql
+ALTER TABLE tender_interest
+  ADD COLUMN invited_by Int NULL REFERENCES users(user_id),
+  ADD COLUMN invited_at TIMESTAMP NULL,
+  ADD COLUMN invite_token VARCHAR(64) NULL,
+  ADD COLUMN invite_token_expires_at TIMESTAMP NULL,
+  ADD COLUMN invite_token_used_at TIMESTAMP NULL,
+  ADD COLUMN declined_at TIMESTAMP NULL;
+
+CREATE UNIQUE INDEX idx_tender_interest_invite_token
+  ON tender_interest(invite_token) WHERE invite_token IS NOT NULL;
+
+CREATE TABLE tender_invitation_template (
+  id          SERIAL PRIMARY KEY,
+  subject     VARCHAR(200) NOT NULL DEFAULT 'You''ve been invited to submit a tender',
+  body        TEXT NOT NULL,
+  updated_at  TIMESTAMP NOT NULL DEFAULT now(),
+  updated_by  INTEGER REFERENCES users(user_id)
+);
+```
+
+Seeded one default template row. Token generation mirrors
+`password_reset_tokens`/`crypto.randomBytes(32).toString("hex")`, 14-day
+expiry. On accept, `is_approved`/`approved_by`/`approved_at` are set
+automatically (replacing the removed manual Approve step) — required so
+`sendUpcomingSubmissionDeadlineReminders()` (`src/lib/tenderLifecycle.ts`)
+keeps working, since it filters on `is_approved = true`. On decline, only
+`declined_at` is set.
+
+Applied directly against the dev DB, then `npx prisma db pull` resynced
+`schema.prisma` (68 models now, no drift). `npx prisma generate`'s client
+rebuild failed with the same `EPERM` (native query engine binary locked by
+a running `next dev` process) noted in earlier entries — re-run
+`npx prisma generate` next time the dev server is stopped; all new
+columns/table are read/written through raw `pg` (`src/lib/db.ts`) in the
+new invite/respond routes, not Prisma Client, so this doesn't block the
+feature working today.
+
+Also seeded a `tender_invitation` row in `notification_event_settings`
+(`label` "Tender invitation sent to contractor") so the new invite email
+plugs into the existing admin toggle/CC UI in `admin/security` automatically
+— that section reads its list dynamically from this table, no hardcoded
+event list to update in the component itself.

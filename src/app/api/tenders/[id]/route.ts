@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { tenderUpdateSchema, validateBody, tenderIdParamSchema } from "@/lib/validation";
-import { canViewTenderWithParticipation, canViewDraftTender } from "@/lib/permissions";
+import { canViewTenderWithParticipation, canViewDraftTender, hasContractorParticipated } from "@/lib/permissions";
 import { logUpdate, logDelete, logAuthEvent } from "@/lib/audit";
 import { syncTenderToCalendar } from "@/lib/syncTenderToCalendar";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
@@ -131,8 +131,41 @@ export async function GET(
     [tenderId]
   );
 
+  const tenderData: Record<string, any> = { ...fullResult.rows[0] };
+
+  // A Contractor may be viewing this because it's still Open (any
+  // contractor can see an Open tender per canViewTenderWithParticipation),
+  // not because they actually participate in it — matches the "simple
+  // details" redaction the tenders list endpoint already applies for the
+  // same case, so a non-participant can't get the fuller field set just by
+  // hitting the detail endpoint directly instead of the list.
+  if (userRoleIds.includes(ROLE_IDS.CONTRACTOR)) {
+    const participated = await hasContractorParticipated(tenderId, userId);
+    if (!participated) {
+      tenderData.tender_description = null;
+      tenderData.project_manager_email = null;
+      tenderData.project_manager_name = null;
+      tenderData.project_manager_phone = null;
+      tenderData.project_manager_email_joined = null;
+      tenderData.project_manager_name_joined = null;
+      tenderData.project_manager_phone_joined = null;
+      tenderData.expected_handover_date = null;
+      tenderData.handover_date = null;
+      tenderData.defect_liability_months = null;
+    }
+
+    // Contract/award administrative details are staff-only (Admin/Developer/
+    // PM/Senior PM — see canMarkContractReceived in tenders/[id]/page.tsx) —
+    // no contractor, winning or otherwise, should receive them from the API,
+    // even though the UI never renders this section for a contractor.
+    tenderData.contract_value = null;
+    tenderData.contract_received_at = null;
+    tenderData.contract_received_by = null;
+    tenderData.contract_received_by_name = null;
+  }
+
   return NextResponse.json(
-    { ...fullResult.rows[0], briefing_dates: briefingRes.rows },
+    { ...tenderData, briefing_dates: briefingRes.rows },
     { headers: corsHeaders }
   );
 }

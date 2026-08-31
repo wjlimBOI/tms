@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Users, Mail, Phone, Building2, Check, Undo2 } from "lucide-react";
+import { X, Users, Mail, Phone, Building2, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
-import { useNotify } from "@/components/ui/notification-provider";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface InterestEntry {
@@ -11,6 +10,8 @@ interface InterestEntry {
   interest_note: string | null;
   is_approved: boolean;
   submitted_at: string | null;
+  invited_at: string | null;
+  declined_at: string | null;
   created_at: string;
   username?: string;
   email?: string;
@@ -25,35 +26,39 @@ interface Props {
   onClose: () => void;
 }
 
+function statusBadge(entry: InterestEntry) {
+  if (entry.declined_at) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-slate-200 text-slate-600 shrink-0">
+        <XCircle className="w-2.5 h-2.5" /> Declined
+      </span>
+    );
+  }
+  if (entry.submitted_at) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-emerald-100 text-emerald-700 shrink-0">
+        <CheckCircle2 className="w-2.5 h-2.5" /> Accepted
+      </span>
+    );
+  }
+  if (entry.invited_at) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-amber-100 text-amber-700 shrink-0">
+        <Clock className="w-2.5 h-2.5" /> Invited — awaiting response
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-slate-100 text-slate-500 shrink-0">
+      Pending
+    </span>
+  );
+}
+
 export default function TenderInterestModal({ tenderId, tenderName, onClose }: Props) {
-  const toast = useNotify();
   const [interests, setInterests] = useState<InterestEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [decidingId, setDecidingId] = useState<number | null>(null);
-
-  const decide = async (interestId: number, approved: boolean) => {
-    setDecidingId(interestId);
-    try {
-      const res = await fetch(`/api/tenders/${tenderId}/interest/${interestId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approved }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Unable to update interest status.");
-      }
-      setInterests((prev) =>
-        prev.map((entry) => (entry.interest_id === interestId ? { ...entry, is_approved: approved } : entry))
-      );
-      toast.success(approved ? "Contractor approved" : "Approval reverted");
-    } catch (err: any) {
-      toast.error(err.message || "Unable to update interest status.");
-    } finally {
-      setDecidingId(null);
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +73,7 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
         if (!cancelled) setInterests(data.interests || []);
       })
       .catch(() => {
-        if (!cancelled) setError("Could not load the list of interested contractors.");
+        if (!cancelled) setError("Could not load the list of invited contractors.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -89,7 +94,7 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
           <div>
             <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Users className="w-4 h-4 text-blue-600" />
-              Interested Contractors
+              Invited Contractors
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 mt-0.5">{tenderName}</DialogDescription>
           </div>
@@ -120,7 +125,8 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
             <div className="text-center py-8">
               <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
               <p className="text-sm text-slate-500">
-                No contractors have registered interest yet.
+                No contractors have been invited yet. Use &quot;Send Invitation&quot; in the Messages panel to invite
+                contractors to this tender.
               </p>
             </div>
           )}
@@ -137,15 +143,7 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
                       <p className="font-medium text-sm text-slate-900 truncate">
                         {entry.full_name || entry.username || "Unnamed contractor"}
                       </p>
-                      {entry.is_approved ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-emerald-100 text-emerald-700 shrink-0">
-                          <Check className="w-2.5 h-2.5" /> Approved
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-medium bg-amber-100 text-amber-700 shrink-0">
-                          Pending
-                        </span>
-                      )}
+                      {statusBadge(entry)}
                     </div>
                     <span className="text-[10px] text-slate-400 shrink-0">
                       {entry.created_at ? format(new Date(entry.created_at), "MMM dd, yyyy") : ""}
@@ -173,25 +171,6 @@ export default function TenderInterestModal({ tenderId, tenderName, onClose }: P
                       &quot;{entry.interest_note}&quot;
                     </p>
                   )}
-                  <div className="mt-2 flex justify-end">
-                    {entry.is_approved ? (
-                      <button
-                        onClick={() => decide(entry.interest_id, false)}
-                        disabled={decidingId === entry.interest_id}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-200 transition disabled:opacity-50 focus:outline-none focus:ring-0"
-                      >
-                        <Undo2 className="w-3 h-3" /> Revoke approval
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => decide(entry.interest_id, true)}
-                        disabled={decidingId === entry.interest_id}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-50 focus:outline-none focus:ring-0"
-                      >
-                        <Check className="w-3 h-3" /> {decidingId === entry.interest_id ? "Approving…" : "Approve"}
-                      </button>
-                    )}
-                  </div>
                 </li>
               ))}
             </ul>

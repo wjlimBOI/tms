@@ -2,14 +2,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { query, getClient } from "@/lib/db";
+import { query } from "@/lib/db";
 import { getCorsHeaders, handleCorsOptions } from "@/lib/cors";
 import { ROLE_IDS } from "@/lib/roles";
 import { canAccessTenderMessages } from "@/lib/permissions";
 import { validateBody, tenderMessageSchema } from "@/lib/validation";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
-import { notifyUsers, sendTrackedEmail } from "@/lib/notifications";
-import { sendAnnouncementEmail } from "@/lib/email";
+import { notifyUsers } from "@/lib/notifications";
 
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -155,76 +154,10 @@ export async function POST(
     return NextResponse.json({ success: true, message: inserted.rows[0] }, { status: 201, headers: corsHeaders });
   }
 
-  // ---------- Staff posting (reply to one contractor, or announcement to all) ----------
+  // ---------- Staff posting (reply to one contractor's thread) ----------
   const access = await canAccessTenderMessages(tenderId, user.id, user.email, user.roleIds || []);
   if (!access.allowed || !access.isStaff) {
     return NextResponse.json({ error: "You do not have access to this tender's messages" }, { status: 403, headers: corsHeaders });
-  }
-
-  if (rest.is_announcement === true) {
-    const contractorsRes = await query(
-      `SELECT DISTINCT ac.contractor_id, u.email, COALESCE(up.full_name, u.display_name, u.username) AS username
-       FROM (
-         SELECT contractor_id FROM tender_submission WHERE tender_id = $1 AND is_deleted = false
-         UNION SELECT contractor_id FROM tender_interest WHERE tender_id = $1
-         UNION SELECT contractor_id FROM tender_contractor WHERE tender_id = $1
-         UNION SELECT winning_contractor_id AS contractor_id FROM tender_award WHERE tender_id = $1
-       ) AS ac
-       JOIN users u ON u.user_id = ac.contractor_id
-       LEFT JOIN user_profile up ON up.user_id = u.user_id`,
-      [tenderId]
-    );
-    const contractorIds: number[] = contractorsRes.rows.map((r: { contractor_id: number }) => r.contractor_id);
-
-    if (contractorIds.length === 0) {
-      return NextResponse.json({ error: "No contractors are associated with this tender yet" }, { status: 400, headers: corsHeaders });
-    }
-
-    const client = await getClient();
-    try {
-      await client.query("BEGIN");
-      const inserted: any[] = [];
-      for (const contractorId of contractorIds) {
-        const res = await client.query(
-          `INSERT INTO tender_message (tender_id, contractor_id, sender_id, is_announcement, body)
-           VALUES ($1, $2, $3, true, $4)
-           RETURNING message_id, tender_id, contractor_id, sender_id, is_announcement, body, created_at`,
-          [tenderId, contractorId, user.id, body]
-        );
-        inserted.push(res.rows[0]);
-      }
-      await client.query("COMMIT");
-
-      void notifyUsers(
-        contractorIds,
-        `Announcement: ${tender.tender_name}`,
-        body.slice(0, 200),
-        `/tenders/${tenderId}#messages`
-      ).catch((err) => console.error(`Announcement notification failed for tender ${tenderId}:`, err));
-
-      void (async () => {
-        for (const c of contractorsRes.rows) {
-          await sendTrackedEmail(
-            "announcement",
-            { userId: c.contractor_id, email: c.email },
-            tenderId,
-            (ccEmails) => sendAnnouncementEmail({ to: c.email, recipientName: c.username, tenderName: tender.tender_name, tenderId, body, cc: ccEmails }),
-            "announcements"
-          );
-        }
-      })().catch((err) => console.error(`Announcement email dispatch failed for tender ${tenderId}:`, err));
-
-      return NextResponse.json(
-        { success: true, messages: inserted, notifiedCount: contractorIds.length },
-        { status: 201, headers: corsHeaders }
-      );
-    } catch (err) {
-      await client.query("ROLLBACK");
-      console.error("Announcement send error:", err);
-      return NextResponse.json({ error: "Unable to send the announcement. Please try again." }, { status: 500, headers: corsHeaders });
-    } finally {
-      client.release();
-    }
   }
 
   // Regular staff reply to one contractor's thread
