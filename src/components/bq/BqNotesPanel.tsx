@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { MessageSquare } from "lucide-react";
 import { useNotify } from "@/components/ui/notification-provider";
 
@@ -11,6 +11,17 @@ interface BqComment {
   requires_action: boolean;
   created_at: string;
   author_name: string;
+  line_item_id: number | null;
+  item_no: string | null;
+  item_description: string | null;
+  contractor_read_at: string | null;
+  is_new?: boolean;
+}
+
+interface BqItem {
+  line_item_id: number;
+  item_no: string;
+  description: string;
 }
 
 function relativeTime(iso: string): string {
@@ -26,27 +37,36 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-// Staff-authored notes on a BQ submission (review_comment table). Staff can
-// mark each note visible-to-contractor or internal-only; contractors only
-// ever see the former — the GET route already filters this server-side, so
-// this component doesn't need to re-check visibility itself (2026-08-10).
+// Staff-authored notes on a BQ submission (review_comment table), each
+// attached to a specific line item. Staff can mark each note visible-to-
+// contractor or internal-only; contractors only ever see the former — the
+// GET route already filters this server-side (2026-08-10). For contractor-
+// visible notes, the GET route also marks contractor_read_at the first time
+// it delivers a note to the owning contractor, and flags that same response
+// with is_new so the "New" badge shows exactly once (2026-08-21).
 export default function BqNotesPanel({ submissionId, canAddNotes }: { submissionId: number; canAddNotes: boolean }) {
   const toast = useNotify();
   const [comments, setComments] = useState<BqComment[]>([]);
+  const [items, setItems] = useState<BqItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [newBody, setNewBody] = useState("");
+  const [selectedItemId, setSelectedItemId] = useState<number | "">("");
   const [visibleToContractor, setVisibleToContractor] = useState(true);
   const [requiresAction, setRequiresAction] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchComments = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch(`/api/bq/${submissionId}/comments`);
-      if (!res.ok) throw new Error();
-      setComments(await res.json());
+      const [commentsRes, itemsRes] = await Promise.all([
+        fetch(`/api/bq/${submissionId}/comments`),
+        fetch(`/api/bq/${submissionId}/items`),
+      ]);
+      if (!commentsRes.ok || !itemsRes.ok) throw new Error();
+      setComments(await commentsRes.json());
+      setItems(await itemsRes.json());
     } catch {
       setError(true);
     } finally {
@@ -55,11 +75,11 @@ export default function BqNotesPanel({ submissionId, canAddNotes }: { submission
   }, [submissionId]);
 
   useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
+    fetchData();
+  }, [fetchData]);
 
   const handleAddComment = async () => {
-    if (!newBody.trim()) return;
+    if (!newBody.trim() || !selectedItemId) return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/bq/${submissionId}/comments`, {
@@ -69,6 +89,7 @@ export default function BqNotesPanel({ submissionId, canAddNotes }: { submission
           comment_body: newBody.trim(),
           visible_to_contractor: visibleToContractor,
           requires_action: requiresAction,
+          line_item_id: selectedItemId,
         }),
       });
       if (!res.ok) {
@@ -78,7 +99,7 @@ export default function BqNotesPanel({ submissionId, canAddNotes }: { submission
       setNewBody("");
       setRequiresAction(false);
       toast.success("Note added");
-      await fetchComments();
+      await fetchData();
     } catch (err: any) {
       toast.error(err.message || "Could not add the note. Please try again.");
     } finally {
@@ -86,9 +107,67 @@ export default function BqNotesPanel({ submissionId, canAddNotes }: { submission
     }
   };
 
+  // Group notes by line item; notes with no line_item_id are legacy,
+  // pre-per-item notes shown as read-only history.
+  const groups = useMemo(() => {
+    const byItem = new Map<number, { item_no: string | null; item_description: string | null; notes: BqComment[] }>();
+    const legacy: BqComment[] = [];
+    for (const c of comments) {
+      if (c.line_item_id === null) {
+        legacy.push(c);
+        continue;
+      }
+      const existing = byItem.get(c.line_item_id);
+      if (existing) {
+        existing.notes.push(c);
+      } else {
+        byItem.set(c.line_item_id, { item_no: c.item_no, item_description: c.item_description, notes: [c] });
+      }
+    }
+    return { byItem: Array.from(byItem.entries()), legacy };
+  }, [comments]);
+
   // Nothing to show and nothing to add — don't render an empty panel for a
   // contractor with no notes on their BQ.
   if (!canAddNotes && !loading && comments.length === 0 && !error) return null;
+
+  const renderNote = (c: BqComment) => (
+    <div key={c.comment_id} className="flex gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold text-slate-800">{c.author_name}</span>
+          <span className="text-[10px] text-slate-400">{relativeTime(c.created_at)}</span>
+          {c.requires_action && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+              Action needed
+            </span>
+          )}
+          {canAddNotes && !c.visible_to_contractor && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">
+              Internal only
+            </span>
+          )}
+          {c.visible_to_contractor && canAddNotes && (
+            c.contractor_read_at ? (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700">
+                Read {relativeTime(c.contractor_read_at)}
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+                Unread
+              </span>
+            )
+          )}
+          {!canAddNotes && c.is_new && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+              New
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{c.comment_body}</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6">
@@ -104,7 +183,7 @@ export default function BqNotesPanel({ submissionId, canAddNotes }: { submission
       ) : error ? (
         <div className="text-sm text-rose-600 flex items-center justify-between gap-3">
           <span>Could not load notes.</span>
-          <button onClick={fetchComments} className="px-3 py-1.5 text-xs font-medium border border-rose-300 rounded-lg hover:bg-rose-50 transition-colors">
+          <button onClick={fetchData} className="px-3 py-1.5 text-xs font-medium border border-rose-300 rounded-lg hover:bg-rose-50 transition-colors">
             Retry
           </button>
         </div>
@@ -113,33 +192,42 @@ export default function BqNotesPanel({ submissionId, canAddNotes }: { submission
           {comments.length === 0 ? (
             <p className="text-sm text-slate-500 mb-4">No notes yet.</p>
           ) : (
-            <div className="space-y-3 mb-4">
-              {comments.map((c) => (
-                <div key={c.comment_id} className="flex gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold text-slate-800">{c.author_name}</span>
-                      <span className="text-[10px] text-slate-400">{relativeTime(c.created_at)}</span>
-                      {c.requires_action && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
-                          Action needed
-                        </span>
-                      )}
-                      {canAddNotes && !c.visible_to_contractor && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">
-                          Internal only
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{c.comment_body}</p>
+            <div className="space-y-5 mb-4">
+              {groups.byItem.map(([lineItemId, group]) => (
+                <div key={lineItemId}>
+                  <p className="text-xs font-semibold text-slate-500 mb-2">
+                    Item {group.item_no} — {group.item_description}
+                  </p>
+                  <div className="space-y-3 pl-3 border-l-2 border-slate-100">
+                    {group.notes.map(renderNote)}
                   </div>
                 </div>
               ))}
+              {groups.legacy.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-2">General notes (history)</p>
+                  <div className="space-y-3 pl-3 border-l-2 border-slate-100">
+                    {groups.legacy.map(renderNote)}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {canAddNotes && (
             <div className="pt-3 border-t border-slate-200 space-y-2">
+              <select
+                value={selectedItemId}
+                onChange={(e) => setSelectedItemId(e.target.value ? Number(e.target.value) : "")}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
+              >
+                <option value="">Select a BQ item...</option>
+                {items.map((item) => (
+                  <option key={item.line_item_id} value={item.line_item_id}>
+                    Item {item.item_no} — {item.description.slice(0, 60)}
+                  </option>
+                ))}
+              </select>
               <textarea
                 value={newBody}
                 onChange={(e) => setNewBody(e.target.value)}
@@ -170,7 +258,7 @@ export default function BqNotesPanel({ submissionId, canAddNotes }: { submission
                 </div>
                 <button
                   onClick={handleAddComment}
-                  disabled={submitting || !newBody.trim()}
+                  disabled={submitting || !newBody.trim() || !selectedItemId}
                   className="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-medium transition disabled:opacity-50"
                 >
                   {submitting ? "Adding..." : "Add Note"}

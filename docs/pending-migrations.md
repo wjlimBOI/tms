@@ -279,3 +279,41 @@ Also seeded a `tender_invitation` row in `notification_event_settings`
 plugs into the existing admin toggle/CC UI in `admin/security` automatically
 — that section reads its list dynamically from this table, no hardcoded
 event list to update in the component itself.
+
+## APPLIED — per-item BQ notes + contractor read tracking on
+## `review_comment` (applied 2026-08-21)
+
+Staff notes on a contractor's BQ (`review_comment`) previously attached only
+to the whole submission — no way to say a note was about a specific line
+item — and had no read/unread concept beyond `contractor_notified` (whether
+a notification was *fired*, not whether the contractor actually saw it).
+
+```sql
+ALTER TABLE review_comment
+  ADD COLUMN line_item_id INTEGER NULL REFERENCES bq_line_item(line_item_id) ON DELETE CASCADE,
+  ADD COLUMN contractor_read_at TIMESTAMP NULL;
+```
+
+`line_item_id` targets `bq_line_item` (the real per-submission line-item
+table backing the BQ edit page — own serial PK, contractor-editable), not
+`bq_template_items`/`bq_submission_items`, which are a separate, unrelated
+admin reference-template system. `ON DELETE CASCADE` because a note about a
+deleted line item is meaningless. Nullable so existing general-submission
+notes remain as read-only history; new notes always populate it — enforced
+at the API layer (`src/app/api/bq/[submissionId]/comments/route.ts`), not a
+DB constraint.
+
+`contractor_read_at` is set automatically the first time a contractor's
+`GET` on the comments route actually returns a given note to them (response
+carries `is_new: true` on that same call before the row flips to read) —
+no separate mark-as-read endpoint. Read tracking only applies to
+`visible_to_contractor = true` notes, per explicit product decision —
+internal-only notes have no contractor read state.
+
+Applied directly against the dev DB, then `npx prisma db pull` resynced
+`schema.prisma`. `npx prisma generate`'s client rebuild failed with the
+same `EPERM` (native query engine binary locked by a running `next dev`
+process) noted in earlier entries — re-run `npx prisma generate` next time
+the dev server is stopped; both new columns are read/written through raw
+`pg` (`src/lib/db.ts`), not Prisma Client, so this doesn't block the
+feature working today.
