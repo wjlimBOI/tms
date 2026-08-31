@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef, memo } from "react";
+import { useEffect, useState, useRef, memo, Fragment } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useNotify } from "@/components/ui/notification-provider";
+import ErrorState from "@/components/ui/ErrorState";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import "./tender-print.css";
 import {
@@ -26,6 +27,7 @@ import {
   DEFAULT_PM_NAME,
   DEFAULT_PM_EMAIL,
   DEFAULT_PM_PHONE,
+  DEFAULT_SUBMISSION_EMAIL,
 } from "@/lib/tenderConstants";
 import { DATE_LABELS, EXTRA_DATE_NOTES } from "@/lib/tenderDateConfig";
 import { FORM_OF_TENDER_ITEMS } from "@/lib/tenderFormItems";
@@ -623,15 +625,14 @@ export default function TenderDocumentPage() {
   }
   if (error || !tender) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-red-100 text-red-800 p-6 rounded-xl max-w-md">
-          <p className="font-bold">Error</p>
-          <p>{error || "Tender not found"}</p>
-          <button onClick={() => router.back()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded">
-            Go Back
-          </button>
-        </div>
-      </div>
+      <ErrorState
+        fullScreen
+        variant="error"
+        title="Unable to load this tender"
+        message={error || "Tender not found"}
+        secondaryActionLabel="Go Back"
+        onSecondaryAction={() => router.back()}
+      />
     );
   }
 
@@ -1283,11 +1284,17 @@ export default function TenderDocumentPage() {
                       const description = clause.description
                         .replace(/<tender title>/g, tenderName)
                         .replace(/<date>/g, closingDate);
+                      const parts = description.split("<submission email>");
                       return (
                         <div key={idx} className="critical-clause mb-3 break-inside-avoid-page">
                           <div className="font-bold text-slate-800">3) SUBMISSION OF TENDER</div>
                           <div className="ml-4 text-slate-700" style={{ whiteSpace: "pre-wrap" }}>
-                            {description}
+                            {parts.map((part, i) => (
+                              <Fragment key={i}>
+                                {part}
+                                {i < parts.length - 1 && <u>{DEFAULT_SUBMISSION_EMAIL}</u>}
+                              </Fragment>
+                            ))}
                           </div>
                         </div>
                       );

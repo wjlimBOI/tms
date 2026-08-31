@@ -63,5 +63,51 @@ export const getClient = (): Promise<PoolClient> => pool.connect();
 // Helper to get the pool itself (if needed for advanced use)
 export const getPool = (): Pool => pool;
 
+// Thrown inside a withTransaction() callback to abort with a specific HTTP
+// response (e.g. a validation failure found mid-transaction) instead of a
+// generic 500. withTransaction() still rolls back before rethrowing; the
+// caller's own catch block is responsible for turning this into a
+// NextResponse, e.g.:
+//
+//   } catch (err) {
+//     if (err instanceof TransactionAbortError) {
+//       return NextResponse.json({ error: err.message }, { status: err.status });
+//     }
+//     ...
+//   }
+export class TransactionAbortError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'TransactionAbortError';
+  }
+}
+
+// Standardises BEGIN/COMMIT/ROLLBACK/release around a single pooled client.
+// New and touched code should prefer this over hand-rolled
+// getClient()/BEGIN/COMMIT/ROLLBACK blocks; existing call sites are not
+// required to migrate. The callback receives the client to run queries on
+// and must not call BEGIN/COMMIT/ROLLBACK itself — throw (optionally a
+// TransactionAbortError) to roll back, or return normally to commit.
+export async function withTransaction<T>(
+  fn: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('Rollback failed after transaction error:', rollbackErr);
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 // Default export for convenience
 export default pool;

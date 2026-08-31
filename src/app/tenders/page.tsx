@@ -313,41 +313,7 @@ export default function TendersListPage() {
     }
   };
 
-  // ---------- Interest (contractor apply / admin view) ----------
-  const registerInterest = async (tender: Tender) => {
-    const proceed = await confirm({
-      title: "Register interest",
-      description: `Register your company's interest in "${tender.tender_name}"? The tender team will be able to see that you've applied.`,
-      confirmText: "Register Interest",
-    });
-    if (!proceed) return;
-
-    setApplyingInterestId(tender.tender_id);
-    try {
-      const res = await fetch(`/api/tenders/${tender.tender_id}/interest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Unable to register interest.");
-      }
-      setTenders(prev =>
-        prev.map(t =>
-          t.tender_id === tender.tender_id
-            ? { ...t, has_expressed_interest: true, interest_count: (t.interest_count || 0) + 1 }
-            : t
-        )
-      );
-      toast.success("Your interest has been registered.");
-    } catch (err: any) {
-      toast.error(err.message || "Unable to register interest.");
-    } finally {
-      setApplyingInterestId(null);
-    }
-  };
-
+  // ---------- Interest (contractor withdraw / admin view) ----------
   const withdrawInterest = async (tender: Tender) => {
     const proceed = await confirm({
       title: "Withdraw interest",
@@ -935,27 +901,13 @@ export default function TendersListPage() {
                                       </button>
                                     </>
                                   ) : (
-                                    <>
-                                      <Link
-                                        href={targetUrl}
-                                        onClick={(e) => { e.stopPropagation(); close(); }}
-                                        className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
-                                      >
-                                        <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> View Details
-                                      </Link>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          close();
-                                          registerInterest(item);
-                                        }}
-                                        disabled={applyingInterestId === item.tender_id}
-                                        className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-1.5 disabled:opacity-50"
-                                      >
-                                        <UserPlus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                        {applyingInterestId === item.tender_id ? "Registering…" : "Register Interest"}
-                                      </button>
-                                    </>
+                                    <Link
+                                      href={targetUrl}
+                                      onClick={(e) => { e.stopPropagation(); close(); }}
+                                      className="w-full text-left px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
+                                    >
+                                      <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> View Details
+                                    </Link>
                                   )}
                                 </>
                               )}

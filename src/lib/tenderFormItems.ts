@@ -1,16 +1,16 @@
 // lib/tenderFormItems.ts
 
 export const FORM_OF_TENDER_ITEMS: string[] = [
-  "As outlined in the attached Summary, we agree to abide by all conditions.",
-  "2. We understand the Company may not accept the lowest tender.",
-  "3. This tender remains valid for 90 days.",
-  "4. We will deposit required insurance policies before site possession.",
-  "5. This tender together with written acceptance constitutes a binding contract.",
-  "6. We confirm the documents used are copies of the originals.",
-  "7. In case of delay, we agree to pay liquidated damages of S$5,000/day.",
-  "8. We have examined and conformed with all requirements.",
-  "9. Obvious arithmetic errors may be corrected before acceptance.",
-  "10. We have taken all requirements into account.",
-  "11. We will provide any further information required.",
-  "12. No rights under Third Parties Act.",
+  "As outlined in detail on the attached Summary of quotation, this submission is provided with our undertaking to complete the said works for a period as stipulated in the Tender Documents and/or Contract. We agree to abide by all the conditions of tendering as stipulated in the Tender Documents and/or Contract.",
+  "2. We understand that the Company reserves the right not to accept the lowest tender and/or to accept any tender in part or in whole.",
+  "3. Whereas it is understood that the Company reserves the right to accept or to refuse this tender, whether it be lower or higher in value than any tender, or of the same amount, the undersigned agrees that this tender shall remain valid and shall not be withdrawn within ninety (90) days from the closing date for submission of tenders or for any further period for which the Tender may become valid in accordance with the Notices of Tenderers.",
+  "4. And further, the undersigned agrees, in the event of your acceptance of this tender, to deposit the required insurance policies including but not limited to the Workmen's Compensation Policy, Contractor's All Risks (The Public Liability Insurance of the Works and the Performance Bond) and produce the receipts of premium paid for inspection, before the date of site possession.",
+  "5. And further, the undersigned agrees that this tender together with the Company's written acceptance shall constitute a legal and binding contract between both parties.",
+  "6. And further, the undersigned confirms, after personal scrutiny, that the Tender documents and drawings used by the undersigned in compiling the tender are the copies of the documents and drawings included in Tender Documents.",
+  "7. In the event, the undersigned fails to perform the Contract on or before the Handover date specified, the undersigned agrees to pay liquidated damages at the rate of S$5,000.00 for each whole day, or part thereof, (including Sundays and Public Holidays) the work remains incomplete.",
+  "8. The undersigned has examined the Tender Documents and hereby agrees and confirms that all requirements and stipulations have been conformed with and taken into account in the compiling of the tender.",
+  "9. The undersigned further agrees that should obvious errors in pricing or arithmetic errors be discovered before acceptance of this offer, the Tenderers should be given an opportunity to confirm the offer OR of mending it to correct genuine errors.",
+  "10. The undersigned has examined the Tender Documents and/or the Contract and the enclosed Drawings and Specifications. The undersigned has taken all these requirements and stipulations into account in compiling the tender.",
+  "11. The undersigned further undertakes to give you any further information which you may require.",
+  "12. Unless otherwise expressly stated in this contract, a person who is not a party to this contract shall have no rights under the Contracts (Rights of Third Parties) Act to enforce any of its terms.",
 ];

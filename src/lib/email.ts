@@ -569,39 +569,43 @@ export async function sendSubmissionDeadlineReminderEmail({
   });
 }
 
-// ==================== ANNOUNCEMENT EMAIL ====================
-export async function sendAnnouncementEmail({
+// ==================== TENDER INVITATION EMAIL ====================
+export async function sendInvitationEmail({
   to,
-  recipientName,
+  contractorName,
   tenderName,
-  tenderId,
-  body: announcementBody,
-  cc,
+  token,
+  subject: templateSubject,
+  body: templateBody,
 }: {
   to: string;
-  recipientName: string;
+  contractorName: string;
   tenderName: string;
-  tenderId: number;
+  token: string;
+  subject: string;
   body: string;
-  cc?: string[];
 }): Promise<void> {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
-  const tenderUrl = `${baseUrl}/tenders/${tenderId}#messages`;
-  const subject = `Announcement: ${tenderName}`;
-  const title = "Announcement";
+  const respondUrl = `${baseUrl}/tender-interest/respond?token=${token}`;
+  const subject = templateSubject
+    .replace(/\{contractor_name\}/g, contractorName)
+    .replace(/\{tender_name\}/g, tenderName);
+  const title = "Tender Invitation";
+
+  const resolvedBody = templateBody
+    .replace(/\{contractor_name\}/g, contractorName)
+    .replace(/\{tender_name\}/g, tenderName);
 
   const body = `
-    <p style="margin:0 0 14px;">Dear ${escapeHtml(recipientName)},</p>
-    <p style="margin:0 0 6px;"><span style="font-weight:600;color:#334155;">Tender:</span> ${escapeHtml(tenderName)}</p>
-    <div style="background-color:#f8fafc;padding:12px 16px;border-left:4px solid #0d9488;margin:0;text-align:left;">${escapeHtml(announcementBody).replace(/\n/g, "<br>")}</div>
+    <div style="background-color:#f8fafc;padding:12px 16px;border-left:4px solid #0d9488;margin:0 0 14px;text-align:left;">${escapeHtml(resolvedBody).replace(/\n/g, "<br>")}</div>
+    <p style="font-size:13px;color:#64748b;margin:0;">You can respond directly using the button below, or log in to your TMS account to view and respond to this invitation.</p>
   `;
 
   await transporter.sendMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
-    cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
     subject,
-    html: renderEmail({ title, bodyHtml: body, cta: { text: "View Discussion", url: tenderUrl } }),
+    html: renderEmail({ title, bodyHtml: body, cta: { text: "Respond to Invitation", url: respondUrl } }),
   });
 }
 

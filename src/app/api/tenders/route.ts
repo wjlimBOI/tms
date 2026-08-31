@@ -59,9 +59,9 @@ export async function GET(request: NextRequest) {
   const isContractor = userRoleIds.includes(ROLE_IDS.CONTRACTOR);
 
   // Broader than has_expressed_interest — matches the participation
-  // definition canAccessTenderDocuments/canAccessTenderMessages/
-  // canViewTenderWithParticipation already use (interest OR submission OR
-  // tender_contractor OR being the awarded contractor), so a contractor who
+  // definition canAccessTenderMessages/canViewTenderWithParticipation
+  // already use (interest OR submission OR tender_contractor OR being the
+  // awarded contractor), so a contractor who
   // e.g. submitted a BQ without a separate "Register Interest" click still
   // sees full details and doesn't lose a Closed/Awarded tender from their list.
   const participationSubquery = `

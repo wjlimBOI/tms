@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { useEffect, useState, useRef, useCallback, memo, Fragment } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useNotify } from "@/components/ui/notification-provider";
@@ -22,6 +22,7 @@ import {
   DEFAULT_PM_NAME,
   DEFAULT_PM_EMAIL,
   DEFAULT_PM_PHONE,
+  DEFAULT_SUBMISSION_EMAIL,
 } from "@/lib/tenderConstants";
 import { DATE_LABELS, EXTRA_DATE_NOTES } from "@/lib/tenderDateConfig";
 import { FORM_OF_TENDER_ITEMS } from "@/lib/tenderFormItems";
@@ -790,12 +791,20 @@ export default function TenderEditPage() {
                     if (clause.title === "3) SUBMISSION OF TENDER") {
                       const tenderName = tender?.tender_name || "TENDER";
                       const closingDate = formatTenderDateLong(tender?.closing_date);
-                      const description = clause.description.replace(/<tender title>/g, tenderName).replace(/<date>/g, closingDate);
+                      const description = clause.description
+                        .replace(/<tender title>/g, tenderName)
+                        .replace(/<date>/g, closingDate);
+                      const parts = description.split("<submission email>");
                       return (
                         <div key={idx} className="critical-clause mb-3 break-inside-avoid-page">
                           <div className="font-bold text-slate-800">3) SUBMISSION OF TENDER</div>
                           <div className="ml-4 text-slate-700" style={{ whiteSpace: "pre-wrap" }}>
-                            {description}
+                            {parts.map((part, i) => (
+                              <Fragment key={i}>
+                                {part}
+                                {i < parts.length - 1 && <u>{DEFAULT_SUBMISSION_EMAIL}</u>}
+                              </Fragment>
+                            ))}
                           </div>
                         </div>
                       );

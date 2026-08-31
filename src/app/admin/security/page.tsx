@@ -22,11 +22,13 @@ import { SortableItem } from "@/components/ui/SortableItem";
 import { format } from "date-fns";
 import { Lock, Clock, GitBranch, Search, ShieldCheck, Check, AlertTriangle, Info, X, Scale, ScrollText } from "lucide-react";
 import { useNotify } from "@/components/ui/notification-provider";
+import ErrorState from "@/components/ui/ErrorState";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 import { isSuperUser, ROLE_IDS } from "@/lib/roles";
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from "@/lib/legal";
+import BlankTenderTemplatePreview from "@/components/admin/BlankTenderTemplatePreview";
 
 // ============================================================
 // Types & Shared Helpers
@@ -656,6 +658,131 @@ function NotificationEmailSettings() {
 }
 
 // ============================================================
+// Invitation Email Template
+// ============================================================
+function InvitationTemplateSettings() {
+  const toast = useNotify();
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const fetchTemplate = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/invitation-template");
+      if (!res.ok) throw new Error("Failed to fetch the invitation template");
+      const data = await res.json();
+      setSubject(data.template.subject);
+      setBody(data.template.body);
+    } catch (err: any) {
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTemplate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSave = async () => {
+    if (!subject.trim() || !body.trim()) {
+      toast.error("Subject and message body are required.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/invitation-template", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: subject.trim(), body: body.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save the invitation template");
+      }
+      toast.success("Invitation template saved");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="w-8 h-8 border-3 border-[#15406a] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <p className="text-slate-500">Loading invitation template...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600 mb-4">{error}</p>
+        <button
+          onClick={fetchTemplate}
+          className="px-4 py-2 bg-[#15406a] hover:bg-[#0d2d4a] text-white rounded-lg text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+      <h2 className="text-xl font-semibold text-gray-800 mb-1">Invitation Email Template</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        This fixed template is used whenever staff send a tender invitation from a tender&apos;s Messages panel.
+        Use <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">{"{contractor_name}"}</code> and{" "}
+        <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">{"{tender_name}"}</code> as placeholders — they
+        are filled in automatically for each contractor when an invitation is sent.
+      </p>
+
+      <div className="space-y-4 max-w-2xl">
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Subject</label>
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            maxLength={200}
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Message Body</label>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={8}
+            maxLength={4000}
+            className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-[#15406a] focus:ring-1 focus:ring-[#15406a] transition px-3 py-2 text-sm resize-y"
+          />
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-md bg-[#15406a] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0d2d4a] disabled:pointer-events-none disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save Template"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // Main Security Dashboard
 // ============================================================
 export default function SecurityDashboard() {
@@ -664,7 +791,7 @@ export default function SecurityDashboard() {
   const [activeTab, setActiveTab] = useState<
     "notifications" | "config" | "permissions" | "timelock" | "audit-compliance" | "tender-settings"
   >("notifications");
-  const [activeSubTab, setActiveSubTab] = useState<"timings" | "email">("timings");
+  const [activeSubTab, setActiveSubTab] = useState<"timings" | "email" | "template" | "invitation">("timings");
   const [activeAuditSubTab, setActiveAuditSubTab] = useState<"audit" | "data-requests" | "compliance">("audit");
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -808,10 +935,22 @@ export default function SecurityDashboard() {
                   onClick={() => setActiveSubTab("email")}
                   label="Email & CC Settings"
                 />
+                <SubTabButton
+                  active={activeSubTab === "template"}
+                  onClick={() => setActiveSubTab("template")}
+                  label="Blank Template"
+                />
+                <SubTabButton
+                  active={activeSubTab === "invitation"}
+                  onClick={() => setActiveSubTab("invitation")}
+                  label="Invitation Template"
+                />
               </div>
 
               {activeSubTab === "timings" && canViewTimings && <TenderTimings userPermissions={userPermissions} isAdmin={isAdmin} />}
               {activeSubTab === "email" && <NotificationEmailSettings />}
+              {activeSubTab === "template" && <BlankTenderTemplatePreview />}
+              {activeSubTab === "invitation" && <InvitationTemplateSettings />}
             </>
           )}
         </div>
@@ -2235,11 +2374,14 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
 
   if (error) {
     return (
-      <div className="bg-red-100 text-red-800 p-6 rounded-xl">
-        <p className="font-semibold">Error loading access windows</p>
-        <p className="text-sm">{error}</p>
-        <button onClick={fetchAccessWindows} className="mt-3 px-3 py-1 bg-red-600 text-white rounded text-sm">Retry</button>
-      </div>
+      <ErrorState
+        variant="error"
+        title="Error loading access windows"
+        message={error}
+        actionLabel="Retry"
+        onAction={fetchAccessWindows}
+        className="max-w-none mx-0"
+      />
     );
   }
 
@@ -3106,11 +3248,14 @@ function AuditLogs() {
 
   if (error) {
     return (
-      <div className="bg-red-100 text-red-800 p-6 rounded-xl">
-        <p className="font-semibold">Error loading audit logs</p>
-        <p className="text-sm">{error}</p>
-        <button onClick={fetchLogs} className="mt-3 px-3 py-1 bg-red-600 text-white rounded text-sm">Retry</button>
-      </div>
+      <ErrorState
+        variant="error"
+        title="Error loading audit logs"
+        message={error}
+        actionLabel="Retry"
+        onAction={fetchLogs}
+        className="max-w-none mx-0"
+      />
     );
   }
 

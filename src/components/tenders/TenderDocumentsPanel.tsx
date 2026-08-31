@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
-import { FileText, Upload, Trash2 } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
 import { isSuperUser } from "@/lib/roles";
 import { useNotify } from "@/components/ui/notification-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { Button } from "@/components/ui/Button";
 
 interface TenderDocument {
   document_id: number;
@@ -30,7 +29,6 @@ export default function TenderDocumentsPanel({ tenderId }: { tenderId: number })
   const { data: session } = useSession();
   const toast = useNotify();
   const confirm = useConfirm();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const roleIds = ((session?.user as any)?.roleIds || []) as number[];
   const isAdmin = isSuperUser(roleIds);
@@ -38,7 +36,6 @@ export default function TenderDocumentsPanel({ tenderId }: { tenderId: number })
   const [accessible, setAccessible] = useState<boolean | null>(null);
   const [documents, setDocuments] = useState<TenderDocument[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchDocuments = useCallback(async () => {
@@ -62,32 +59,6 @@ export default function TenderDocumentsPanel({ tenderId }: { tenderId: number })
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
-
-  const handleUploadClick = () => fileInputRef.current?.click();
-
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("tender_id", String(tenderId));
-      const res = await fetch("/api/tenders/upload", { method: "POST", body: formData });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Upload failed");
-      }
-      toast.success(`"${file.name}" uploaded.`);
-      await fetchDocuments();
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't upload the file. Please try again.");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleDelete = async (doc: TenderDocument) => {
     if (!(await confirm({ description: `Remove "${doc.file_name}"? Contractors and staff will no longer be able to view it.`, confirmText: "Remove", variant: "destructive" }))) return;
@@ -124,15 +95,6 @@ export default function TenderDocumentsPanel({ tenderId }: { tenderId: number })
             Site plans, drawings and other supporting files our team has attached to this tender — download anything here before you submit your bid.
           </p>
         </div>
-        {isAdmin && (
-          <>
-            <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelected} accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png,.webp" />
-            <Button variant="outline" size="sm" onClick={handleUploadClick} disabled={uploading}>
-              <Upload className="w-3.5 h-3.5" />
-              {uploading ? "Uploading…" : "Upload"}
-            </Button>
-          </>
-        )}
       </div>
 
       {loading ? (

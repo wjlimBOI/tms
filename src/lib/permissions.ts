@@ -177,6 +177,18 @@ export async function canViewTenderWithParticipation(
   return participation.rows.length > 0;
 }
 
+export async function hasContractorParticipated(tenderId: number, contractorId: number): Promise<boolean> {
+  const result = await pool.query(
+    `SELECT 1 FROM tender_submission WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false
+     UNION SELECT 1 FROM tender_interest WHERE tender_id = $1 AND contractor_id = $2
+     UNION SELECT 1 FROM tender_contractor WHERE tender_id = $1 AND contractor_id = $2
+     UNION SELECT 1 FROM tender_award WHERE tender_id = $1 AND winning_contractor_id = $2
+     LIMIT 1`,
+    [tenderId, contractorId]
+  );
+  return result.rows.length > 0;
+}
+
 // ========== HANDOVER / DLP PERMISSIONS ==========
 // Admin, or the Project Manager (or Senior PM) actually assigned to this
 // tender. `project_managers` (the dropdown reference table) has no link to a

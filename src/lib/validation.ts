@@ -128,7 +128,6 @@ export const dlpCaseStatusSchema = z.object({
 export const tenderMessageSchema = z.object({
   body: z.string().min(1).max(4000),
   contractor_id: z.number().int().positive().optional(),
-  is_announcement: z.boolean().optional(),
 });
 
 // ===========================================

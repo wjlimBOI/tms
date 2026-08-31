@@ -13,3 +13,9 @@ export const DEFAULT_CONTACT_PERSON = DEFAULT_PM_NAME;
 export const DEFAULT_CONTACT_POSITION = "Project Manager";
 export const DEFAULT_CONTACT_EMAIL = DEFAULT_PM_EMAIL;
 export const DEFAULT_CONTACT_PHONE = DEFAULT_COMPANY_TEL;
+
+// Fixed tender submission mailbox — deliberately separate from the PM's
+// enquiry email above. Clause 3 ("Submission of Tender") always routes here
+// regardless of which PM is assigned to the tender; clause 4 ("Tender
+// Enquiries") uses the per-tender PM email instead.
+export const DEFAULT_SUBMISSION_EMAIL = "annielim@beautyone.com.sg";

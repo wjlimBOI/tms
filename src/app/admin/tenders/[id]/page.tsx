@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useNotify } from "@/components/ui/notification-provider";
+import ErrorState from "@/components/ui/ErrorState";
 import { ArrowLeft, Save, Eye, Menu, X, RotateCw, Plus } from "lucide-react";
 import { getCompanyDetailsByBrand } from "@/lib/companyMapping";
 import { isoToLocalDateTime } from "@/lib/dateUtils";
@@ -682,15 +683,14 @@ export default function AdminEditTenderPage() {
   }
   if (error || !formData) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
-        <div className="bg-red-100 text-red-800 p-6 rounded-xl max-w-md">
-          <p className="font-bold">Error</p>
-          <p>{error || "Tender not found"}</p>
-          <button onClick={() => router.back()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded">
-            Go Back
-          </button>
-        </div>
-      </div>
+      <ErrorState
+        fullScreen
+        variant="error"
+        title="Unable to load this tender"
+        message={error || "Tender not found"}
+        secondaryActionLabel="Go Back"
+        onSecondaryAction={() => router.back()}
+      />
     );
   }
 
