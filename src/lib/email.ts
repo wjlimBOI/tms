@@ -1,4 +1,4 @@
-// lib/email.ts
+﻿// lib/email.ts
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
@@ -25,6 +25,20 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function sanitizeEmailSubject(value: string): string {
+  return value
+    .replace(/[\x00-\x1F\x7F\r\n]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+async function sendSecureMail(options: Parameters<typeof transporter.sendMail>[0]) {
+  return transporter.sendMail({
+    ...options,
+    subject: sanitizeEmailSubject(typeof options.subject === "string" ? options.subject : ""),
+  });
+}
+
 // Helper: read logo as base64 data URI (for local development)
 function getLogoDataUri(): string | null {
   try {
@@ -41,7 +55,7 @@ function getLogoDataUri(): string | null {
 }
 
 // ============================================================
-// Shared email template — every function below routes through
+// Shared email template â€” every function below routes through
 // this single renderer so header, title placement, button style,
 // and footer are consistent across all outbound mail. Built as a
 // table-based layout (not divs/flexbox) with MSO conditional
@@ -128,7 +142,7 @@ function renderEmail({
             </td>
           </tr>
 
-          <!-- Title + Body — own background, visually distinct from header/footer -->
+          <!-- Title + Body â€” own background, visually distinct from header/footer -->
           <tr>
             <td bgcolor="#ffffff">
               <div class="content" style="padding:30px 28px 0;text-align:center;">
@@ -145,10 +159,10 @@ function renderEmail({
           <tr>
             <td bgcolor="#e9eef5" style="background-color:#e9eef5;border-top:1px solid #dbe3ee;padding:20px 28px;text-align:center;">
               <p style="margin:0 0 6px;font-size:12px;color:#475569;">
-                This is an automated message — please do not reply.
+                This is an automated message â€” please do not reply.
               </p>
               <p style="margin:0;font-size:11px;color:#94a3b8;">
-                © ${new Date().getFullYear()} Beauty One International Pte Ltd. All rights reserved.
+                Â© ${new Date().getFullYear()} Beauty One International Pte Ltd. All rights reserved.
               </p>
             </td>
           </tr>
@@ -202,10 +216,10 @@ export async function sendWelcomeEmail(
     </p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"Beauty One International" <${process.env.SMTP_FROM}>`,
     to: email,
-    subject: "Welcome to Beauty One International – Set Your Password",
+    subject: "Welcome to Beauty One International â€“ Set Your Password",
     html: renderEmail({ title, bodyHtml: body, cta: { text: "Set Your Password", url: setPasswordUrl } }),
   });
 }
@@ -240,7 +254,7 @@ export async function sendExtensionRequestEmail(data: {
     </p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to: data.approverEmails.join(", "),
     cc: data.ccEmails.join(", "),
@@ -280,7 +294,7 @@ export async function sendExtensionDecisionEmail(data: {
     ${data.reason ? `<p style="margin:0;"><span style="font-weight:600;color:#334155;">Reason for ${data.status.toLowerCase()}:</span> ${escapeHtml(data.reason)}</p>` : ""}
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to: data.requesterEmail,
     subject,
@@ -322,7 +336,7 @@ export async function sendStageNotificationEmail({
   `;
 
   try {
-    await transporter.sendMail({
+    await sendSecureMail({
       from: `"TMS System" <${process.env.SMTP_FROM}>`,
       to,
       subject,
@@ -331,7 +345,7 @@ export async function sendStageNotificationEmail({
     console.log(`Stage notification email sent to ${to} for tender ${tenderId}`);
   } catch (error) {
     console.error(`Failed to send stage email to ${to}:`, error);
-    // Do not throw – we don't want to block the stage update
+    // Do not throw â€“ we don't want to block the stage update
   }
 }
 
@@ -360,7 +374,7 @@ export async function sendTenderRequestEmail(data: {
     <p style="margin:0;">Please respond to the contractor directly.</p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to: data.pmEmail,
     subject,
@@ -388,22 +402,22 @@ export async function sendAwardResultEmail({
 }): Promise<void> {
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
   const tenderUrl = `${baseUrl}/tenders/${tenderId}`;
-  const subject = won ? `Congratulations — you won: ${tenderName}` : `Tender awarded: ${tenderName}`;
+  const subject = won ? `Congratulations â€” you won: ${tenderName}` : `Tender awarded: ${tenderName}`;
   const title = won ? "You've Been Awarded the Tender" : "Tender Award Result";
 
   const body = won
     ? `
         <p style="margin:0 0 14px;">Dear ${escapeHtml(recipientName)},</p>
-        <p style="margin:0 0 14px;">Congratulations — you have been awarded <strong>${escapeHtml(tenderName)}</strong>.</p>
+        <p style="margin:0 0 14px;">Congratulations â€” you have been awarded <strong>${escapeHtml(tenderName)}</strong>.</p>
         ${contractValue != null ? `<p style="margin:0;"><span style="font-weight:600;color:#334155;">Contract Value:</span> $${contractValue.toLocaleString()}</p>` : ""}
       `
     : `
         <p style="margin:0 0 14px;">Dear ${escapeHtml(recipientName)},</p>
         <p style="margin:0 0 14px;"><strong>${escapeHtml(tenderName)}</strong> has been awarded to another contractor.</p>
-        <p style="margin:0;">Thank you for your submission — we encourage you to bid on future tenders.</p>
+        <p style="margin:0;">Thank you for your submission â€” we encourage you to bid on future tenders.</p>
       `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
     cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
@@ -440,7 +454,7 @@ export async function sendBqDecisionEmail({
     <p style="margin:0;">Your Bill of Quantities <strong>${escapeHtml(bqLabel)}</strong> for <strong>${escapeHtml(tenderName)}</strong> has been <strong>${status}</strong>.</p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
     cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
@@ -450,8 +464,8 @@ export async function sendBqDecisionEmail({
 }
 
 // ==================== RESUBMISSION REQUEST EMAIL ====================
-// Deliberately never includes exact competitor figures — only relative
-// standing ("higher"/"lower" than other bids) — so a contractor can't infer
+// Deliberately never includes exact competitor figures â€” only relative
+// standing ("higher"/"lower" than other bids) â€” so a contractor can't infer
 // another contractor's actual pricing from this email (2026-08-10).
 export async function sendResubmissionRequestEmail({
   to,
@@ -490,7 +504,7 @@ export async function sendResubmissionRequestEmail({
     ${dueBy ? `<p style="margin:0;"><span style="font-weight:600;color:#334155;">Please submit your revised quote by:</span> ${escapeHtml(dueBy)}</p>` : ""}
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
     cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
@@ -525,7 +539,7 @@ export async function sendDlpReminderEmail({
     <p style="margin:0;">The Defect Liability Period for <strong>${escapeHtml(tenderName)}</strong> expires on <strong>${escapeHtml(dueDate)}</strong>.</p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
     cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
@@ -560,7 +574,7 @@ export async function sendSubmissionDeadlineReminderEmail({
     <p style="margin:0;"><strong>${escapeHtml(tenderName)}</strong> closes on <strong>${escapeHtml(closingDate)}</strong>. Submit your bid before then.</p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
     cc: cc && cc.length > 0 ? cc.join(", ") : undefined,
@@ -601,7 +615,7 @@ export async function sendInvitationEmail({
     <p style="font-size:13px;color:#64748b;margin:0;">You can respond directly using the button below, or log in to your TMS account to view and respond to this invitation.</p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
     subject,
@@ -629,7 +643,7 @@ export async function sendPasswordResetEmail(
     <p style="font-size:13px;color:#dc2626;font-weight:600;margin:0;">If you did not expect this, contact your administrator immediately.</p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to: email,
     subject,
@@ -655,7 +669,7 @@ export async function sendLoginAlertEmail(
     <p style="font-size:13px;color:#dc2626;font-weight:600;margin:0;">If this wasn't you, contact your administrator immediately.</p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to: email,
     subject,
@@ -666,7 +680,7 @@ export async function sendLoginAlertEmail(
 // ==================== PDPA DATA SUBJECT REQUEST SUMMARY EMAIL ====================
 // Sent by an Admin/Legal Team member from admin/security's Data Subject
 // Request tool, compiling what TMS holds on the recipient into a short
-// summary (AI-generated with a deterministic local fallback — see
+// summary (AI-generated with a deterministic local fallback â€” see
 // src/app/api/admin/data-subject-request/summary/route.ts) for a PDPA
 // "right of access" response. summaryText may contain the admin's manual
 // edits, so it's escaped like any other user-influenced content before
@@ -690,10 +704,11 @@ export async function sendDsrSummaryEmail({
     <p style="font-size:13px;color:#64748b;margin:0;">If you have questions about this summary or would like to exercise any of your rights under the PDPA, please contact our Data Protection Officer at dpo@beautyone.com.sg.</p>
   `;
 
-  await transporter.sendMail({
+  await sendSecureMail({
     from: `"TMS System" <${process.env.SMTP_FROM}>`,
     to,
     subject,
     html: renderEmail({ title, bodyHtml: body }),
   });
 }
+

@@ -7,7 +7,13 @@ import { isSuperUser } from "@/lib/roles";
 import { z } from "zod";
 
 const templateSchema = z.object({
-  subject: z.string().min(1).max(200),
+  subject: z
+    .string()
+    .min(1)
+    .max(200)
+    .refine((value) => !/[\r\n]/.test(value), {
+      message: "Subject cannot contain line breaks",
+    }),
   body: z.string().min(1).max(4000),
 });
 
