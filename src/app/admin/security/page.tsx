@@ -22,6 +22,7 @@ import { SortableItem } from "@/components/ui/SortableItem";
 import { format } from "date-fns";
 import { Lock, Clock, GitBranch, Search, ShieldCheck, Check, AlertTriangle, Info, X, Scale, ScrollText } from "lucide-react";
 import { useNotify } from "@/components/ui/notification-provider";
+import ErrorState from "@/components/ui/ErrorState";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import DateTimePicker from "@/components/ui/DateTimePicker";
@@ -2366,11 +2367,14 @@ function TimeLockedAccess({ roles }: { roles: Role[] }) {
 
   if (error) {
     return (
-      <div className="bg-red-100 text-red-800 p-6 rounded-xl">
-        <p className="font-semibold">Error loading access windows</p>
-        <p className="text-sm">{error}</p>
-        <button onClick={fetchAccessWindows} className="mt-3 px-3 py-1 bg-red-600 text-white rounded text-sm">Retry</button>
-      </div>
+      <ErrorState
+        variant="error"
+        title="Error loading access windows"
+        message={error}
+        actionLabel="Retry"
+        onAction={fetchAccessWindows}
+        className="max-w-none mx-0"
+      />
     );
   }
 
@@ -3237,11 +3241,14 @@ function AuditLogs() {
 
   if (error) {
     return (
-      <div className="bg-red-100 text-red-800 p-6 rounded-xl">
-        <p className="font-semibold">Error loading audit logs</p>
-        <p className="text-sm">{error}</p>
-        <button onClick={fetchLogs} className="mt-3 px-3 py-1 bg-red-600 text-white rounded text-sm">Retry</button>
-      </div>
+      <ErrorState
+        variant="error"
+        title="Error loading audit logs"
+        message={error}
+        actionLabel="Retry"
+        onAction={fetchLogs}
+        className="max-w-none mx-0"
+      />
     );
   }
 
