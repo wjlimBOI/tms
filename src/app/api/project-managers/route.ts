@@ -24,6 +24,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const userRoleIds = (session.user as any).roleIds || [];
+  if (!(await canManageProjectManagers(session.user.id, userRoleIds))) {
+    await logAuthEvent("PERMISSION_DENIED", session.user.id, req, {
+      action: "list_project_managers",
+      reason: "Unauthorized",
+      source: "api"
+    });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search") || "";
 
