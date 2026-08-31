@@ -19,7 +19,7 @@ GENERAL INSTRUCTIONS
 
 Closing date: Not later than 1200hrs on <date>
 
-<u>annielim@beautyone.com.sg</u>
+<submission email>
 
 Any Tender received after the said date and time, for whatever reasons, will not be considered.`,
   },

@@ -28,6 +28,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import DateTimePicker from "@/components/ui/DateTimePicker";
 import { isSuperUser, ROLE_IDS } from "@/lib/roles";
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from "@/lib/legal";
+import BlankTenderTemplatePreview from "@/components/admin/BlankTenderTemplatePreview";
 
 // ============================================================
 // Types & Shared Helpers
@@ -790,7 +791,7 @@ export default function SecurityDashboard() {
   const [activeTab, setActiveTab] = useState<
     "notifications" | "config" | "permissions" | "timelock" | "audit-compliance" | "tender-settings"
   >("notifications");
-  const [activeSubTab, setActiveSubTab] = useState<"timings" | "email" | "invitation">("timings");
+  const [activeSubTab, setActiveSubTab] = useState<"timings" | "email" | "template" | "invitation">("timings");
   const [activeAuditSubTab, setActiveAuditSubTab] = useState<"audit" | "data-requests" | "compliance">("audit");
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -935,6 +936,11 @@ export default function SecurityDashboard() {
                   label="Email & CC Settings"
                 />
                 <SubTabButton
+                  active={activeSubTab === "template"}
+                  onClick={() => setActiveSubTab("template")}
+                  label="Blank Template"
+                />
+                <SubTabButton
                   active={activeSubTab === "invitation"}
                   onClick={() => setActiveSubTab("invitation")}
                   label="Invitation Template"
@@ -943,6 +949,7 @@ export default function SecurityDashboard() {
 
               {activeSubTab === "timings" && canViewTimings && <TenderTimings userPermissions={userPermissions} isAdmin={isAdmin} />}
               {activeSubTab === "email" && <NotificationEmailSettings />}
+              {activeSubTab === "template" && <BlankTenderTemplatePreview />}
               {activeSubTab === "invitation" && <InvitationTemplateSettings />}
             </>
           )}

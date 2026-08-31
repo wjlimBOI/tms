@@ -225,6 +225,71 @@ CREATE INDEX idx_message_thread ON message(conversation_id, created_at);
 Remove this note once the SQL has been run against the live database and
 `prisma db pull` confirms the schema matches with no drift.
 
+## APPLIED — remove hardcoded personal email from "3) SUBMISSION OF TENDER"
+## clause (applied 2026-08-20)
+
+`src/lib/tenderClauses.ts`'s `DEFAULT_CRITICAL` clause 3 had a specific
+person's email (`annielim@beautyone.com.sg`) hand-typed into the clause text,
+wrapped in a literal `<u>...</u>` string — since the clause is rendered as
+plain text (`{description}`, not `dangerouslySetInnerHTML`), the tags never
+actually rendered as underline; contractors saw the literal characters
+`<u>annielim@beautyone.com.sg</u>` on the printed tender document. Replaced
+with a `<pm email>` placeholder, following the same convention already used
+for `<tender title>` and `<date>` in the same clause, and substituted at
+render time with the tender's actual `project_manager_email` (falling back
+to `DEFAULT_PM_EMAIL`) in both `src/app/tenders/[id]/page.tsx` and
+`src/app/tenders/[id]/edit/page.tsx` — matching how clause 4 ("TENDER
+ENQUIRIES") already sourced its contact email dynamically instead of a
+hardcoded string.
+
+The wrong email wasn't just in the code fallback — every existing tender's
+`clauses` JSONB snapshot (populated at creation time from `contract_template`,
+F8) had it baked in too. `contract_template` version 2 was deactivated and a
+new version 3 inserted (now `is_active = true`) with the corrected clause
+text. All 23 existing tenders (`tender_id` 6, 14–35) had their `clauses`
+snapshot and `contract_template_id` refreshed to point at version 3 —
+deliberately including the 21 already-Closed/Awarded tenders, which the
+2026-08-17 migration's "frozen legal record" precedent would normally have
+left untouched. This was an explicit user decision (2026-08-20): the wrong
+personal email needed correcting everywhere, not just on new documents going
+forward. Verified: `SELECT count(*) FROM tender WHERE clauses::text ILIKE
+'%annielim%'` returns 0.
+
+No schema change — `content`/`clauses` are `Json` columns, so no
+`prisma db pull`/`generate` was needed.
+
+## CORRECTED — `annielim@beautyone.com.sg` was intentional, not a bug
+## (corrected 2026-08-20)
+
+The entry directly above was wrong about intent, though right about a real
+rendering bug. User clarified: `annielim@beautyone.com.sg` is the actual
+fixed tender-submission mailbox — deliberately different from the per-tender
+PM's enquiry email used in clause 4 ("Tender Enquiries"). It should never
+have been replaced with the dynamic `project_manager_email`.
+
+What was genuinely broken and stays fixed: the clause rendered as plain text
+(`{description}`), not `dangerouslySetInnerHTML`, so the literal `<u>...</u>`
+wrapper characters were visible on the printed document instead of an
+underline. Re-fixed properly this time — `src/lib/tenderClauses.ts` clause 3
+now carries a `<submission email>` placeholder (own constant,
+`DEFAULT_SUBMISSION_EMAIL` in `src/lib/tenderConstants.ts`, fixed to
+`annielim@beautyone.com.sg`, not tied to any tender's PM). Rendering in
+`src/app/tenders/[id]/page.tsx`, `src/app/tenders/[id]/edit/page.tsx`, and
+`src/components/admin/BlankTenderTemplatePreview.tsx` now splits the clause
+text on that placeholder and wraps the email in a real `<u>` JSX element
+(not a raw HTML string) — renders underlined, no `dangerouslySetInnerHTML`,
+no risk of interpolated tender-name/date text being parsed as markup.
+
+`contract_template` version 3 deactivated, version 4 inserted with the
+corrected clause text, and all 23 tenders' `clauses` snapshot +
+`contract_template_id` refreshed to point at it — same "fix everywhere,
+including Awarded tenders" scope as the previous entry, per the same
+explicit user instruction. Verified: `SELECT count(*) FROM tender WHERE
+clauses::text ILIKE '%submission email%'` returns 23 (the clause stores the
+`<submission email>` placeholder token, not the resolved address — same
+pattern as the pre-existing `<tender title>`/`<date>` placeholders,
+substituted at render time).
+
 ## APPLIED — invitation-based tender interest: `tender_interest` invite
 ## columns + `tender_invitation_template` (applied 2026-08-21)
 
