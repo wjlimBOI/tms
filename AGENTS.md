@@ -98,6 +98,49 @@ Two data-access layers coexist by design, not by accident: Prisma Client (`src/l
 
 1. Functionality before aesthetics. 2. Architecture before shortcuts. 3. Reuse before creating new. 4. Consistency before creativity. 5. Accessibility mandatory. 6. Responsive mandatory. 7. Every async action needs a loading state. 8. Every action needs user feedback. 9. Shared features must be reusable. 10–11. Never duplicate business logic or UI components. 12. No page-specific styles without justification. 13. Preserve existing functionality. 14. Build for future expansion. 15. Leave the codebase cleaner than you found it. 17. If uncertain, inspect more before acting. 18. Every change must improve scalability, maintainability, usability, or performance — or it doesn't ship.
 
+## 11. Agent operating constraints
+
+These exist because of a real incident: an agent-driven commit (`ec9e8f1`)
+bundled a new feature, unrelated UI additions, and the deletion of a live,
+previously security-hardened upload route into one commit with a title that
+named only the additions — and rewrote this file's own security section to
+describe the deletion as settled fact, erasing the warning that had
+previously sat right next to that code (`tenders/upload` was flagged as
+"scaffolded-but-unfinished, not dead code to remove on sight"). It was
+caught by chance during an unrelated review, not by anything that flagged
+it. These rules apply to every AI agent working in this repo, not just the
+one that reads this section first.
+
+- **Never delete a file, route, database model/field, or exported function
+  without first stating, in the conversation, what you're deleting, why,
+  and what depends on it (or confirming nothing does) — and getting
+  explicit confirmation before proceeding.** This applies even when the
+  deletion is a small part of a larger task the user did ask for.
+- **Never reverse or remove a documented security fix, permission check,
+  or validation step without flagging it as a security-relevant change and
+  getting explicit confirmation first — even if it looks unused.** "No
+  callers found" is a reason to ask, not a license to act. Check
+  `docs/rbac.md` and this file's own §6 for prior fixes before touching
+  anything that looks like an auth/validation boundary.
+- **Never bundle unrelated changes into one commit.** One logical change
+  per commit, with a message that names everything the commit actually
+  does. If you can't summarize a commit in one accurate sentence, split it
+  before committing, not after.
+- **When a file or feature appears unused, say so and ask whether it
+  should be removed — don't treat "no callers found" as license to
+  delete it.** This codebase has real, intentional examples of
+  scaffolded-but-unwired features (e.g. the `approval_requests` runtime
+  side, `user/preferences/dashboard-layout`, `interest_document` — see
+  §6) that are unused pending later work, not dead code.
+- **After any git operation that deletes files or drops schema models,
+  summarize exactly what was removed and why, unprompted, before moving
+  on to anything else.** Don't let a deletion ride silently inside a
+  larger diff's summary.
+- If a task requires updating this file (or `docs/rbac.md`, `docs/*`) to
+  describe a change you just made, say explicitly that you're doing so and
+  why — don't let a doc edit quietly launder a decision that wasn't
+  actually made by the user.
+
 ---
 
 *Maintained alongside the codebase. If a rule here stops matching reality, that's a conversation with the project owner, not something an agent should quietly override.*
