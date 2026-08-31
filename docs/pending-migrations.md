@@ -175,16 +175,13 @@ actually blocked by this today — it's prep for whenever deployment happens.
 and the matching `DATABASE_URL?sslmode=verify-full` requirement from the
 section above, so neither gets missed at actual deploy time.
 
-## NOT YET APPLIED — internal team messaging (`conversation` /
-## `conversation_participant` / `message`) (added 2026-08-19)
+## APPLIED — internal team messaging (`conversation` /
+## `conversation_participant` / `message`) (applied 2026-08-19, confirmed 2026-08-19)
 
 New, independent internal DM/group-chat feature (`/messages` page) — fully
 separate from `tender_message`/`TenderMessagesPanel`, which stays untouched.
-`prisma/schema.prisma` has already been updated with the three new models;
-run this against the dev database, then `npx prisma db pull &&
-npx prisma generate` (stop `next dev` first to avoid the Windows `EPERM`
-lock issue on the generated client) and confirm `npx prisma validate`
-matches with no diff.
+Confirmed live: all three tables exist in the dev database and
+`npx prisma db pull` shows no drift against `schema.prisma`.
 
 Note the deliberate deviation on `conversation_participant`: it uses
 `ON DELETE CASCADE` on both FKs (unlike the rest of this schema, which
