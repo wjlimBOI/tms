@@ -14,7 +14,7 @@ import { query } from "@/lib/db";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { classifyDeviation, DEVIATION_THRESHOLD_PCT } from "@/lib/bqRateSummary";
 import { logInsert } from "@/lib/audit";
-import { canGenerateFinanceSummary } from "@/lib/permissions";
+import { canAccessSubmission, canGenerateFinanceSummary } from "@/lib/permissions";
 
 interface CategoryRow {
   category_id: number;
@@ -156,11 +156,20 @@ export async function GET(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as any).id;
   const roleIds = (session.user as any)?.roleIds || [];
-  if (!(await canGenerateFinanceSummary(userId, roleIds))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const hasRolePermission = await canGenerateFinanceSummary(userId, roleIds);
+  if (!hasRolePermission) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { submissionId } = await params;
   const subId = parseInt(submissionId);
   if (isNaN(subId)) return NextResponse.json({ error: "Invalid submission ID" }, { status: 400 });
+
+  const hasSubmissionAccess = await canAccessSubmission(subId, userId, roleIds);
+  if (!hasSubmissionAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const result = await query(
     `SELECT fbs.total_submitted, fbs.recommended_ceiling, fbs.category_breakdown, fbs.notes, fbs.created_at, fbs.updated_at
@@ -183,11 +192,20 @@ export async function POST(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as any).id;
   const roleIds = (session.user as any)?.roleIds || [];
-  if (!(await canGenerateFinanceSummary(userId, roleIds))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const hasRolePermission = await canGenerateFinanceSummary(userId, roleIds);
+  if (!hasRolePermission) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { submissionId } = await params;
   const subId = parseInt(submissionId);
   if (isNaN(subId)) return NextResponse.json({ error: "Invalid submission ID" }, { status: 400 });
+
+  const hasSubmissionAccess = await canAccessSubmission(subId, userId, roleIds);
+  if (!hasSubmissionAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const computed = await computeSummary(subId);
   if (!computed) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
