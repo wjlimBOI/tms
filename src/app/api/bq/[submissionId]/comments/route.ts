@@ -14,6 +14,7 @@ import { ROLE_IDS } from "@/lib/roles";
 import { createNotification } from "@/lib/notifications";
 import { sanitize } from "@/lib/sanitize";
 import { logInsert } from "@/lib/audit";
+import { canAccessSubmission } from "@/lib/permissions";
 
 const createSchema = z.object({
   comment_body: z.string().min(1).max(4000),
@@ -41,12 +42,21 @@ export async function GET(
     return NextResponse.json({ error: "Invalid submission ID" }, { status: 400 });
   }
 
-  const subRes = await query(`SELECT contractor_id FROM tender_submission WHERE submission_id = $1 AND is_deleted = false`, [subId]);
+  const subRes = await query(
+    `SELECT tender_id, contractor_id
+     FROM tender_submission
+     WHERE submission_id = $1 AND is_deleted = false`,
+    [subId]
+  );
   if (subRes.rows.length === 0) {
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
   }
-  const ownsSubmission = isContractor && subRes.rows[0].contractor_id === userId;
-  if (isContractor && !ownsSubmission) {
+  const submission = subRes.rows[0];
+  const ownsSubmission = submission.contractor_id === userId;
+  const canReadSubmission = isContractor
+    ? ownsSubmission
+    : await canAccessSubmission(subId, userId, roleIds);
+  if (!canReadSubmission) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -124,6 +134,11 @@ export async function POST(
     return NextResponse.json({ error: "Invalid submission ID" }, { status: 400 });
   }
 
+  const canAccess = await canAccessSubmission(subId, userId, roleIds);
+  if (!canAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   let body;
   try {
     body = await request.json();
@@ -137,7 +152,7 @@ export async function POST(
   const { visible_to_contractor, requires_action, line_item_id } = validation.data;
   const commentBody = sanitize(validation.data.comment_body);
 
-  const subRes = await query(
+  const detailRes = await query(
     `SELECT ts.contractor_id, ts.bq_name, t.tender_id, t.tender_name, u.email AS contractor_email, u.username AS contractor_username
      FROM tender_submission ts
      JOIN tender t ON t.tender_id = ts.tender_id
@@ -145,10 +160,10 @@ export async function POST(
      WHERE ts.submission_id = $1 AND ts.is_deleted = false`,
     [subId]
   );
-  if (subRes.rows.length === 0) {
+  if (detailRes.rows.length === 0) {
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
   }
-  const sub = subRes.rows[0];
+  const sub = detailRes.rows[0];
 
   const itemRes = await query(
     `SELECT description FROM bq_line_item WHERE line_item_id = $1 AND submission_id = $2`,

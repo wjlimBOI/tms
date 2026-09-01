@@ -177,6 +177,25 @@ export async function canViewTenderWithParticipation(
   return participation.rows.length > 0;
 }
 
+export async function canAccessSubmission(
+  submissionId: number,
+  userId: number,
+  roleIds: number | number[]
+): Promise<boolean> {
+  const result = await pool.query(
+    `SELECT tender_id, contractor_id
+     FROM tender_submission
+     WHERE submission_id = $1 AND is_deleted = false`,
+    [submissionId]
+  );
+  if (result.rows.length === 0) return false;
+
+  const { tender_id: tenderId, contractor_id: contractorId } = result.rows[0];
+  if (contractorId === userId) return true;
+
+  return canViewTenderWithParticipation(tenderId, userId, roleIds);
+}
+
 export async function hasContractorParticipated(tenderId: number, contractorId: number): Promise<boolean> {
   const result = await pool.query(
     `SELECT 1 FROM tender_submission WHERE tender_id = $1 AND contractor_id = $2 AND is_deleted = false
