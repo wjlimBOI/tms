@@ -1,6 +1,7 @@
 // lib/permissions.ts
 import pool from "./db";
 import { ROLE_IDS, isSuperUser, isSuperViewer } from "./roles";
+import { FINANCE_SENIOR_GM_EMAIL } from "./tenderConstants";
 
 // Helper to ensure roleIds is an array (for when a single number is passed)
 function normalizeRoleIds(roleIds: number | number[] | undefined): number[] {
@@ -180,8 +181,10 @@ export async function canViewTenderWithParticipation(
 export async function canAccessSubmission(
   submissionId: number,
   userId: number,
-  roleIds: number | number[]
+  roleIds: number | number[],
+  options?: { userEmail?: string | null; forFinance?: boolean }
 ): Promise<boolean> {
+  // Fetch basic submission ownership info
   const result = await pool.query(
     `SELECT tender_id, contractor_id
      FROM tender_submission
@@ -189,10 +192,23 @@ export async function canAccessSubmission(
     [submissionId]
   );
   if (result.rows.length === 0) return false;
-
   const { tender_id: tenderId, contractor_id: contractorId } = result.rows[0];
+
+  // Owner always has access
   if (contractorId === userId) return true;
 
+  // Finance-specific branch (used only by finance-summary route when
+  // options?.forFinance === true). This enforces the tightened rule:
+  // Admins (isSuperUser) OR the FINANCE_SENIOR_GM_EMAIL may access.
+  if (options?.forFinance) {
+    const roles = normalizeRoleIds(roleIds);
+    if (isSuperUser(roles)) return true;
+    const userEmail = options.userEmail;
+    if (!userEmail) return false;
+    return userEmail.toLowerCase() === FINANCE_SENIOR_GM_EMAIL.toLowerCase();
+  }
+
+  // Default (non-finance) behaviour: fall back to existing tender participation check
   return canViewTenderWithParticipation(tenderId, userId, roleIds);
 }
 

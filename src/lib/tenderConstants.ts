@@ -18,4 +18,7 @@ export const DEFAULT_CONTACT_PHONE = DEFAULT_COMPANY_TEL;
 // enquiry email above. Clause 3 ("Submission of Tender") always routes here
 // regardless of which PM is assigned to the tender; clause 4 ("Tender
 // Enquiries") uses the per-tender PM email instead.
+// The submission mailbox and the Finance Senior GM currently use the same address.
+// Keep them as separate constants so these roles can be changed independently in future.
 export const DEFAULT_SUBMISSION_EMAIL = "annielim@beautyone.com.sg";
+export const FINANCE_SENIOR_GM_EMAIL = "annielim@beautyone.com.sg";

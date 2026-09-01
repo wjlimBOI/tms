@@ -166,7 +166,8 @@ export async function GET(
   const subId = parseInt(submissionId);
   if (isNaN(subId)) return NextResponse.json({ error: "Invalid submission ID" }, { status: 400 });
 
-  const hasSubmissionAccess = await canAccessSubmission(subId, userId, roleIds);
+  const sessionUserEmail = (session.user as any)?.email || null;
+  const hasSubmissionAccess = await canAccessSubmission(subId, userId, roleIds, { userEmail: sessionUserEmail, forFinance: true });
   if (!hasSubmissionAccess) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -202,7 +203,8 @@ export async function POST(
   const subId = parseInt(submissionId);
   if (isNaN(subId)) return NextResponse.json({ error: "Invalid submission ID" }, { status: 400 });
 
-  const hasSubmissionAccess = await canAccessSubmission(subId, userId, roleIds);
+  const sessionUserEmail = (session.user as any)?.email || null;
+  const hasSubmissionAccess = await canAccessSubmission(subId, userId, roleIds, { userEmail: sessionUserEmail, forFinance: true });
   if (!hasSubmissionAccess) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
