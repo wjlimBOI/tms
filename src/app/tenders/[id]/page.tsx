@@ -38,7 +38,7 @@ import { computeDlpExpiry, getDlpStatus } from "@/lib/dlp";
 import { getDlpStatusBadgeStyle, getDlpStatusLabel, getTenderStatusLabel, getTenderStatusStyles } from "@/lib/statusColors";
 import { SignaturePad } from "@/components/tenders/SignaturePad";
 import { CompanyStampUpload } from "@/components/tenders/CompanyStampUpload";
-import TenderMessagesPanel from "@/components/tenders/TenderMessagesPanel";
+import TenderContactPanel from "@/components/tenders/TenderContactPanel";
 import AgreementAcknowledgementModal from "@/components/tenders/AgreementAcknowledgementModal";
 import TenderDocumentsPanel from "@/components/tenders/TenderDocumentsPanel";
 import TenderBqsPanel from "@/components/tenders/TenderBqsPanel";
@@ -884,7 +884,7 @@ export default function TenderDocumentPage() {
           </div>
         </div>
 
-        {/* Contractor status banner — explains document/chat access instead
+        {/* Contractor status banner — explains document access instead
             of leaving hidden panels unexplained (2026-08-10) */}
         {isContractor && tender && (
           <div className="print:hidden mb-6">
@@ -892,13 +892,13 @@ export default function TenderDocumentPage() {
               <StatusBanner
                 variant="locked"
                 title="This tender has been awarded"
-                message="Document access has closed for everyone. Messaging remains available only to the awarded contractor — for anything else, please contact us by email or phone."
+                message="Document access has closed for everyone. For anything else, please contact us by email or phone."
               />
             ) : (tender.stage ?? 0) === 2 ? (
               <StatusBanner
                 variant="warning"
                 title="This tender is closed for submissions"
-                message="Our team is reviewing submitted quotes and may reach out to negotiate. Document access has closed, but messaging remains available until an award decision is made."
+                message="Our team is reviewing submitted quotes and may reach out to negotiate. Document access has closed for everyone. For anything else, please contact us by email or phone."
               />
             ) : null}
           </div>
@@ -1150,12 +1150,9 @@ export default function TenderDocumentPage() {
               </nav>
             </div>
 
-            {/* Messages sits directly under Contents and travels with it,
-                so contractors can ask a question without hunting for the
-                panel further down the page. */}
             {tender && (
               <div className="md:max-h-[calc(100vh-14rem)] md:overflow-y-auto">
-                <TenderMessagesPanel tenderId={tender.tender_id} tenderName={tender.tender_name} />
+                <TenderContactPanel tenderId={tender.tender_id} tenderName={tender.tender_name} />
               </div>
             )}
           </aside>
