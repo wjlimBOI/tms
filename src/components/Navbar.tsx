@@ -37,25 +37,9 @@ function notificationIcon(title: string): string {
   return "🔔";
 }
 
-interface RecentMessage {
-  tender_id: number;
-  tender_name: string;
-  sender_name: string;
-  is_announcement: boolean;
-  preview: string;
-  created_at: string;
-  link: string;
-}
-
 const IconBell = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
-  </svg>
-);
-
-const IconInbox = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
   </svg>
 );
 
@@ -79,7 +63,6 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotiOpen, setIsNotiOpen] = useState(false);
-  const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ tenders: SearchResult[]; bqs: SearchResult[] }>({
     tenders: [],
@@ -88,7 +71,6 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [notiItems, setNotiItems] = useState<NotificationItem[]>([]);
-  const [msgItems, setMsgItems] = useState<RecentMessage[]>([]);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   const [isMobileSearchExpanded, setIsMobileSearchExpanded] = useState(false);
   const [searchType, setSearchType] = useState<"all" | "tender" | "bq">("all");
@@ -97,7 +79,6 @@ export default function Navbar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const notiRef = useRef<HTMLDivElement>(null);
-  const inboxRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimer = useRef<number | undefined>(undefined);
@@ -160,24 +141,6 @@ export default function Navbar() {
     fetchNotifications();
   }, [isLoggedIn, fetchNotifications]);
 
-  const fetchRecentMessages = useCallback(async () => {
-    try {
-      const res = await fetch("/api/messages/recent");
-      if (!res.ok) return;
-      const data = await res.json();
-      setMsgItems(data.data || []);
-    } catch {
-      // ignore — best-effort inbox feed
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    fetchRecentMessages();
-    const interval = setInterval(fetchRecentMessages, 30000);
-    return () => clearInterval(interval);
-  }, [isLoggedIn, fetchRecentMessages]);
-
   const fetchPendingApprovals = useCallback(async () => {
     try {
       const res = await fetch("/api/approval/request/pending");
@@ -202,7 +165,6 @@ export default function Navbar() {
       if (menuRef.current && !menuRef.current.contains(t) && !menuBtnRef.current?.contains(t)) setIsMenuOpen(false);
       if (profileRef.current && !profileRef.current.contains(t)) setIsProfileOpen(false);
       if (notiRef.current && !notiRef.current.contains(t)) setIsNotiOpen(false);
-      if (inboxRef.current && !inboxRef.current.contains(t)) setIsInboxOpen(false);
       if (searchRef.current && !searchRef.current.contains(t) && !isMobileSearchExpanded) setIsSearchOpen(false);
     };
     const handleEscape = (e: KeyboardEvent) => {
@@ -210,7 +172,6 @@ export default function Navbar() {
       setIsMenuOpen(false);
       setIsProfileOpen(false);
       setIsNotiOpen(false);
-      setIsInboxOpen(false);
       setIsSearchOpen(false);
     };
     document.addEventListener("mousedown", handleOutside);
@@ -221,11 +182,10 @@ export default function Navbar() {
     };
   }, [isMobileSearchExpanded]);
 
-  const closeAll = (except?: "menu" | "profile" | "noti" | "inbox") => {
+  const closeAll = (except?: "menu" | "profile" | "noti") => {
     if (except !== "menu") setIsMenuOpen(false);
     if (except !== "profile") setIsProfileOpen(false);
     if (except !== "noti") setIsNotiOpen(false);
-    if (except !== "inbox") setIsInboxOpen(false);
   };
 
   const userName = session?.user?.name || "User";
@@ -288,7 +248,6 @@ export default function Navbar() {
     eye:       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0Z" /></svg>,
     profile:   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0ZM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>,
     signout:   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" /></svg>,
-    inbox:     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" /></svg>,
   };
 
   // Loading state
@@ -459,59 +418,6 @@ export default function Navbar() {
                 </Link>
               )}
 
-              <div className="relative" ref={inboxRef}>
-                <button
-                  onClick={() => { closeAll("inbox"); setIsInboxOpen((o) => !o); }}
-                  className="relative p-2 rounded-lg text-gray-500 hover:text-[#15406a] hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#15406a]/50"
-                  aria-label="Messages"
-                  aria-expanded={isInboxOpen}
-                  aria-haspopup="true"
-                  aria-controls="navbar-inbox-panel"
-                >
-                  <IconInbox />
-                </button>
-                {isInboxOpen && (
-                  <div id="navbar-inbox-panel" className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-semibold text-gray-800">Messages</p>
-                      <p className="text-[11px] text-gray-400">Recent activity across your tenders</p>
-                    </div>
-                    <div className="max-h-72 overflow-y-auto divide-y divide-gray-50">
-                      {msgItems.length === 0 ? (
-                        <p className="px-4 py-6 text-center text-xs text-gray-400">No messages yet.</p>
-                      ) : (
-                        msgItems.map((m, idx) => (
-                          <button
-                            key={`${m.tender_id}-${m.created_at}-${idx}`}
-                            onClick={() => { setIsInboxOpen(false); router.push(m.link); }}
-                            className="w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-xs font-semibold text-gray-800 truncate">{m.sender_name}</p>
-                                <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">{relativeTime(m.created_at)}</span>
-                              </div>
-                              <p className="text-[11px] text-gray-500 truncate">{m.tender_name}</p>
-                              <p className="text-xs text-gray-500 mt-0.5 truncate">{m.preview}</p>
-                              {m.is_announcement && (
-                                <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700">Announcement</span>
-                              )}
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { setIsInboxOpen(false); router.push("/messages"); }}
-                      className="w-full px-4 py-2.5 text-center text-xs font-semibold text-[#15406a] border-t border-gray-100 hover:bg-slate-50 transition-colors"
-                    >
-                      See all messages
-                    </button>
-                  </div>
-                )}
-              </div>
-
               <div className="relative" ref={notiRef}>
                 <button
                   onClick={() => { closeAll("noti"); setIsNotiOpen((o) => !o); }}
@@ -635,7 +541,6 @@ export default function Navbar() {
           <SectionLabel>Workspace</SectionLabel>
           <NavLink href="/tenders" icon={icons.tender}>Tenders</NavLink>
           {!isAdmin && <NavLink href="/bq/my" icon={icons.building}>Bill of Quantities</NavLink>}
-          <NavLink href="/messages" icon={icons.inbox}>Messages</NavLink>
 
           {isContractor && (
             <>

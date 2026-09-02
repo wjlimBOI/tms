@@ -131,23 +131,6 @@ export const tenderMessageSchema = z.object({
 });
 
 // ===========================================
-// TEAM MESSAGING SCHEMA
-// ===========================================
-export const directMessageSchema = z.object({
-  body: z.string().min(1).max(4000),
-});
-
-export const createConversationSchema = z.object({
-  participant_user_ids: z.array(z.number().int().positive()).min(1).max(50),
-  title: z.string().min(1).max(150).optional().nullable(),
-});
-
-export const messagesDirectorySchema = z.object({
-  search: z.string().min(1).max(100),
-  limit: z.coerce.number().int().positive().max(50).default(20),
-});
-
-// ===========================================
 // TENDER LIST QUERY SCHEMA
 // ===========================================
 export const tenderListQuerySchema = z.object({
