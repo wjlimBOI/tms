@@ -10,11 +10,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { z } from "zod";
-import { ROLE_IDS } from "@/lib/roles";
+import { ROLE_IDS, isSuperUser } from "@/lib/roles";
 import { createNotification } from "@/lib/notifications";
 import { sanitize } from "@/lib/sanitize";
 import { logInsert } from "@/lib/audit";
-import { canAccessSubmission } from "@/lib/permissions";
 
 const createSchema = z.object({
   comment_body: z.string().min(1).max(4000),
@@ -22,6 +21,31 @@ const createSchema = z.object({
   requires_action: z.boolean().default(false),
   line_item_id: z.number().int().positive(),
 });
+
+async function canAccessSubmissionComments(
+  tenderId: number,
+  submissionOwnerId: number,
+  userId: number,
+  userEmail: string | null | undefined,
+  roleIds: number | number[]
+): Promise<boolean> {
+  const rolesArr = Array.isArray(roleIds) ? roleIds : roleIds != null ? [roleIds] : [];
+
+  if (submissionOwnerId === userId) return true;
+  if (isSuperUser(rolesArr)) return true;
+  if (!rolesArr.includes(ROLE_IDS.PROJECT_MANAGER) && !rolesArr.includes(ROLE_IDS.SENIOR_PROJECT_MANAGER)) {
+    return false;
+  }
+  if (!userEmail) return false;
+
+  const tenderRes = await query(
+    `SELECT project_manager_email FROM tender WHERE tender_id = $1 AND is_deleted = false`,
+    [tenderId]
+  );
+  if (tenderRes.rows.length === 0 || !tenderRes.rows[0].project_manager_email) return false;
+
+  return tenderRes.rows[0].project_manager_email.toLowerCase() === userEmail.toLowerCase();
+}
 
 // ---------- GET — list comments for a submission ----------
 export async function GET(
@@ -53,11 +77,23 @@ export async function GET(
   }
   const submission = subRes.rows[0];
   const ownsSubmission = submission.contractor_id === userId;
-  const canReadSubmission = isContractor
-    ? ownsSubmission
-    : await canAccessSubmission(subId, userId, roleIds);
-  if (!canReadSubmission) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // Contractors may only read their own submission
+  if (isContractor) {
+    if (!ownsSubmission) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else {
+    const canReadSubmission = await canAccessSubmissionComments(
+      submission.tender_id,
+      submission.contractor_id,
+      userId,
+      (session.user as any)?.email || null,
+      roleIds
+    );
+    if (!canReadSubmission) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const visibilityClause = isContractor ? `AND rc.visible_to_contractor = true` : "";
@@ -134,7 +170,22 @@ export async function POST(
     return NextResponse.json({ error: "Invalid submission ID" }, { status: 400 });
   }
 
-  const canAccess = await canAccessSubmission(subId, userId, roleIds);
+  const subDetailRes = await query(
+    `SELECT tender_id, contractor_id FROM tender_submission WHERE submission_id = $1 AND is_deleted = false`,
+    [subId]
+  );
+  if (subDetailRes.rows.length === 0) {
+    return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+  }
+  const submissionOwnerId = subDetailRes.rows[0].contractor_id;
+  const tenderId = subDetailRes.rows[0].tender_id;
+  const canAccess = await canAccessSubmissionComments(
+    tenderId,
+    submissionOwnerId,
+    userId,
+    (session.user as any)?.email || null,
+    roleIds
+  );
   if (!canAccess) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
